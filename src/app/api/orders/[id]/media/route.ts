@@ -1,0 +1,167 @@
+import { NextResponse } from 'next/server';
+import { getSessionUser } from '@/lib/auth/jwt';
+import { db } from '@/lib/db';
+import { orders, orderMedia, orderTimelineEvents, auditLogs } from '@/lib/db/schema';
+import { googleDriveService } from '@/lib/services/googleDrive';
+import { fcmService } from '@/lib/services/fcm';
+import { eq, desc } from 'drizzle-orm';
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const mediaList = await db
+    .select()
+    .from(orderMedia)
+    .where(eq(orderMedia.orderId, id))
+    .orderBy(desc(orderMedia.uploadedAt));
+
+  return NextResponse.json({ media: mediaList });
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  // Super Admin or staff with media/orders permission
+  if (
+    sessionUser.role !== 'super_admin' &&
+    !sessionUser.permissions.includes('media') &&
+    !sessionUser.permissions.includes('orders')
+  ) {
+    return NextResponse.json({ error: 'Permission denied to upload order media.' }, { status: 403 });
+  }
+
+  const [order] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+  if (!order) {
+    return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+  }
+
+  try {
+    const contentType = request.headers.get('content-type') || '';
+    let mediaType: 'photo' | 'video' | 'drawing' | 'document' = 'photo';
+    let title = 'Artisan Workshop Snapshot';
+    let stage = order.productionStage || 'wood_cutting';
+    let fileUrl = '';
+    let gdriveId = '';
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File | null;
+      title = (formData.get('title') as string) || 'Workshop Progress Media';
+      stage = (formData.get('stage') as string) || order.productionStage;
+      mediaType = ((formData.get('mediaType') as string) as 'photo' | 'video') || 'photo';
+
+      if (!file) {
+        return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
+      }
+
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
+      mediaType = isVideo ? 'video' : 'photo';
+
+      // Upload to Google Drive Service
+      const uploadResult = await googleDriveService.uploadBuffer(buffer, file.name, file.type);
+      fileUrl = uploadResult.webViewLink || '';
+      gdriveId = uploadResult.id;
+    } else {
+      // JSON body (for direct URL / camera snapshot / demo)
+      const body = await request.json();
+      title = body.title || 'Artisan Workshop Milestone';
+      stage = body.stage || order.productionStage;
+      mediaType = body.mediaType || 'photo';
+      fileUrl = body.url;
+      gdriveId = body.googleDriveId || `gdrive_${Date.now()}`;
+
+      if (!fileUrl) {
+        return NextResponse.json({ error: 'Media URL is required.' }, { status: 400 });
+      }
+    }
+
+    const mediaId = `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const now = new Date().toISOString();
+
+    // 1. Insert media record
+    await db.insert(orderMedia).values({
+      id: mediaId,
+      orderId: id,
+      customerId: order.customerId,
+      googleDriveFileId: gdriveId,
+      fileName: `${title.replace(/\s+/g, '_')}.${mediaType === 'video' ? 'mp4' : 'jpg'}`,
+      mimeType: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
+      fileSize: 1024 * 1024 * 2,
+      mediaType,
+      title,
+      description: `Workshop photographic proof for milestone ${stage}.`,
+      stage,
+      thumbnailUrl: fileUrl,
+      webViewLink: fileUrl,
+      webContentLink: fileUrl,
+      uploadedBy: sessionUser.name,
+      uploadedAt: now,
+      isPublic: 0,
+    });
+
+    // 2. Add timeline event
+    await db.insert(orderTimelineEvents).values({
+      id: `tl_${Date.now()}_media`,
+      orderId: id,
+      title: `New Production ${mediaType === 'video' ? 'Video' : 'Photograph'} Uploaded`,
+      description: `Artisan uploaded visual proof for stage [${stage}]: "${title}"`,
+      stage,
+      eventType: 'production',
+      performedBy: sessionUser.name,
+      createdAt: now,
+    });
+
+    // 3. Notify customer
+    await fcmService.sendNotification({
+      userId: order.customerId,
+      title: `New ${mediaType === 'video' ? 'Video' : 'Photo'} for Order ${order.orderNumber}`,
+      message: `A new workshop ${mediaType} "${title}" has been uploaded to your order portal.`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
+
+    // 4. Audit log
+    await db.insert(auditLogs).values({
+      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: sessionUser.id,
+      userName: sessionUser.name,
+      action: 'UPLOAD_ORDER_MEDIA',
+      details: `Uploaded ${mediaType} "${title}" for order [${order.orderNumber}] to 5TB Cloud Vault.`,
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+      createdAt: now,
+    });
+
+    return NextResponse.json({
+      success: true,
+      media: {
+        id: mediaId,
+        orderId: id,
+        mediaType,
+        title,
+        url: fileUrl,
+        stage,
+        uploadedAt: now,
+      },
+    });
+  } catch (error) {
+    console.error('Media upload error:', error);
+    return NextResponse.json({ error: 'Failed to upload media.' }, { status: 500 });
+  }
+}
+
