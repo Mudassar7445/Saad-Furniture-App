@@ -21,6 +21,14 @@ if (!rawUrl.startsWith('https://') && !rawUrl.startsWith('http://') && !rawUrl.s
 let rawToken = (process.env.TURSO_AUTH_TOKEN || DEFAULT_TURSO_TOKEN).trim();
 rawToken = rawToken.replace(/^['"]|['"]$/g, '');
 
+// Auto-repair token if 'ey' prefix was accidentally omitted when copy-pasting into Vercel
+if (!rawToken.startsWith('ey') && rawToken.startsWith('JhbGci')) {
+  rawToken = 'ey' + rawToken;
+}
+if (!rawToken || !rawToken.startsWith('ey')) {
+  rawToken = DEFAULT_TURSO_TOKEN;
+}
+
 export const client = createClient({
   url: rawUrl,
   authToken: rawToken,
