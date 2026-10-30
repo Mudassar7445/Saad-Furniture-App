@@ -34,17 +34,19 @@ import {
   HardDrive,
   Send,
   Eye,
-  Activity
+  Activity,
+  ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { OnlineOrdersModule } from '@/components/admin/OnlineOrdersModule';
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeModule, setActiveModule] = useState<
-    'overview' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity'
+    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity'
   >('overview');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -552,7 +554,8 @@ export default function SuperAdminDashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Executive Overview', icon: Layers },
-    { id: 'orders', label: 'Order Management', icon: Package, count: ordersList.length },
+    { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
+    { id: 'orders', label: 'Showroom Commissions', icon: Package, count: ordersList.filter((o) => o.orderType !== 'online').length },
     { id: 'deliveries', label: 'Logistics & Deliveries', icon: Truck, count: deliveriesList.length },
     { id: 'ledger', label: 'Financial Ledgers', icon: CreditCard, count: ledgersData?.customers?.length || 0 },
     { id: 'inquiries', label: 'Custom Inquiries', icon: Send, count: inquiriesList.filter((i) => i.status === 'pending').length },
@@ -722,6 +725,9 @@ export default function SuperAdminDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* 0. MODULE: ONLINE E-COMMERCE ORDERS */}
+        {activeModule === 'online_orders' && <OnlineOrdersModule />}
 
         {/* 1. MODULE: EXECUTIVE OVERVIEW */}
         {activeModule === 'overview' && (() => {

@@ -15,6 +15,7 @@ import {
   settings,
   notifications,
   notificationPreferences,
+  coupons,
 } from './schema';
 import { eq } from 'drizzle-orm';
 
@@ -634,5 +635,37 @@ export async function seedDatabase() {
     },
   ]);
 
-  console.log('✅ Saad Furniture Database fully seeded with complete 18-table architecture!');
+  // Seed coupons
+  try {
+    await db.insert(coupons).values([
+      {
+        id: 'cpn_saad10',
+        code: 'SAAD10',
+        discountType: 'percentage',
+        discountValue: 10,
+        minOrderAmount: 1000,
+        maxDiscountAmount: 500,
+        validUntil: '2028-12-31',
+        usageLimit: 500,
+        usedCount: 0,
+        isActive: 1,
+        createdAt: '2026-10-01T00:00:00Z',
+      },
+      {
+        id: 'cpn_welcome100',
+        code: 'WELCOME100',
+        discountType: 'fixed',
+        discountValue: 100,
+        minOrderAmount: 800,
+        maxDiscountAmount: 100,
+        validUntil: '2028-12-31',
+        usageLimit: 500,
+        usedCount: 0,
+        isActive: 1,
+        createdAt: '2026-10-01T00:00:00Z',
+      },
+    ]);
+  } catch {}
+
+  console.log('✅ Saad Furniture Database fully seeded with complete 26-table architecture!');
 }

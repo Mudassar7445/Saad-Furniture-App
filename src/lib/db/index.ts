@@ -383,6 +383,127 @@ export async function initializeDatabase() {
         website_announcement_banner TEXT DEFAULT 'Welcome to Saad Furniture – Handcrafted Luxury for Discerning Spaces.'
       );
     `);
+
+    // Safe column migrations for orders table
+    try { await client.execute(`ALTER TABLE orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'showroom';`); } catch {}
+    try { await client.execute(`ALTER TABLE orders ADD COLUMN payment_method TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'unpaid';`); } catch {}
+    try { await client.execute(`ALTER TABLE orders ADD COLUMN payment_transaction_id TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE orders ADD COLUMN bank_receipt_url TEXT;`); } catch {}
+
+    // E-Commerce Tables
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS shopping_carts (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        session_token TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS cart_items (
+        id TEXT PRIMARY KEY,
+        cart_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        selected_colour TEXT,
+        selected_design TEXT,
+        custom_notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS wishlists (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS customer_addresses (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT 'Home',
+        recipient_name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        address TEXT NOT NULL,
+        city TEXT NOT NULL,
+        area TEXT,
+        postal_code TEXT,
+        is_default INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS payment_transactions (
+        id TEXT PRIMARY KEY,
+        order_id TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        gateway TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        status TEXT NOT NULL DEFAULT 'initiated',
+        gateway_transaction_ref TEXT,
+        gateway_response TEXT,
+        created_at TEXT NOT NULL,
+        verified_at TEXT
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS bank_transfer_receipts (
+        id TEXT PRIMARY KEY,
+        order_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        bank_name TEXT NOT NULL,
+        sender_account_title TEXT NOT NULL,
+        sender_account_number TEXT,
+        transaction_reference TEXT NOT NULL,
+        amount_paid REAL NOT NULL,
+        receipt_image_url TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        review_notes TEXT,
+        reviewed_by TEXT,
+        reviewed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id TEXT PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        discount_type TEXT NOT NULL DEFAULT 'percentage',
+        discount_value REAL NOT NULL,
+        min_order_amount REAL NOT NULL DEFAULT 0,
+        max_discount_amount REAL,
+        valid_until TEXT,
+        usage_limit INTEGER NOT NULL DEFAULT 100,
+        used_count INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS product_reviews (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        comment TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+
     isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);

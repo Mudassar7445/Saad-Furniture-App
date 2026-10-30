@@ -24,7 +24,8 @@ import {
   MessageSquare,
   Sparkles,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Heart,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -37,13 +38,24 @@ export default function CustomerPortalPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'active' | 'history' | 'payments' | 'media' | 'products'>('active');
+  const [activeTab, setActiveTab] = useState<
+    'active' | 'online_orders' | 'history' | 'wishlist' | 'addresses' | 'profile' | 'payments' | 'media' | 'products'
+  >('active');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
   const [activeMediaModal, setActiveMediaModal] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifModal, setShowNotifModal] = useState(false);
+
+  // E-Commerce states for patron
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [addressesList, setAddressesList] = useState<any[]>([]);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [newAddressForm, setNewAddressForm] = useState({ title: 'Home', recipientName: '', phone: '', address: '', city: 'Lahore', area: '', postalCode: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', phone: '', address: '', city: '', currentPassword: '', newPassword: '' });
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [profileErr, setProfileErr] = useState<string | null>(null);
 
   // Showroom Catalogue & Inquiries
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -86,6 +98,36 @@ export default function CustomerPortalPage() {
       setMetrics(custData.metrics);
       setOrders(custData.orders || []);
       setPayments(custData.payments || []);
+
+      if (custData.customer) {
+        setProfileForm({
+          name: custData.customer.name || '',
+          phone: custData.customer.phone || '',
+          address: custData.customer.address || '',
+          city: custData.customer.city || '',
+          currentPassword: '',
+          newPassword: '',
+        });
+      }
+
+      // Fetch wishlist
+      fetch('/api/wishlist')
+        .then((r) => r.json())
+        .then((d) => setWishlistItems(d.items || []))
+        .catch(() => {});
+
+      // Fetch addresses
+      fetch('/api/customer/addresses')
+        .then((r) => r.json())
+        .then((d) => setAddressesList(d.addresses || []))
+        .catch(() => {});
+
+      // Read ?tab= from URL
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) setActiveTab(tab as any);
+      }
 
       if (custData.orders && custData.orders.length > 0) {
         // Find active order or default to first
@@ -169,6 +211,72 @@ export default function CustomerPortalPage() {
       console.error(e);
     } finally {
       setInquirySubmitting(false);
+    }
+  };
+
+  const handleCreateAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/customer/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAddressForm),
+      });
+      if (res.ok) {
+        setShowAddAddressModal(false);
+        setNewAddressForm({ title: 'Home', recipientName: '', phone: '', address: '', city: 'Lahore', area: '', postalCode: '' });
+        const ref = await fetch('/api/customer/addresses');
+        if (ref.ok) {
+          const d = await ref.json();
+          setAddressesList(d.addresses || []);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteAddress = async (addrId: string) => {
+    try {
+      await fetch(`/api/customer/addresses?id=${addrId}`, { method: 'DELETE' });
+      setAddressesList((prev) => prev.filter((a) => a.id !== addrId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveFromWishlist = async (prodId: string) => {
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: prodId }),
+      });
+      setWishlistItems((prev) => prev.filter((w) => w.productId !== prodId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileMsg(null);
+    setProfileErr(null);
+    try {
+      const res = await fetch('/api/customer/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setProfileErr(data.error || 'Failed to update profile');
+      } else {
+        setProfileMsg('Your profile & security settings have been successfully updated!');
+        setProfileForm((prev) => ({ ...prev, currentPassword: '', newPassword: '' }));
+      }
+    } catch (err: any) {
+      setProfileErr(err.message || 'Error updating profile');
     }
   };
 
@@ -410,46 +518,86 @@ export default function CustomerPortalPage() {
         <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('active')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'active'
-                ? 'bg-[#c5a880] text-slate-950 shadow-md'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            🔨 Active Order & Milestone Tracker ({activeOrders.length})
+            🔨 Active Tracker ({activeOrders.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('online_orders')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              activeTab === 'online_orders'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            🛍️ Online Purchases ({orders.filter((o) => o.orderType === 'online').length})
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'history'
-                ? 'bg-[#c5a880] text-slate-950 shadow-md'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            📋 Complete Order History ({orders.length})
+            📋 Showroom Commissions ({orders.filter((o) => o.orderType !== 'online').length})
+          </button>
+          <button
+            onClick={() => setActiveTab('wishlist')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              activeTab === 'wishlist'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            💖 Saved Wishlist ({wishlistItems.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('addresses')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              activeTab === 'addresses'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            📍 Saved Addresses ({addressesList.length})
           </button>
           <button
             onClick={() => setActiveTab('payments')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'payments'
-                ? 'bg-[#c5a880] text-slate-950 shadow-md'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            💳 Payment Ledger & Official Receipts ({payments.length})
+            💳 Ledger & Receipts ({payments.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              activeTab === 'profile'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            👤 Profile & Security
           </button>
           <button
             onClick={() => {
               setActiveTab('products');
               if (productsList.length === 0) loadProducts();
             }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'products'
-                ? 'bg-[#c5a880] text-slate-950 shadow-md'
+                ? 'bg-[#c5a880] text-slate-950 shadow-md font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            🛋️ Luxury Showroom Catalogue & Inquiries
+            🛋️ Showroom Catalogue
           </button>
         </div>
 
@@ -734,6 +882,343 @@ export default function CustomerPortalPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 1.5: ONLINE STORE PURCHASES */}
+        {activeTab === 'online_orders' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-white">Online Store Purchases</h3>
+                <p className="text-xs text-slate-400">
+                  Products acquired directly online through the Saad Furniture Atelier Store
+                </p>
+              </div>
+              <Link href="/#shop-section">
+                <Button variant="gold" size="sm" className="text-xs">
+                  + Browse Catalogue
+                </Button>
+              </Link>
+            </div>
+
+            {orders.filter((o) => o.orderType === 'online').length === 0 ? (
+              <div className="text-center py-16 bg-[#131720] rounded-2xl border border-white/5 text-slate-400 space-y-3">
+                <Package className="w-12 h-12 text-[#c5a880]/50 mx-auto" />
+                <h3 className="text-base font-serif text-white">No online orders yet</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Browse our curated collections of sofas, beds, center tables, and wardrobes for instant online placement.
+                </p>
+                <Link href="/#shop-section">
+                  <Button variant="gold" size="sm">Explore Online Store</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {orders
+                  .filter((o) => o.orderType === 'online')
+                  .map((ord) => (
+                    <div
+                      key={ord.id}
+                      className="p-5 rounded-2xl bg-[#141822] border border-white/10 hover:border-[#c5a880]/40 transition-all space-y-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-mono font-bold block">
+                            #{ord.orderNumber}
+                          </span>
+                          <h4 className="text-sm font-serif font-bold text-white mt-0.5">
+                            {ord.productName}
+                          </h4>
+                          <span className="text-[11px] text-slate-500">
+                            Placed on {new Date(ord.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <Badge
+                          variant={
+                            ord.orderStatus === 'delivered'
+                              ? 'green'
+                              : ord.orderStatus === 'in_production'
+                              ? 'gold'
+                              : 'neutral'
+                          }
+                        >
+                          {ord.orderStatus?.replace('_', ' ')}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-xl border border-white/5">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Total Investment</span>
+                          <span className="font-bold text-[#e5caa2]">${ord.totalAmount?.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Payment Method</span>
+                          <span className="font-medium text-slate-200 capitalize">
+                            {ord.paymentMethod?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Payment Status</span>
+                          <span
+                            className={`font-semibold capitalize ${
+                              ord.paymentStatus === 'paid'
+                                ? 'text-emerald-400'
+                                : ord.paymentStatus === 'pending_verification'
+                                ? 'text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          >
+                            {ord.paymentStatus?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Destination</span>
+                          <span className="text-slate-300 truncate block">{ord.deliveryAddress}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <span className="text-[11px] text-slate-400">
+                          Est. Delivery: {ord.expectedCompletionDate || '14 Days'}
+                        </span>
+                        <Link href={`/orders/${ord.id}`}>
+                          <Button variant="gold" size="sm" className="text-xs font-bold flex items-center gap-1.5">
+                            <span>Track Order</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: SAVED WISHLIST */}
+        {activeTab === 'wishlist' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-white">My Saved Wishlist Pieces</h3>
+                <p className="text-xs text-slate-400">Curated pieces you have bookmarked for your residence</p>
+              </div>
+              <Link href="/#shop-section">
+                <Button variant="gold" size="sm" className="text-xs">
+                  Discover More Pieces
+                </Button>
+              </Link>
+            </div>
+
+            {wishlistItems.length === 0 ? (
+              <div className="text-center py-16 bg-[#131720] rounded-2xl border border-white/5 text-slate-400 space-y-3">
+                <Heart className="w-12 h-12 text-rose-500/40 mx-auto" />
+                <h3 className="text-base font-serif text-white">Your wishlist is empty</h3>
+                <p className="text-xs text-slate-500">
+                  Bookmark products in the catalogue by clicking the heart icon on any piece.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {wishlistItems.map((item) => (
+                  <div
+                    key={item.wishlistId}
+                    className="p-4 rounded-2xl bg-[#141822] border border-white/10 space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <img
+                        src={item.primaryImage}
+                        alt={item.productTitle}
+                        className="w-full aspect-[4/3] rounded-xl object-cover bg-slate-950"
+                      />
+                      <div>
+                        <span className="text-[10px] text-[#e5caa2] font-semibold">{item.category}</span>
+                        <h4 className="font-serif font-bold text-white text-sm">{item.productTitle}</h4>
+                        <div className="text-base font-serif font-bold text-[#e5caa2] mt-1">
+                          ${(item.discountPrice || item.price)?.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 flex gap-2">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleRemoveFromWishlist(item.productId)}
+                        className="text-xs flex-1"
+                      >
+                        Remove
+                      </Button>
+                      <Link href="/#shop-section" className="flex-1">
+                        <Button variant="gold" size="sm" className="w-full text-xs font-bold">
+                          View & Buy
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: SAVED ADDRESSES */}
+        {activeTab === 'addresses' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-white">Saved Delivery Addresses</h3>
+                <p className="text-xs text-slate-400">
+                  Pre-configured destinations for fast white-glove placement
+                </p>
+              </div>
+              <Button variant="gold" size="sm" onClick={() => setShowAddAddressModal(true)} className="text-xs">
+                + Add New Address
+              </Button>
+            </div>
+
+            {addressesList.length === 0 ? (
+              <div className="text-center py-16 bg-[#131720] rounded-2xl border border-white/5 text-slate-400 space-y-3">
+                <Truck className="w-12 h-12 text-[#c5a880]/40 mx-auto" />
+                <h3 className="text-base font-serif text-white">No saved addresses found</h3>
+                <p className="text-xs text-slate-500">
+                  Save your villa, penthouse, or office location for quick 1-click checkout.
+                </p>
+                <Button variant="gold" size="sm" onClick={() => setShowAddAddressModal(true)}>
+                  Add Delivery Address
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {addressesList.map((addr) => (
+                  <div
+                    key={addr.id}
+                    className="p-4 rounded-xl bg-[#141822] border border-white/10 space-y-2 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-xs">{addr.title}</span>
+                        {addr.isDefault === 1 && <Badge variant="gold">Default</Badge>}
+                      </div>
+                      <p className="text-xs text-slate-200">{addr.recipientName} ({addr.phone})</p>
+                      <p className="text-xs text-slate-400">{addr.address}, {addr.city}</p>
+                      {addr.area && <p className="text-[11px] text-slate-500">{addr.area}</p>}
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        onClick={() => handleDeleteAddress(addr.id)}
+                        className="text-xs text-red-400 hover:text-red-300 font-medium"
+                      >
+                        Delete Address
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: PROFILE & SECURITY */}
+        {activeTab === 'profile' && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="pb-3 border-b border-white/5">
+              <h3 className="text-lg font-serif font-bold text-white">Patron Profile & Security Settings</h3>
+              <p className="text-xs text-slate-400">
+                Manage your personal contact details, delivery records, and account credentials
+              </p>
+            </div>
+
+            {profileMsg && (
+              <div className="p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-200 text-xs">
+                {profileMsg}
+              </div>
+            )}
+            {profileErr && (
+              <div className="p-3 rounded-lg bg-red-950/60 border border-red-500/30 text-red-200 text-xs">
+                {profileErr}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateProfile} className="p-6 rounded-2xl bg-[#141822] border border-white/10 space-y-4">
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-[#e5caa2]">Contact Details</h4>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Mobile Number</label>
+                  <input
+                    type="tel"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">City / Region</label>
+                  <input
+                    type="text"
+                    value={profileForm.city}
+                    onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Primary Delivery Address</label>
+                <input
+                  type="text"
+                  value={profileForm.address}
+                  onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                />
+              </div>
+
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-[#e5caa2] pt-4 border-t border-white/5">
+                Change Security Password
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    value={profileForm.currentPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                    placeholder="••••••••••••"
+                    className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">New Password (min 6)</label>
+                  <input
+                    type="password"
+                    value={profileForm.newPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                    placeholder="••••••••••••"
+                    className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <Button type="submit" variant="gold" size="md" className="font-bold">
+                  Save Changes
+                </Button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -1182,6 +1667,99 @@ export default function CustomerPortalPage() {
           </div>
         </Modal>
       )}
+
+      {/* Add Delivery Address Modal */}
+      <Modal
+        isOpen={showAddAddressModal}
+        onClose={() => setShowAddAddressModal(false)}
+        title="Add New Delivery Address"
+        subtitle="Saved destination for seamless white-glove placement"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreateAddress} className="space-y-3.5 text-xs">
+          <div>
+            <label className="block text-slate-300 mb-1 font-semibold">Address Label</label>
+            <input
+              type="text"
+              required
+              value={newAddressForm.title}
+              onChange={(e) => setNewAddressForm({ ...newAddressForm, title: e.target.value })}
+              placeholder="e.g. Master Residence, Private Villa, Office"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-300 mb-1 font-semibold">Recipient Name</label>
+              <input
+                type="text"
+                required
+                value={newAddressForm.recipientName}
+                onChange={(e) => setNewAddressForm({ ...newAddressForm, recipientName: e.target.value })}
+                placeholder="Name"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 mb-1 font-semibold">Contact Phone</label>
+              <input
+                type="tel"
+                required
+                value={newAddressForm.phone}
+                onChange={(e) => setNewAddressForm({ ...newAddressForm, phone: e.target.value })}
+                placeholder="+92 300 1234567"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-slate-300 mb-1 font-semibold">Complete Street Address</label>
+            <input
+              type="text"
+              required
+              value={newAddressForm.address}
+              onChange={(e) => setNewAddressForm({ ...newAddressForm, address: e.target.value })}
+              placeholder="House/Plot #, Street, Block"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-300 mb-1 font-semibold">City</label>
+              <input
+                type="text"
+                required
+                value={newAddressForm.city}
+                onChange={(e) => setNewAddressForm({ ...newAddressForm, city: e.target.value })}
+                placeholder="City"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 mb-1 font-semibold">Area / Sector</label>
+              <input
+                type="text"
+                value={newAddressForm.area}
+                onChange={(e) => setNewAddressForm({ ...newAddressForm, area: e.target.value })}
+                placeholder="DHA / Gulberg"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2">
+            <Button variant="ghost" type="button" onClick={() => setShowAddAddressModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="gold" type="submit" className="font-bold">
+              Save Address
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Notifications Drawer Modal */}
       <Modal

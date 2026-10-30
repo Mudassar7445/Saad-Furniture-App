@@ -7,7 +7,6 @@ import { eq } from 'drizzle-orm';
 
 export async function GET() {
   await initializeDatabase();
-  await seedDatabase();
 
   const sessionUser = await getSessionUser();
   if (!sessionUser) {

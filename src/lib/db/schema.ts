@@ -102,6 +102,14 @@ export const orders = sqliteTable('orders', {
   deliveryDriverPhone: text('delivery_driver_phone'),
   specialInstructions: text('special_instructions'),
   customSpecifications: text('custom_specifications').default('{}'), // JSON
+
+  // E-Commerce Additions
+  orderType: text('order_type').notNull().default('showroom'), // 'showroom' | 'online'
+  paymentMethod: text('payment_method'), // 'card' | 'jazzcash' | 'bank_transfer' | 'cod'
+  paymentStatus: text('payment_status').default('unpaid'), // 'paid' | 'pending_verification' | 'unpaid' | 'failed' | 'refunded'
+  paymentTransactionId: text('payment_transaction_id'),
+  bankReceiptUrl: text('bank_receipt_url'),
+
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
@@ -315,6 +323,110 @@ export const settings = sqliteTable('settings', {
   websiteAnnouncementBanner: text('website_announcement_banner').default('Welcome to Saad Furniture – Handcrafted Luxury for Discerning Spaces.'),
 });
 
+// 19. Shopping Carts Table
+export const shoppingCarts = sqliteTable('shopping_carts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id),
+  sessionToken: text('session_token'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 20. Cart Items Table
+export const cartItems = sqliteTable('cart_items', {
+  id: text('id').primaryKey(),
+  cartId: text('cart_id').notNull().references(() => shoppingCarts.id),
+  productId: text('product_id').notNull().references(() => products.id),
+  quantity: integer('quantity').notNull().default(1),
+  selectedColour: text('selected_colour'),
+  selectedDesign: text('selected_design'),
+  customNotes: text('custom_notes'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 21. Wishlists Table
+export const wishlists = sqliteTable('wishlists', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  productId: text('product_id').notNull().references(() => products.id),
+  createdAt: text('created_at').notNull(),
+});
+
+// 22. Customer Addresses Table
+export const customerAddresses = sqliteTable('customer_addresses', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  title: text('title').notNull().default('Home'), // 'Home' | 'Office' | 'Villa'
+  recipientName: text('recipient_name').notNull(),
+  phone: text('phone').notNull(),
+  address: text('address').notNull(),
+  city: text('city').notNull(),
+  area: text('area'),
+  postalCode: text('postal_code'),
+  isDefault: integer('is_default').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
+// 23. Payment Transactions Table
+export const paymentTransactions = sqliteTable('payment_transactions', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  gateway: text('gateway').notNull(), // 'card' | 'jazzcash' | 'bank_transfer' | 'cod'
+  amount: real('amount').notNull(),
+  currency: text('currency').notNull().default('USD'),
+  status: text('status').notNull().default('initiated'), // 'initiated' | 'pending' | 'success' | 'failed' | 'refunded'
+  gatewayTransactionRef: text('gateway_transaction_ref'),
+  gatewayResponse: text('gateway_response'),
+  createdAt: text('created_at').notNull(),
+  verifiedAt: text('verified_at'),
+});
+
+// 24. Bank Transfer Receipts Table
+export const bankTransferReceipts = sqliteTable('bank_transfer_receipts', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  bankName: text('bank_name').notNull(),
+  senderAccountTitle: text('sender_account_title').notNull(),
+  senderAccountNumber: text('sender_account_number'),
+  transactionReference: text('transaction_reference').notNull(),
+  amountPaid: real('amount_paid').notNull(),
+  receiptImageUrl: text('receipt_image_url').notNull(),
+  status: text('status').notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
+  reviewNotes: text('review_notes'),
+  reviewedBy: text('reviewed_by'),
+  reviewedAt: text('reviewed_at'),
+  createdAt: text('created_at').notNull(),
+});
+
+// 25. Coupons Table
+export const coupons = sqliteTable('coupons', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  discountType: text('discount_type').notNull().default('percentage'), // 'percentage' | 'fixed'
+  discountValue: real('discount_value').notNull(),
+  minOrderAmount: real('min_order_amount').notNull().default(0),
+  maxDiscountAmount: real('max_discount_amount'),
+  validUntil: text('valid_until'),
+  usageLimit: integer('usage_limit').notNull().default(100),
+  usedCount: integer('used_count').notNull().default(0),
+  isActive: integer('is_active').notNull().default(1),
+  createdAt: text('created_at').notNull(),
+});
+
+// 26. Product Reviews Table
+export const productReviews = sqliteTable('product_reviews', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull().references(() => products.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  userName: text('user_name').notNull(),
+  rating: integer('rating').notNull(), // 1 to 5
+  comment: text('comment').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type MediaFile = typeof mediaFiles.$inferSelect;
@@ -323,3 +435,11 @@ export type CustomerLedger = typeof customerLedger.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type ShoppingCart = typeof shoppingCarts.$inferSelect;
+export type CartItem = typeof cartItems.$inferSelect;
+export type Wishlist = typeof wishlists.$inferSelect;
+export type CustomerAddress = typeof customerAddresses.$inferSelect;
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+export type BankTransferReceipt = typeof bankTransferReceipts.$inferSelect;
+export type Coupon = typeof coupons.$inferSelect;
+export type ProductReview = typeof productReviews.$inferSelect;
