@@ -100,3 +100,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to delete address' }, { status: 500 });
   }
 }
+

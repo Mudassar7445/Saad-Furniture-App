@@ -28,9 +28,24 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { CartDrawer } from '@/components/ecommerce/CartDrawer';
 import { ProductDetailModal } from '@/components/ecommerce/ProductDetailModal';
 import { CheckoutModal } from '@/components/ecommerce/CheckoutModal';
+import { MobileAppShell } from '@/components/mobile/MobileAppShell';
 
 export default function ShowroomHomePage() {
   const router = useRouter();
+
+  // Screen Responsive State
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // State: Auth
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -348,6 +363,40 @@ export default function ShowroomHomePage() {
     // Default: featured
     return (b.featured || 0) - (a.featured || 0);
   });
+
+  // Render Genuine Luxury Native Mobile App Experience on Mobile Devices
+  if (mounted && isMobile) {
+    return (
+      <MobileAppShell
+        currentUser={currentUser}
+        onRefreshUser={fetchUser}
+        products={products}
+        loadingProducts={loadingProducts}
+        cart={cart}
+        wishlistProductIds={wishlistProductIds}
+        onToggleWishlist={handleToggleWishlist}
+        onAddToCart={(p, opts) =>
+          handleAddToCart({
+            productId: p.id,
+            quantity: opts?.quantity || 1,
+            selectedColour: opts?.fabricColor,
+            selectedDesign: opts?.woodType,
+          })
+        }
+        onUpdateCartQty={handleUpdateCartQty}
+        onRemoveCartItem={handleRemoveCartItem}
+        appliedCoupon={appliedCoupon}
+        onApplyCoupon={async (code) => {
+          const err = await handleApplyCoupon(code);
+          return !err;
+        }}
+        onOrderSuccess={(order) => {
+          fetchCart();
+          fetchUser();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0d11] text-slate-100 flex flex-col font-sans selection:bg-[#c5a880] selection:text-slate-950">

@@ -222,3 +222,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to remove from cart' }, { status: 500 });
   }
 }
+
