@@ -224,6 +224,17 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         </button>
 
         <button
+          onClick={() => router.push('/about')}
+          className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-4 h-4 text-[#B99A68]" />
+            <span className="text-xs font-bold text-[#262421]">About Saad Furniture Atelier</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-[#89847C]" />
+        </button>
+
+        <button
           onClick={() => window.open('https://wa.me/923000000000?text=Saad%20Furniture%20Concierge%20Inquiry', '_blank')}
           className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
         >
@@ -251,3 +262,4 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
     </div>
   );
 };
+

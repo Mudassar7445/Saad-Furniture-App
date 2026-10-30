@@ -36,17 +36,19 @@ import {
   Eye,
   Activity,
   ShoppingBag,
+  Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { OnlineOrdersModule } from '@/components/admin/OnlineOrdersModule';
+import { ShopProfileSettingsModule } from '@/components/admin/ShopProfileSettingsModule';
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeModule, setActiveModule] = useState<
-    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity'
+    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile'
   >('overview');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -564,6 +566,7 @@ export default function SuperAdminDashboard() {
     { id: 'products', label: 'Showroom Catalog', icon: Layers, count: productsList.length },
     { id: 'notifications', label: 'Broadcast & Comms', icon: Bell },
     { id: 'activity', label: 'Audit & Activity', icon: Activity },
+    { id: 'shop_profile', label: 'Showroom & App Branding', icon: Store },
     { id: 'settings', label: 'Protected Settings', icon: SettingsIcon },
   ];
 
@@ -596,14 +599,14 @@ export default function SuperAdminDashboard() {
         <div className="p-6 space-y-6 overflow-y-auto">
           {/* Brand header */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c5a880] to-[#9e7f53] flex items-center justify-center text-slate-950 font-serif font-bold text-lg shadow-lg shadow-[#c5a880]/20">
-              S
+            <div className="w-11 h-11 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-lg shrink-0 bg-[#141210]">
+              <img src="/assets/branding/app-dp.svg" alt="Saad Furniture" className="w-full h-full object-cover" />
             </div>
             <div>
-              <span className="font-serif tracking-[0.2em] text-sm font-bold text-white block uppercase">
+              <span className="font-serif tracking-[0.15em] text-sm font-bold text-white block uppercase">
                 SAAD FURNITURE
               </span>
-              <span className="text-[10px] tracking-wider uppercase text-[#c5a880] font-semibold flex items-center gap-1">
+              <span className="text-[10px] tracking-wider uppercase text-[#B99A68] font-semibold flex items-center gap-1">
                 <Shield className="w-3 h-3" /> Super Admin Portal
               </span>
             </div>
@@ -1683,6 +1686,11 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
+
+        {/* DEDICATED SHOWROOM & APP BRANDING MODULE */}
+        {activeModule === 'shop_profile' && (
+          <ShopProfileSettingsModule />
+        )}
 
         {/* 7. MODULE: PROTECTED SUPER ADMIN SETTINGS AREA */}
         {activeModule === 'settings' && (

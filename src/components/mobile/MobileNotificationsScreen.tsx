@@ -208,3 +208,4 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
     </div>
   );
 };
+

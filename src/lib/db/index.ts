@@ -507,6 +507,75 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Shop Profile Settings Table (Section 4)
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS shop_settings (
+        id TEXT PRIMARY KEY,
+        shop_name TEXT NOT NULL DEFAULT 'SAAD FURNITURE',
+        display_name TEXT NOT NULL DEFAULT 'Saad Furniture & Interior Studio',
+        logo_url TEXT DEFAULT '/assets/branding/logo.svg',
+        app_icon_url TEXT DEFAULT '/assets/branding/app-dp.svg',
+        splash_logo_url TEXT DEFAULT '/assets/branding/splash-logo.svg',
+        description TEXT DEFAULT 'Premium handcrafted furniture atelier creating bespoke architectural woodcraft, royal bedroom suites, executive sofas, and master living room furniture built for generations.',
+        tagline TEXT DEFAULT 'Handcrafted Luxury Built For Generations',
+        primary_phone TEXT DEFAULT '+92 300 0000000',
+        secondary_phone TEXT DEFAULT '+92 321 0000000',
+        whatsapp_number TEXT DEFAULT '+92 300 0000000',
+        official_email TEXT DEFAULT 'info@saadfurniture.com',
+        support_email TEXT DEFAULT 'concierge@saadfurniture.com',
+        complete_address TEXT DEFAULT 'Main Boulevard, Gulberg III / Defense Phase 6, Lahore, Pakistan',
+        city TEXT DEFAULT 'Lahore',
+        social_links TEXT,
+        opening_hours TEXT DEFAULT 'Mon - Sat: 10:00 AM - 10:00 PM | Sunday: 02:00 PM - 10:00 PM',
+        currency TEXT NOT NULL DEFAULT 'PKR',
+        warranty_information TEXT DEFAULT '10-Year Lifetime Structural Warranty on Seasoned Teak & Sheesham Timber with 5-Year High-Density Foam Assurance.',
+        delivery_information TEXT DEFAULT 'White-Glove Nationwide Secure Transport with Protective Double-Corrugated Foam Packing and Complimentary In-Room Assembly in Lahore, Islamabad, & Karachi.',
+        updated_at TEXT NOT NULL,
+        updated_by TEXT NOT NULL DEFAULT 'super_admin'
+      );
+    `);
+
+    // Ensure default shop profile exists
+    try {
+      const existing = await client.execute(`SELECT id FROM shop_settings WHERE id = 'default' LIMIT 1;`);
+      if (existing.rows.length === 0) {
+        const defaultSocial = JSON.stringify({
+          facebook: { url: 'https://facebook.com/saadfurniture', enabled: true },
+          instagram: { url: 'https://instagram.com/saadfurniture', enabled: true },
+          tiktok: { url: 'https://tiktok.com/@saadfurniture', enabled: true },
+          youtube: { url: 'https://youtube.com/@saadfurniture', enabled: true },
+          whatsapp: { url: 'https://wa.me/923000000000', enabled: true },
+          website: { url: 'https://saadfurniture-iota.vercel.app', enabled: true }
+        });
+
+        await client.execute({
+          sql: `
+            INSERT INTO shop_settings (
+              id, shop_name, display_name, logo_url, app_icon_url, splash_logo_url,
+              description, tagline, primary_phone, secondary_phone, whatsapp_number,
+              official_email, support_email, complete_address, city, social_links,
+              opening_hours, currency, warranty_information, delivery_information,
+              updated_at, updated_by
+            ) VALUES (
+              'default', 'SAAD FURNITURE', 'Saad Furniture & Interior Studio',
+              '/assets/branding/logo.svg', '/assets/branding/app-dp.svg', '/assets/branding/splash-logo.svg',
+              'Premium handcrafted furniture atelier creating bespoke architectural woodcraft, royal bedroom suites, executive sofas, and master living room furniture built for generations.',
+              'Handcrafted Luxury Built For Generations', '+92 300 0000000', '+92 321 0000000', '+92 300 0000000',
+              'info@saadfurniture.com', 'concierge@saadfurniture.com',
+              'Main Boulevard, Gulberg III / Defense Phase 6, Lahore, Pakistan', 'Lahore',
+              ?, 'Mon - Sat: 10:00 AM - 10:00 PM | Sunday: 02:00 PM - 10:00 PM', 'PKR',
+              '10-Year Lifetime Structural Warranty on Seasoned Teak & Sheesham Timber with 5-Year High-Density Foam Assurance.',
+              'White-Glove Nationwide Secure Transport with Protective Double-Corrugated Foam Packing and Complimentary In-Room Assembly in Lahore, Islamabad, & Karachi.',
+              ?, 'super_admin'
+            );
+          `,
+          args: [defaultSocial, new Date().toISOString()]
+        });
+      }
+    } catch (e) {
+      console.warn('Default shop settings seed note:', e);
+    }
+
     isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);

@@ -129,6 +129,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       maxWidth="md"
     >
       <div className="space-y-4">
+        {/* Brand Crest */}
+        <div className="flex flex-col items-center justify-center text-center pb-1">
+          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[#B99A68]/40 shadow-xl bg-[#1C1A18] p-1 mb-2">
+            <img src="/assets/branding/app-dp.svg" alt="Saad Furniture" className="w-full h-full object-contain" />
+          </div>
+          <span className="font-serif tracking-[0.2em] text-sm font-bold text-white uppercase">
+            SAAD <span className="text-[#B99A68]">FURNITURE</span>
+          </span>
+          <span className="text-[10px] text-[#89847C] tracking-widest uppercase">
+            {mode === 'signin' ? 'Patron & Executive Access' : 'New Patron Registration'}
+          </span>
+        </div>
+
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1 bg-slate-900/80 rounded-xl border border-white/10">
           <button

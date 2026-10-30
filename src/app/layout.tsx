@@ -29,7 +29,9 @@ export default function RootLayout({
     <html lang="en" className="h-full bg-[#0b0d11] text-slate-100">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/assets/branding/app-dp.png" />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased bg-[#0b0d11]">
         {children}

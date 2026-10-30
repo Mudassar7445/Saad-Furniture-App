@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, ShoppingBag, Heart, Sparkles } from 'lucide-react';
+import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface MobileTopBarProps {
   currentUser?: any;
@@ -20,21 +21,29 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   onOpenWishlist,
   onSearchClick,
 }) => {
+  const { settings } = useShopSettings();
   const firstName = currentUser?.name ? currentUser.name.split(' ')[0] : null;
 
   return (
     <header className="sticky top-0 z-30 bg-[#F7F5F0]/95 backdrop-blur-md border-b border-[#EAE2D6] px-4 py-3 flex items-center justify-between md:hidden">
       {/* Brand & Greeting */}
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center font-serif font-black text-lg shadow-sm border border-[#B99A68]/30">
-          S
+        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-sm shrink-0 bg-[#262421]">
+          <img
+            src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
+            alt={settings.shopName}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div>
           <span className="text-[10px] uppercase tracking-widest text-[#89847C] font-semibold block leading-tight">
             {firstName ? `Salam, ${firstName}` : 'Saad Atelier'}
           </span>
           <span className="font-serif tracking-wider text-sm font-bold text-[#262421] block leading-tight">
-            SAAD <span className="text-[#B99A68]">FURNITURE</span>
+            {settings.shopName.split(' ')[0]}{' '}
+            <span className="text-[#B99A68]">
+              {settings.shopName.split(' ').slice(1).join(' ') || 'FURNITURE'}
+            </span>
           </span>
         </div>
       </div>
@@ -81,3 +90,4 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
     </header>
   );
 };
+

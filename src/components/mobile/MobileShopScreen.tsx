@@ -281,3 +281,4 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
     </div>
   );
 };
+

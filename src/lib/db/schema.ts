@@ -427,6 +427,41 @@ export const productReviews = sqliteTable('product_reviews', {
   createdAt: text('created_at').notNull(),
 });
 
+// 27. Shop Profile Settings Table (Section 4)
+export const shopSettings = sqliteTable('shop_settings', {
+  id: text('id').primaryKey(), // 'default'
+  shopName: text('shop_name').notNull().default('SAAD FURNITURE'),
+  displayName: text('display_name').notNull().default('Saad Furniture & Interior Studio'),
+  logoUrl: text('logo_url').default('/assets/branding/logo.svg'),
+  appIconUrl: text('app_icon_url').default('/assets/branding/app-dp.svg'),
+  splashLogoUrl: text('splash_logo_url').default('/assets/branding/splash-logo.svg'),
+  description: text('description').default('Premium handcrafted furniture atelier creating bespoke architectural woodcraft, royal bedroom suites, executive sofas, and master living room furniture built for generations.'),
+  tagline: text('tagline').default('Handcrafted Luxury Built For Generations'),
+  primaryPhone: text('primary_phone').default('+92 300 0000000'),
+  secondaryPhone: text('secondary_phone').default('+92 321 0000000'),
+  whatsappNumber: text('whatsapp_number').default('+92 300 0000000'),
+  officialEmail: text('official_email').default('info@saadfurniture.com'),
+  supportEmail: text('support_email').default('concierge@saadfurniture.com'),
+  completeAddress: text('complete_address').default('Main Boulevard, Gulberg III / Defense Phase 6, Lahore, Pakistan'),
+  city: text('city').default('Lahore'),
+  socialLinks: text('social_links').default(
+    JSON.stringify({
+      facebook: { url: 'https://facebook.com/saadfurniture', enabled: true },
+      instagram: { url: 'https://instagram.com/saadfurniture', enabled: true },
+      tiktok: { url: 'https://tiktok.com/@saadfurniture', enabled: true },
+      youtube: { url: 'https://youtube.com/@saadfurniture', enabled: true },
+      whatsapp: { url: 'https://wa.me/923000000000', enabled: true },
+      website: { url: 'https://saadfurniture-iota.vercel.app', enabled: true }
+    })
+  ),
+  openingHours: text('opening_hours').default('Mon - Sat: 10:00 AM - 10:00 PM | Sunday: 02:00 PM - 10:00 PM'),
+  currency: text('currency').notNull().default('PKR'),
+  warrantyInformation: text('warranty_information').default('10-Year Lifetime Structural Warranty on Seasoned Teak & Sheesham Timber with 5-Year High-Density Foam Assurance.'),
+  deliveryInformation: text('delivery_information').default('White-Glove Nationwide Secure Transport with Protective Double-Corrugated Foam Packing and Complimentary In-Room Assembly in Lahore, Islamabad, & Karachi.'),
+  updatedAt: text('updated_at').notNull(),
+  updatedBy: text('updated_by').notNull().default('super_admin'),
+});
+
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type MediaFile = typeof mediaFiles.$inferSelect;
@@ -443,3 +478,4 @@ export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type BankTransferReceipt = typeof bankTransferReceipts.$inferSelect;
 export type Coupon = typeof coupons.$inferSelect;
 export type ProductReview = typeof productReviews.$inferSelect;
+export type ShopSettings = typeof shopSettings.$inferSelect;

@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface HeaderProps {
   cartCount: number;
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser: initialUser,
 }) => {
   const router = useRouter();
+  const { settings } = useShopSettings();
   const [user, setUser] = useState<any>(initialUser || null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -80,21 +82,34 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c5a880] to-[#9e7f53] flex items-center justify-center text-slate-950 font-serif font-bold text-xl shadow-lg shadow-[#c5a880]/20 group-hover:scale-105 transition-transform">
-            S
+          <div className="w-11 h-11 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-lg group-hover:scale-105 transition-transform shrink-0 bg-[#1c1a18]">
+            <img
+              src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
+              alt={settings.shopName}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
-            <span className="font-serif tracking-[0.22em] text-base sm:text-lg font-bold text-white block uppercase">
-              SAAD <span className="text-[#c5a880]">FURNITURE</span>
+            <span className="font-serif tracking-[0.2em] text-base sm:text-lg font-bold text-white block uppercase">
+              {settings.shopName.split(' ')[0]}{' '}
+              <span className="text-[#B99A68]">
+                {settings.shopName.split(' ').slice(1).join(' ') || 'FURNITURE'}
+              </span>
             </span>
             <span className="text-[10px] tracking-widest uppercase text-slate-400 font-medium hidden sm:block">
-              Luxury Atelier & Interior Architecture
+              {settings.tagline || 'Luxury Atelier & Interior Architecture'}
             </span>
           </div>
         </Link>
 
         {/* Right Nav Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
+          <Link
+            href="/about"
+            className="text-xs font-semibold text-slate-300 hover:text-[#B99A68] transition-colors hidden md:block px-2.5 py-1.5 rounded-lg hover:bg-white/5"
+          >
+            About Atelier
+          </Link>
           {/* Wishlist Button */}
           <Link
             href="/portal?tab=wishlist"

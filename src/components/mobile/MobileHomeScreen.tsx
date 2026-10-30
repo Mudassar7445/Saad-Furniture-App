@@ -339,3 +339,4 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
     </div>
   );
 };
+
