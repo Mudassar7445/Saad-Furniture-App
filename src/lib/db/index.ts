@@ -12,11 +12,14 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 
+let isInitialized = false;
+
 /**
  * Initializes all database tables for Saad Furniture ecosystem.
  * Works seamlessly with Turso Cloud or local embedded LibSQL.
  */
 export async function initializeDatabase() {
+  if (isInitialized) return;
   try {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -380,6 +383,7 @@ export async function initializeDatabase() {
         website_announcement_banner TEXT DEFAULT 'Welcome to Saad Furniture – Handcrafted Luxury for Discerning Spaces.'
       );
     `);
+    isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);
   }

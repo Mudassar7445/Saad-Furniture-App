@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
 import { db, initializeDatabase } from '@/lib/db';
 import { users, auditLogs } from '@/lib/db/schema';
-import { seedDatabase } from '@/lib/db/seed';
 import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.TURSO_DATABASE_URL && process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        {
+          error:
+            'Turso Cloud Database credentials (TURSO_DATABASE_URL) are not configured in Vercel Environment Variables. Please add TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Vercel Project Settings and click Redeploy.',
+        },
+        { status: 500 }
+      );
+    }
+
     await initializeDatabase();
-    await seedDatabase();
 
     const body = await request.json();
     const { email, password } = body;
@@ -30,7 +38,7 @@ export async function POST(request: Request) {
 
     if (foundUsers.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid email or password.' },
+        { error: 'No account found with this email. Please verify your email or click "Create Account" above to register.' },
         { status: 401 }
       );
     }
@@ -49,7 +57,7 @@ export async function POST(request: Request) {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: 'Invalid email or password.' },
+        { error: 'Incorrect password. Please verify and try again.' },
         { status: 401 }
       );
     }
@@ -72,15 +80,19 @@ export async function POST(request: Request) {
     });
 
     // Record audit log
-    await db.insert(auditLogs).values({
-      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      userId: user.id,
-      userName: user.name,
-      action: 'LOGIN',
-      details: `User logged in with role [${user.role}].`,
-      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
-      createdAt: new Date().toISOString(),
-    });
+    try {
+      await db.insert(auditLogs).values({
+        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId: user.id,
+        userName: user.name,
+        action: 'LOGIN',
+        details: `User logged in with role [${user.role}].`,
+        ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+        createdAt: new Date().toISOString(),
+      });
+    } catch (auditErr) {
+      console.warn('Audit log write skipped:', auditErr);
+    }
 
     // Determine redirect destination
     let redirectUrl = '/portal';
@@ -113,12 +125,11 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'An unexpected authentication error occurred.' },
+      { error: error?.message || 'Authentication error occurred. Please check database connectivity.' },
       { status: 500 }
     );
   }
 }
-
