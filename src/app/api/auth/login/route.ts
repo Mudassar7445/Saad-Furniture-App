@@ -7,16 +7,6 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.TURSO_DATABASE_URL && process.env.NODE_ENV === 'production') {
-      return NextResponse.json(
-        {
-          error:
-            'Turso Cloud Database credentials (TURSO_DATABASE_URL) are not configured in Vercel Environment Variables. Please add TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Vercel Project Settings and click Redeploy.',
-        },
-        { status: 500 }
-      );
-    }
-
     await initializeDatabase();
 
     const body = await request.json();
@@ -127,8 +117,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error: any) {
     console.error('Login error:', error);
+    const detail = error?.cause?.message || error?.message || 'Authentication error occurred. Please check database connectivity.';
     return NextResponse.json(
-      { error: error?.message || 'Authentication error occurred. Please check database connectivity.' },
+      { error: detail },
       { status: 500 }
     );
   }

@@ -156,3 +156,4 @@ fs.writeFileSync(path.join(__dirname, '..', 'public', 'icon-512.png'), png512);
 fs.writeFileSync(path.join(__dirname, '..', 'public', 'favicon.ico'), createPng(32, 32, luxuryIconShader));
 
 console.log('PNG assets successfully generated!');
+

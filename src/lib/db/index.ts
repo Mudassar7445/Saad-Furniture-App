@@ -1,16 +1,29 @@
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/http';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 
-let url = process.env.TURSO_DATABASE_URL || 'file:saad_furniture.db';
-if (url.startsWith('libsql://')) {
-  url = url.replace('libsql://', 'https://');
+// Turso Cloud Database Credentials (Provided directly by Owner)
+const DEFAULT_TURSO_URL = 'https://saad-furniture-mudassar7445.aws-ap-south-1.turso.io';
+const DEFAULT_TURSO_TOKEN =
+  'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTMzNzk1OTIsImlkIjoiMDFhMThkYmEtZWMwMS03OTE5LTk2ZTktYmI0OTBiNDNjY2U3Iiwia2lkIjoiZG5HdHlvcVQtUTVCenVnLU95eHhmU3JHZ0E2LXhqOUUzc0I2Y0JmMUxJZyIsInJpZCI6IjA4NTM0ZDJkLTJmYmYtNDIxZC05OTRjLTJiOGM4ZDM5ZWJmZiJ9.dLmD0n5QMyGMtcAEnzEg84qcvwTICFxJizc6mo2FxRdMcljIAv8ynVD2LF2vi4KfSYwQ1aO3IhP3g_9QbT7vDA';
+
+// Robust URL normalization: cleans quotes, spaces, and enforces https:// for serverless
+let rawUrl = (process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || DEFAULT_TURSO_URL).trim();
+rawUrl = rawUrl.replace(/^['"]|['"]$/g, '');
+if (rawUrl.startsWith('libsql://')) {
+  rawUrl = rawUrl.replace('libsql://', 'https://');
 }
-const authToken = process.env.TURSO_AUTH_TOKEN;
+if (!rawUrl.startsWith('https://') && !rawUrl.startsWith('http://') && !rawUrl.startsWith('file:')) {
+  rawUrl = 'https://' + rawUrl;
+}
+
+// Clean and sanitize auth token
+let rawToken = (process.env.TURSO_AUTH_TOKEN || DEFAULT_TURSO_TOKEN).trim();
+rawToken = rawToken.replace(/^['"]|['"]$/g, '');
 
 export const client = createClient({
-  url,
-  authToken,
+  url: rawUrl,
+  authToken: rawToken,
 });
 
 export const db = drizzle(client, { schema });

@@ -417,3 +417,4 @@ fs.writeFileSync(path.join(brandingDir, 'customer-logo.svg'), customerLogoSvg.tr
 fs.writeFileSync(path.join(__dirname, '..', 'public', 'favicon.svg'), faviconSvg.trim());
 
 console.log('All luxury SVG branding assets written successfully!');
+

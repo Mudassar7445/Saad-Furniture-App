@@ -567,3 +567,4 @@ export const ShopProfileSettingsModule: React.FC = () => {
     </div>
   );
 };
+
