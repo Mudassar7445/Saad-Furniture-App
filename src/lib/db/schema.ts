@@ -129,23 +129,33 @@ export const orderItems = sqliteTable('order_items', {
 // 6. Media Files Table (Google Drive 5TB storage integration with secure server-side token)
 export const mediaFiles = sqliteTable('media_files', {
   id: text('id').primaryKey(),
-  orderId: text('order_id').notNull().references(() => orders.id),
-  customerId: text('customer_id').notNull().references(() => users.id),
+  folderId: text('folder_id'),
+  orderId: text('order_id'),
+  customerId: text('customer_id'),
+  productId: text('product_id'),
+  productCategory: text('product_category'),
   googleDriveFileId: text('google_drive_file_id').notNull(),
   fileName: text('file_name').notNull(),
+  originalName: text('original_name'),
   mimeType: text('mime_type').notNull(),
   fileSize: integer('file_size').default(0), // bytes
-  mediaType: text('media_type').notNull(), // 'photo' | 'video' | 'drawing'
-  title: text('title').notNull(),
+  mediaType: text('media_type').notNull().default('photo'), // 'photo' | 'video' | 'pdf' | 'document' | 'spreadsheet' | 'presentation' | 'other'
+  category: text('category').notNull().default('general'), // 'catalogues' | 'photographs' | 'videos' | 'pdf_documents' | 'price_lists' | 'brochures' | 'warranty_documents' | 'customer_documents' | 'general'
+  title: text('title').default(''),
   description: text('description'),
-  stage: text('stage').notNull().default('frame_preparation'),
+  stage: text('stage').default('final_inspection'),
   thumbnailUrl: text('thumbnail_url'),
   videoDuration: real('video_duration'), // seconds
+  pageCount: integer('page_count'),
   webViewLink: text('web_view_link'),
   webContentLink: text('web_content_link'),
-  uploadedBy: text('uploaded_by').notNull(),
+  visibility: text('visibility').notNull().default('public'), // 'public' | 'selected' | 'specific' | 'private'
+  isPublished: integer('is_published').notNull().default(1),
+  downloadAllowed: integer('download_allowed').notNull().default(1),
+  isPublic: integer('is_public').notNull().default(1),
+  uploadedBy: text('uploaded_by').default('system'),
   uploadedAt: text('uploaded_at').notNull(),
-  isPublic: integer('is_public').notNull().default(0),
+  updatedAt: text('updated_at').default(''),
 });
 
 export const orderMedia = mediaFiles;
@@ -462,6 +472,104 @@ export const shopSettings = sqliteTable('shop_settings', {
   updatedBy: text('updated_by').notNull().default('super_admin'),
 });
 
+// 28. Cloud Storage Connections (Google Drive 5TB Integration)
+export const cloudStorageConnections = sqliteTable('cloud_storage_connections', {
+  id: text('id').primaryKey(), // 'google_drive'
+  provider: text('provider').notNull().default('google_drive'),
+  accountEmail: text('account_email'),
+  accountName: text('account_name'),
+  connectedAt: text('connected_at'),
+  refreshToken: text('refresh_token'),
+  accessToken: text('access_token'),
+  tokenExpiresAt: text('token_expires_at'),
+  scope: text('scope'),
+  rootFolderId: text('root_folder_id'),
+  rootFolderName: text('root_folder_name').default('Saad Furniture Cloud Vault (5TB)'),
+  storageQuotaTotal: text('storage_quota_total').default('5497558138880'), // 5 TB in bytes
+  storageQuotaUsed: text('storage_quota_used').default('142857142857'), // ~142 GB
+  status: text('status').notNull().default('connected'), // 'connected' | 'disconnected' | 'error'
+  lastSyncAt: text('last_sync_at'),
+  updatedAt: text('updated_at').notNull(),
+  updatedBy: text('updated_by').notNull().default('super_admin'),
+});
+
+// 29. Media & Document Folders
+export const mediaFolders = sqliteTable('media_folders', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  category: text('category').notNull().default('general'), // 'catalogues' | 'photographs' | 'videos' | 'pdf_documents' | 'price_lists' | 'brochures' | 'warranty_documents' | 'customer_documents' | 'general'
+  parentId: text('parent_id'),
+  googleDriveFolderId: text('google_drive_folder_id'),
+  icon: text('icon').default('Folder'),
+  color: text('color').default('#B99A68'),
+  isSystem: integer('is_system').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  createdBy: text('created_by').notNull(),
+});
+
+// 30. Media Permissions (Granular Visibility Roles)
+export const mediaPermissions = sqliteTable('media_permissions', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id').notNull(),
+  visibility: text('visibility').notNull().default('public'), // 'public' | 'selected' | 'specific' | 'private'
+  downloadAllowed: integer('download_allowed').notNull().default(1),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 31. Media Customer Access (For 'selected' or 'specific' visibility)
+export const mediaCustomerAccess = sqliteTable('media_customer_access', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id').notNull(),
+  customerId: text('customer_id').notNull().references(() => users.id),
+  grantedBy: text('granted_by').notNull(),
+  grantedAt: text('granted_at').notNull(),
+});
+
+// 32. Media Order Access
+export const mediaOrderAccess = sqliteTable('media_order_access', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id').notNull(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  createdAt: text('created_at').notNull(),
+});
+
+// 33. Media Product Access
+export const mediaProductAccess = sqliteTable('media_product_access', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id').notNull(),
+  productId: text('product_id').notNull().references(() => products.id),
+  createdAt: text('created_at').notNull(),
+});
+
+// 34. Media Access Logs
+export const mediaAccessLogs = sqliteTable('media_access_logs', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id').notNull(),
+  userId: text('user_id').notNull(),
+  userName: text('user_name').notNull(),
+  userRole: text('user_role').notNull(),
+  action: text('action').notNull().default('view'), // 'view' | 'stream' | 'download'
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  accessedAt: text('accessed_at').notNull(),
+});
+
+// 35. Media Upload Logs
+export const mediaUploadLogs = sqliteTable('media_upload_logs', {
+  id: text('id').primaryKey(),
+  mediaFileId: text('media_file_id'),
+  fileName: text('file_name').notNull(),
+  fileSize: integer('file_size').notNull(),
+  status: text('status').notNull().default('completed'), // 'started' | 'uploading' | 'completed' | 'failed'
+  errorMessage: text('error_message'),
+  uploadSpeed: text('upload_speed'),
+  uploadedBy: text('uploaded_by').notNull(),
+  startedAt: text('started_at').notNull(),
+  completedAt: text('completed_at'),
+});
+
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type MediaFile = typeof mediaFiles.$inferSelect;
@@ -479,3 +587,8 @@ export type BankTransferReceipt = typeof bankTransferReceipts.$inferSelect;
 export type Coupon = typeof coupons.$inferSelect;
 export type ProductReview = typeof productReviews.$inferSelect;
 export type ShopSettings = typeof shopSettings.$inferSelect;
+export type CloudStorageConnection = typeof cloudStorageConnections.$inferSelect;
+export type MediaFolder = typeof mediaFolders.$inferSelect;
+export type MediaCustomerAccess = typeof mediaCustomerAccess.$inferSelect;
+export type MediaAccessLog = typeof mediaAccessLogs.$inferSelect;
+export type MediaUploadLog = typeof mediaUploadLogs.$inferSelect;

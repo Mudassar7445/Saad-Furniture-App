@@ -8,6 +8,7 @@ import { MobileShopScreen } from './MobileShopScreen';
 import { MobileOrdersScreen } from './MobileOrdersScreen';
 import { MobileNotificationsScreen } from './MobileNotificationsScreen';
 import { MobileProfileScreen } from './MobileProfileScreen';
+import { MobileDocumentsScreen } from './MobileDocumentsScreen';
 import { MobileProductDetailSheet } from './MobileProductDetailSheet';
 import { MobileCartSheet } from './MobileCartSheet';
 import { MobileCheckoutSheet } from './MobileCheckoutSheet';
@@ -110,6 +111,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             onToggleWishlist={onToggleWishlist}
             onOpenTracking={() => setActiveTab('orders')}
             onOpenShop={() => setActiveTab('shop')}
+            onOpenDocuments={() => setActiveTab('documents')}
           />
         )}
 
@@ -141,6 +143,10 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           />
         )}
 
+        {activeTab === 'documents' && (
+          <MobileDocumentsScreen />
+        )}
+
         {activeTab === 'profile' && (
           <MobileProfileScreen
             currentUser={currentUser}
@@ -148,6 +154,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             onLogout={handleLogout}
             onNavigateToOrders={() => setActiveTab('orders')}
             onNavigateToWishlist={() => setActiveTab('shop')}
+            onNavigateToDocuments={() => setActiveTab('documents')}
           />
         )}
       </main>

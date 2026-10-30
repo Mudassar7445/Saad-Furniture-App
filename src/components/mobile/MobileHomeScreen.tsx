@@ -14,6 +14,8 @@ import {
   Heart,
   Star,
   Award,
+  FileText,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -26,6 +28,7 @@ interface MobileHomeScreenProps {
   onToggleWishlist: (productId: string) => void;
   onOpenTracking: () => void;
   onOpenShop: () => void;
+  onOpenDocuments?: () => void;
 }
 
 export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
@@ -37,6 +40,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   onToggleWishlist,
   onOpenTracking,
   onOpenShop,
+  onOpenDocuments,
 }) => {
   const [quickOrderInput, setQuickOrderInput] = useState('');
 
@@ -121,6 +125,34 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
           </span>
         </div>
       </div>
+
+      {/* 2B. DIGITAL CATALOGUES & PRICE LISTS PILL */}
+      {onOpenDocuments && (
+        <div className="px-4">
+          <div
+            onClick={onOpenDocuments}
+            className="bg-gradient-to-r from-[#262421] to-[#38342f] text-white rounded-2xl p-3.5 flex items-center justify-between shadow-sm cursor-pointer border border-[#B99A68]/30 hover:border-[#B99A68] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#B99A68]/20 text-[#B99A68] flex items-center justify-center shrink-0 border border-[#B99A68]/30">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] text-[#B99A68] font-bold uppercase tracking-wider block">
+                  Official 2026 Lookbook
+                </span>
+                <span className="text-xs font-bold text-white font-serif block">
+                  Showroom Catalogues & Price Lists
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-[#B99A68]">
+              <span>View</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. SHOP BY CATEGORIES (HORIZONTAL SNAP CAROUSEL) */}
       <div className="space-y-2.5">

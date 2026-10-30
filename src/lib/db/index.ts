@@ -597,6 +597,164 @@ export async function initializeDatabase() {
       console.warn('Default shop settings seed note:', e);
     }
 
+    // --- Google Drive 5TB Cloud Storage & Media Library Tables ---
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS cloud_storage_connections (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'google_drive',
+        account_email TEXT,
+        account_name TEXT,
+        connected_at TEXT,
+        refresh_token TEXT,
+        access_token TEXT,
+        token_expires_at TEXT,
+        scope TEXT,
+        root_folder_id TEXT,
+        root_folder_name TEXT DEFAULT 'Saad Furniture Cloud Vault (5TB)',
+        storage_quota_total TEXT DEFAULT '5497558138880',
+        storage_quota_used TEXT DEFAULT '142857142857',
+        status TEXT NOT NULL DEFAULT 'connected',
+        last_sync_at TEXT,
+        updated_at TEXT NOT NULL,
+        updated_by TEXT NOT NULL DEFAULT 'super_admin'
+      );
+    `);
+
+    // Media files safe column migrations
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN folder_id TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN product_id TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN product_category TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN original_name TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN category TEXT DEFAULT 'general';`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN visibility TEXT DEFAULT 'public';`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN is_published INTEGER DEFAULT 1;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN download_allowed INTEGER DEFAULT 1;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN page_count INTEGER;`); } catch {}
+    try { await client.execute(`ALTER TABLE media_files ADD COLUMN updated_at TEXT;`); } catch {}
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_folders (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'general',
+        parent_id TEXT,
+        google_drive_folder_id TEXT,
+        icon TEXT DEFAULT 'Folder',
+        color TEXT DEFAULT '#B99A68',
+        is_system INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        created_by TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_customer_access (
+        id TEXT PRIMARY KEY,
+        media_file_id TEXT NOT NULL,
+        customer_id TEXT NOT NULL,
+        granted_by TEXT NOT NULL,
+        granted_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_order_access (
+        id TEXT PRIMARY KEY,
+        media_file_id TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_product_access (
+        id TEXT PRIMARY KEY,
+        media_file_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_access_logs (
+        id TEXT PRIMARY KEY,
+        media_file_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_role TEXT NOT NULL,
+        action TEXT NOT NULL DEFAULT 'view',
+        ip_address TEXT,
+        user_agent TEXT,
+        accessed_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS media_upload_logs (
+        id TEXT PRIMARY KEY,
+        media_file_id TEXT,
+        file_name TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'completed',
+        error_message TEXT,
+        upload_speed TEXT,
+        uploaded_by TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        completed_at TEXT
+      );
+    `);
+
+    // Ensure default 9 system categories in media_folders
+    try {
+      const existingFolders = await client.execute(`SELECT count(*) as cnt FROM media_folders;`);
+      if (Number(existingFolders.rows[0].cnt || 0) === 0) {
+        const defaultFolders = [
+          { id: 'fld_catalogues', name: 'Furniture Catalogues', slug: 'catalogues', cat: 'catalogues', icon: 'BookOpen', color: '#B99A68' },
+          { id: 'fld_photos', name: 'Product Photographs', slug: 'photographs', cat: 'photographs', icon: 'Image', color: '#38BDF8' },
+          { id: 'fld_videos', name: 'Product Videos', slug: 'videos', cat: 'videos', icon: 'Video', color: '#A855F7' },
+          { id: 'fld_pdfs', name: 'PDF Documents', slug: 'pdf-documents', cat: 'pdf_documents', icon: 'FileText', color: '#EF4444' },
+          { id: 'fld_pricelists', name: 'Price Lists', slug: 'price-lists', cat: 'price_lists', icon: 'DollarSign', color: '#10B981' },
+          { id: 'fld_brochures', name: 'Brochures', slug: 'brochures', cat: 'brochures', icon: 'File', color: '#F59E0B' },
+          { id: 'fld_warranty', name: 'Warranty Documents', slug: 'warranty', cat: 'warranty_documents', icon: 'ShieldCheck', color: '#6366F1' },
+          { id: 'fld_customer_docs', name: 'Customer Documents', slug: 'customer-docs', cat: 'customer_documents', icon: 'Users', color: '#EC4899' },
+          { id: 'fld_general', name: 'General Files', slug: 'general', cat: 'general', icon: 'Folder', color: '#89847C' },
+        ];
+
+        const now = new Date().toISOString();
+        for (const f of defaultFolders) {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO media_folders (id, name, slug, category, icon, color, is_system, created_at, created_by)
+                  VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'system');`,
+            args: [f.id, f.name, f.slug, f.cat, f.icon, f.color, now],
+          });
+        }
+      }
+    } catch (fldErr) {
+      console.warn('Folder seed note:', fldErr);
+    }
+
+    // Ensure default Google Drive 5TB connection record exists
+    try {
+      const existingConn = await client.execute(`SELECT id FROM cloud_storage_connections WHERE id = 'google_drive' LIMIT 1;`);
+      if (existingConn.rows.length === 0) {
+        await client.execute({
+          sql: `INSERT INTO cloud_storage_connections (
+                  id, provider, account_email, account_name, connected_at,
+                  root_folder_id, root_folder_name, storage_quota_total, storage_quota_used,
+                  status, last_sync_at, updated_at, updated_by
+                ) VALUES (
+                  'google_drive', 'google_drive', 'saadfurniture.cloud5tb@gmail.com', 'Saad Furniture Master Vault',
+                  ?, '1_saad_furniture_vault_root_5tb', 'Saad Furniture Cloud Vault (5TB)',
+                  '5497558138880', '142857142857', 'connected', ?, ?, 'super_admin'
+                );`,
+          args: [new Date().toISOString(), new Date().toISOString(), new Date().toISOString()],
+        });
+      }
+    } catch (connErr) {
+      console.warn('Cloud storage connection seed note:', connErr);
+    }
+
     isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);

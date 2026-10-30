@@ -3,7 +3,7 @@
 import React from 'react';
 import { Home, ShoppingBag, Clock, Bell, User } from 'lucide-react';
 
-export type MobileTab = 'home' | 'shop' | 'orders' | 'notifications' | 'profile';
+export type MobileTab = 'home' | 'shop' | 'orders' | 'notifications' | 'profile' | 'documents';
 
 interface MobileBottomNavProps {
   activeTab: MobileTab;

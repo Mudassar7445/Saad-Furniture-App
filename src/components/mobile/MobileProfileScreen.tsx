@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   Settings,
+  FileText,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -29,6 +30,7 @@ interface MobileProfileScreenProps {
   onLogout: () => void;
   onNavigateToOrders: () => void;
   onNavigateToWishlist: () => void;
+  onNavigateToDocuments?: () => void;
 }
 
 export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
@@ -37,6 +39,7 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
   onLogout,
   onNavigateToOrders,
   onNavigateToWishlist,
+  onNavigateToDocuments,
 }) => {
   const router = useRouter();
   const [profileData, setProfileData] = useState<any>(null);
@@ -206,6 +209,22 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           </div>
           <ChevronRight className="w-4 h-4 text-[#89847C]" />
         </button>
+
+        {onNavigateToDocuments && (
+          <button
+            onClick={onNavigateToDocuments}
+            className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-[#B99A68]" />
+              <div>
+                <span className="text-xs font-bold text-[#262421] block">Showroom Catalogues & Documents</span>
+                <span className="text-[10px] text-[#89847C] block">Browse official 2026 furniture collections & warranty cards</span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#89847C]" />
+          </button>
+        )}
 
         <button
           onClick={() => alert('Delivery address management: ' + (currentUser.address || 'Default Lahore Address'))}

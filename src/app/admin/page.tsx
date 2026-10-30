@@ -37,19 +37,23 @@ import {
   Activity,
   ShoppingBag,
   Store,
+  Folder,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { OnlineOrdersModule } from '@/components/admin/OnlineOrdersModule';
 import { ShopProfileSettingsModule } from '@/components/admin/ShopProfileSettingsModule';
+import { AdminMediaLibraryModule } from '@/components/admin/AdminMediaLibraryModule';
+import { CloudStorageSettingsModule } from '@/components/admin/CloudStorageSettingsModule';
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeModule, setActiveModule] = useState<
-    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile'
+    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage'
   >('overview');
+  const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'cloud_storage'>('general');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -557,6 +561,8 @@ export default function SuperAdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Executive Overview', icon: Layers },
     { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
+    { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
+    { id: 'cloud_storage', label: 'Google Drive 5TB Storage', icon: HardDrive },
     { id: 'orders', label: 'Showroom Commissions', icon: Package, count: ordersList.filter((o) => o.orderType !== 'online').length },
     { id: 'deliveries', label: 'Logistics & Deliveries', icon: Truck, count: deliveriesList.length },
     { id: 'ledger', label: 'Financial Ledgers', icon: CreditCard, count: ledgersData?.customers?.length || 0 },
@@ -1692,6 +1698,16 @@ export default function SuperAdminDashboard() {
           <ShopProfileSettingsModule />
         )}
 
+        {/* MEDIA & DOCUMENTS LIBRARY MODULE */}
+        {activeModule === 'media_library' && (
+          <AdminMediaLibraryModule />
+        )}
+
+        {/* DIRECT GOOGLE DRIVE CLOUD STORAGE MODULE */}
+        {activeModule === 'cloud_storage' && (
+          <CloudStorageSettingsModule />
+        )}
+
         {/* 7. MODULE: PROTECTED SUPER ADMIN SETTINGS AREA */}
         {activeModule === 'settings' && (
           <div className="space-y-6">
@@ -1711,6 +1727,36 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
+            {/* Settings Sub-navigation Tabs */}
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('general')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  settingsSubTab === 'general'
+                    ? 'bg-[#c5a880] text-black shadow-md'
+                    : 'bg-[#141822] text-slate-300 hover:text-white border border-white/5'
+                }`}
+              >
+                General Settings & Concierge
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('cloud_storage')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  settingsSubTab === 'cloud_storage'
+                    ? 'bg-[#c5a880] text-black shadow-md'
+                    : 'bg-[#141822] text-slate-300 hover:text-white border border-white/5'
+                }`}
+              >
+                <HardDrive className="w-3.5 h-3.5" />
+                <span>Cloud Storage (Google Drive 5TB)</span>
+              </button>
+            </div>
+
+            {settingsSubTab === 'cloud_storage' ? (
+              <CloudStorageSettingsModule />
+            ) : (
             <form onSubmit={handleSaveSettings} className="space-y-6">
               {/* Google Drive 5TB Storage Box */}
               <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 space-y-4">
@@ -1816,6 +1862,7 @@ export default function SuperAdminDashboard() {
                 </Button>
               </div>
             </form>
+            )}
           </div>
         )}
 
