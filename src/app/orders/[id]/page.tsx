@@ -907,6 +907,125 @@ export default function OrderDetailsPage() {
           )}
         </section>
 
+        {/* MULTI-ITEM COMMISSION SPECIFICATION DOSSIER */}
+        <section className="bg-[#141822] border border-[#c5a880]/20 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-[#c5a880]" />
+                <h2 className="text-lg sm:text-xl font-serif font-bold text-white">
+                  Commissioned Furniture Items & Multi-Piece Specifications ({items.length || 1})
+                </h2>
+                <Badge variant="gold">Bespoke Suite</Badge>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Itemized specification of each bespoke piece manufactured in this commission
+              </p>
+            </div>
+            <span className="text-xs text-[#c5a880] font-mono">
+              Total Pieces: {items.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0) || order.quantity || 1}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-900/60 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/5">
+                <tr>
+                  <th className="p-3">#</th>
+                  <th className="p-3">Product Piece & SKU</th>
+                  <th className="p-3">Custom Details / Specifications</th>
+                  <th className="p-3 text-center">Qty</th>
+                  <th className="p-3 text-right">Unit Price</th>
+                  <th className="p-3 text-right">Discount</th>
+                  <th className="p-3 text-right">Line Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {(items.length > 0 ? items : [{
+                  id: 'fallback_1',
+                  productTitle: order.productName,
+                  skuSnapshot: `SF-${order.productCategory?.substring(0, 3).toUpperCase()}-001`,
+                  customDetails: order.customDesignDetails || order.productDescription,
+                  specifications: order.dimensions ? `Dimensions: ${order.dimensions}` : null,
+                  quantity: order.quantity || 1,
+                  unit: 'pcs',
+                  unitPrice: order.totalAmount,
+                  discount: 0,
+                  totalPrice: order.totalAmount,
+                  lineTotal: order.totalAmount,
+                }]).map((it: any, idx: number) => (
+                  <tr key={it.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="p-3 text-slate-500 font-mono">{idx + 1}</td>
+                    <td className="p-3">
+                      <span className="font-bold text-white block text-sm">{it.productTitle || it.title}</span>
+                      {it.skuSnapshot && (
+                        <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">{it.skuSnapshot}</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-slate-300">
+                      {it.customDetails && <p className="italic">{it.customDetails}</p>}
+                      {it.specifications && <p className="text-[11px] text-slate-400 mt-0.5">{it.specifications}</p>}
+                    </td>
+                    <td className="p-3 text-center font-bold text-white">
+                      {it.quantity} <span className="text-[10px] font-normal text-slate-400">{it.unit || 'pcs'}</span>
+                    </td>
+                    <td className="p-3 text-right font-mono text-slate-300">
+                      ₨{Number(it.unitPrice || 0).toLocaleString()}
+                    </td>
+                    <td className="p-3 text-right font-mono text-emerald-400">
+                      {Number(it.discount || 0) > 0 ? `-₨${Number(it.discount).toLocaleString()}` : '—'}
+                    </td>
+                    <td className="p-3 text-right font-mono font-bold text-white text-sm">
+                      ₨{Number(it.lineTotal || it.totalPrice || 0).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Financial Breakdown Footer */}
+          <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 flex flex-wrap items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-6">
+              {order.subtotal && (
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase block">Subtotal</span>
+                  <span className="font-mono text-white font-semibold">₨{Number(order.subtotal).toLocaleString()}</span>
+                </div>
+              )}
+              {Number(order.discount) > 0 && (
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase block">Order Discount</span>
+                  <span className="font-mono text-emerald-400 font-semibold">-₨{Number(order.discount).toLocaleString()}</span>
+                </div>
+              )}
+              {Number(order.deliveryCharges) > 0 && (
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase block">Delivery Charges</span>
+                  <span className="font-mono text-white font-semibold">+₨{Number(order.deliveryCharges).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 uppercase block">Grand Total</span>
+                <span className="font-mono text-white font-bold text-base">₨{Number(order.totalAmount).toLocaleString()}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 uppercase block">Advance Deposit</span>
+                <span className="font-mono text-emerald-400 font-bold text-base">₨{Number(order.paidAmount || 0).toLocaleString()}</span>
+              </div>
+              <div className="text-right pl-4 border-l border-white/10">
+                <span className="text-[10px] text-slate-400 uppercase block">Remaining Balance</span>
+                <span className={`font-mono font-bold text-base ${order.remainingBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  ₨{Number(order.remainingBalance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 3-COLUMN SPECIFICATION & FINANCIAL DOSSIER GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* COLUMN 1: PATRON INFORMATION */}

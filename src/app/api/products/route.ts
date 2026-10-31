@@ -37,7 +37,12 @@ export async function POST(request: Request) {
       status = 'available',
       showroomLocation = 'Main Gallery Floor',
       featured = 0,
+      featuredImage = null,
       images = [],
+      videos = [],
+      documents = [],
+      warrantyDetails = '',
+      isPublished = 1,
       specs = {},
     } = body;
 
@@ -46,8 +51,11 @@ export async function POST(request: Request) {
     }
 
     const productId = `prod_${Date.now()}`;
-    const sku = `SF-${category.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+    const sku = body.sku || `SF-${category.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date().toISOString();
+
+    const normalizedImages = Array.isArray(images) ? images : [];
+    const mainImg = featuredImage || (normalizedImages.length > 0 ? normalizedImages[0] : null);
 
     await db.insert(products).values({
       id: productId,
@@ -63,7 +71,12 @@ export async function POST(request: Request) {
       status,
       showroomLocation,
       featured: featured ? 1 : 0,
-      images: JSON.stringify(images),
+      featuredImage: mainImg,
+      images: JSON.stringify(normalizedImages),
+      videos: JSON.stringify(Array.isArray(videos) ? videos : []),
+      documents: JSON.stringify(Array.isArray(documents) ? documents : []),
+      warrantyDetails: warrantyDetails || '5 Years Architectural Hardwood Warranty',
+      isPublished: isPublished ? 1 : 0,
       specs: JSON.stringify(specs),
       createdAt: now,
     });

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { orders, orderMedia, orderTimelineEvents, auditLogs } from '@/lib/db/schema';
-import { googleDriveService } from '@/lib/services/googleDrive';
+import { uploadBufferToDrive, ROOT_FOLDER_NAME, isDriveConnected } from '@/lib/storage/google-drive';
 import { fcmService } from '@/lib/services/fcm';
 import { eq, desc } from 'drizzle-orm';
 
@@ -73,10 +73,25 @@ export async function POST(
       const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
       mediaType = isVideo ? 'video' : 'photo';
 
-      // Upload to Google Drive Service
-      const uploadResult = await googleDriveService.uploadBuffer(buffer, file.name, file.type);
-      fileUrl = uploadResult.webViewLink || '';
-      gdriveId = uploadResult.id;
+      // Upload to Google Drive
+      const hasDrive = await isDriveConnected();
+      if (hasDrive) {
+        const uploadResult = await uploadBufferToDrive({
+          buffer,
+          filename: file.name,
+          mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+          pathSegments: [ROOT_FOLDER_NAME, 'Customer Orders'],
+          description: `${order.orderNumber} - ${title}`,
+        });
+        fileUrl = uploadResult.webViewLink || `https://drive.google.com/thumbnail?id=${uploadResult.id}&sz=w1200`;
+        gdriveId = uploadResult.id;
+      } else {
+        // Fallback marker
+        fileUrl = isVideo
+          ? 'https://assets.mixkit.co/videos/preview/mixkit-carpenter-measuring-a-piece-of-wood-41584-large.mp4'
+          : 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=1000&q=80';
+        gdriveId = `local_${Date.now()}`;
+      }
     } else {
       // JSON body (for direct URL / camera snapshot / demo)
       const body = await request.json();

@@ -15,80 +15,140 @@ import {
   Folder,
   Layers,
   FileText,
-  Image,
+  Image as ImageIcon,
   Video,
   FileCheck,
   Server,
   Zap,
+  Key,
+  Copy,
+  Check,
+  PlayCircle,
+  FolderTree,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
 export const CloudStorageSettingsModule: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [statusData, setStatusData] = useState<any>(null);
+  const [credentialsData, setCredentialsData] = useState<any>(null);
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
-  const [folderInput, setFolderInput] = useState('');
-  const [savingFolder, setSavingFolder] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResults, setTestResults] = useState<any>(null);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const fetchStatus = async () => {
+  // Credentials form state
+  const [clientIdInput, setClientIdInput] = useState('');
+  const [clientSecretInput, setClientSecretInput] = useState('');
+  const [savingCredentials, setSavingCredentials] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
+
+  const fetchStatusAndCredentials = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/storage/google/status');
-      if (res.ok) {
-        const data = await res.json();
-        setStatusData(data);
-        if (data.connection?.rootFolderId) {
-          setFolderInput(data.connection.rootFolderId);
+      const [statusRes, credsRes] = await Promise.all([
+        fetch('/api/admin/google-drive/status'),
+        fetch('/api/admin/google-drive/credentials'),
+      ]);
+
+      if (statusRes.ok) {
+        const sData = await statusRes.json();
+        setStatusData(sData);
+      }
+
+      if (credsRes.ok) {
+        const cData = await credsRes.json();
+        setCredentialsData(cData);
+        if (cData.fullClientId) {
+          setClientIdInput(cData.fullClientId);
         }
       }
     } catch (err) {
-      console.error('Failed to fetch storage status', err);
+      console.error('Failed to fetch storage status and credentials', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStatus();
+    fetchStatusAndCredentials();
   }, []);
 
-  const handleRefreshQuota = async () => {
+  const handleSaveCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientIdInput.trim() || !clientSecretInput.trim()) {
+      setNotice({ type: 'error', message: 'Both Client ID and Client Secret are required.' });
+      return;
+    }
+
     try {
-      setRefreshing(true);
+      setSavingCredentials(true);
       setNotice(null);
-      const res = await fetch('/api/storage/google/status', {
+      const res = await fetch('/api/admin/google-drive/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reconnect' }),
+        body: JSON.stringify({
+          clientId: clientIdInput.trim(),
+          clientSecret: clientSecretInput.trim(),
+          redirectUri: typeof window !== 'undefined' ? `${window.location.origin}/api/admin/google-drive/callback` : undefined,
+        }),
       });
+
       const data = await res.json();
       if (res.ok) {
-        setStatusData(data);
-        setNotice({ type: 'success', message: 'Storage quota & health verified with Google Drive 5TB API.' });
+        setNotice({ type: 'success', message: 'Google OAuth credentials saved and encrypted securely.' });
+        setClientSecretInput('');
+        await fetchStatusAndCredentials();
       } else {
-        setNotice({ type: 'error', message: data.error || 'Failed to refresh quota.' });
+        setNotice({ type: 'error', message: data.error || 'Failed to save credentials.' });
       }
     } catch (err: any) {
-      setNotice({ type: 'error', message: err.message || 'Connection test failed.' });
+      setNotice({ type: 'error', message: err.message || 'Error saving credentials.' });
     } finally {
-      setRefreshing(false);
+      setSavingCredentials(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setTesting(true);
+      setNotice(null);
+      const res = await fetch('/api/admin/google-drive/test', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      setTestResults(data);
+
+      if (data.success) {
+        setNotice({
+          type: 'success',
+          message: 'All Google Drive 5TB storage diagnostics passed successfully with verified write access!',
+        });
+        await fetchStatusAndCredentials();
+      } else {
+        setNotice({
+          type: 'error',
+          message: data.message || 'Diagnostics failed. Please check the step breakdown below.',
+        });
+      }
+    } catch (err: any) {
+      setNotice({ type: 'error', message: err.message || 'Diagnostic test execution failed.' });
+    } finally {
+      setTesting(false);
     }
   };
 
   const handleDisconnect = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/storage/google/status', {
+      const res = await fetch('/api/admin/google-drive/disconnect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'disconnect' }),
       });
       if (res.ok) {
-        await fetchStatus();
+        await fetchStatusAndCredentials();
         setDisconnectModalOpen(false);
+        setTestResults(null);
         setNotice({ type: 'success', message: 'Google Drive cloud storage disconnected.' });
       }
     } catch (err: any) {
@@ -98,39 +158,27 @@ export const CloudStorageSettingsModule: React.FC = () => {
     }
   };
 
-  const handleUpdateFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSavingFolder(true);
-      setNotice(null);
-      const res = await fetch('/api/storage/google/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rootFolderId: folderInput.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStatusData(data);
-        setNotice({ type: 'success', message: 'Saad Furniture cloud storage root folder saved successfully.' });
-      } else {
-        setNotice({ type: 'error', message: data.error || 'Failed to save folder.' });
-      }
-    } catch (err: any) {
-      setNotice({ type: 'error', message: err.message || 'Failed to update folder.' });
-    } finally {
-      setSavingFolder(false);
-    }
+  const redirectUri =
+    statusData?.redirectUri ||
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}/api/admin/google-drive/callback`
+      : 'https://saadfurniture-iota.vercel.app/api/admin/google-drive/callback');
+
+  const copyRedirectToClipboard = () => {
+    navigator.clipboard.writeText(redirectUri);
+    setCopiedRedirect(true);
+    setTimeout(() => setCopiedRedirect(false), 2000);
   };
 
-  const isConnected = statusData?.connected === true;
-  const quota = statusData?.quota || {
+  const isConnected = statusData?.isConnected === true;
+  const quota = statusData?.storageQuota || {
     totalFormatted: '5.0 TB',
-    usedFormatted: '124.5 GB',
-    availableFormatted: '4.87 TB',
-    usagePercent: 2.4,
+    usedFormatted: '0.00 GB',
+    freeFormatted: '5.0 TB',
+    usagePercent: 0,
     totalBytes: 5497558138880,
-    usedBytes: 133682135040,
-    availableBytes: 5363876003840,
+    usedBytes: 0,
+    freeBytes: 5497558138880,
   };
 
   return (
@@ -138,7 +186,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
       {/* Banner */}
       <div className="bg-gradient-to-r from-[#262421] via-[#1c1a18] to-[#141312] border border-[#B99A68]/30 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-[#B99A68]/5 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#B99A68]/20 border border-[#B99A68]/40 flex items-center justify-center text-[#B99A68] shadow-inner shrink-0">
@@ -147,29 +195,30 @@ export const CloudStorageSettingsModule: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-serif font-bold tracking-wide text-white">
-                  Google Drive Cloud Storage System
+                  Google Drive 5TB Storage System
                 </h2>
                 {isConnected ? (
-                  <Badge variant="green">Active 5TB Plan</Badge>
+                  <Badge variant="green">Active 5TB Connected</Badge>
                 ) : (
                   <Badge variant="amber">Not Connected</Badge>
                 )}
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
-                Enterprise cloud storage engine for all high-definition furniture catalogues, manufacturing videos, patron invoices, CAD drawings, and warranty records.
+                Dedicated cloud repository for Saad Furniture product catalog photographs, bespoke manufacturing videos, client contracts, and high-resolution CAD designs.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
-              onClick={handleRefreshQuota}
-              disabled={refreshing}
+              onClick={handleTestConnection}
+              disabled={testing}
               className="bg-[#38332c] hover:bg-[#4d463d] text-white border border-white/10 text-xs rounded-xl h-10 px-4"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Test & Sync Quota
+              <RefreshCw className={`w-4 h-4 mr-2 ${testing ? 'animate-spin' : ''}`} />
+              {testing ? 'Testing...' : 'Test & Verify 5TB'}
             </Button>
+
             {isConnected ? (
               <Button
                 onClick={() => setDisconnectModalOpen(true)}
@@ -181,12 +230,12 @@ export const CloudStorageSettingsModule: React.FC = () => {
             ) : (
               <Button
                 onClick={() => {
-                  window.location.href = '/api/storage/google/auth';
+                  window.location.href = '/api/admin/google-drive/connect';
                 }}
-                className="bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-10 px-4 shadow-md"
+                className="bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-10 px-5 shadow-lg flex items-center"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Connect Google Account
+                Connect Google Drive
               </Button>
             )}
           </div>
@@ -201,182 +250,305 @@ export const CloudStorageSettingsModule: React.FC = () => {
             }`}
           >
             {notice.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
             ) : (
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
             )}
             <span>{notice.message}</span>
           </div>
         )}
       </div>
 
-      {/* 5TB Quota Meter Card */}
-      <div className="bg-[#141822] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#B99A68] block">
-              Live Storage Analytics
-            </span>
-            <h3 className="text-lg font-serif font-bold text-white mt-0.5">
-              Google Drive 5.0 TB Capacity
+      {/* Diagnostic Steps Result (if tested) */}
+      {testResults && testResults.steps && (
+        <div className="bg-[#1c1a18] border border-[#B99A68]/30 rounded-2xl p-5 shadow-md space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#B99A68]" />
+              System Diagnostics & Verification Results
             </h3>
+            <Badge variant={testResults.success ? 'green' : 'amber'}>
+              {testResults.success ? 'All Passed' : 'Action Required'}
+            </Badge>
           </div>
-          <div className="flex items-center gap-3 text-xs">
-            <div className="text-right">
-              <span className="text-slate-400 block text-[11px]">Storage Account</span>
-              <span className="text-white font-mono font-medium">
-                {statusData?.connection?.accountEmail || 'saadfurniture.cloud5tb@gmail.com'}
-              </span>
+          <div className="space-y-2">
+            {testResults.steps.map((st: any, idx: number) => (
+              <div
+                key={idx}
+                className="flex items-start gap-3 p-2.5 rounded-xl bg-black/30 border border-white/5 text-xs"
+              >
+                {st.status === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
+                {st.status === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />}
+                {st.status === 'error' && <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-white">{st.name}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">{st.status}</span>
+                  </div>
+                  <p className="text-slate-300 mt-0.5">{st.message}</p>
+                  {st.details && <p className="text-slate-500 text-[11px] mt-0.5">{st.details}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Grid: Storage Quota & Connected Account Details */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card 1: 5TB Storage Quota */}
+        <div className="md:col-span-2 bg-[#201e1b] border border-[#38332c] rounded-2xl p-6 shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white font-medium text-sm">
+              <Cloud className="w-4 h-4 text-[#B99A68]" />
+              5TB Cloud Storage Allocation
             </div>
-            <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#B99A68]">
-              <Server className="w-4 h-4" />
+            <span className="text-xs text-[#B99A68] font-mono">{quota.usagePercent}% Allocated</span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="w-full bg-black/40 h-3 rounded-full overflow-hidden border border-white/5 p-0.5">
+              <div
+                className="h-full bg-gradient-to-r from-[#B99A68] to-[#e4ceab] rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(1, quota.usagePercent)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Used: {quota.usedFormatted}</span>
+              <span>Available: {quota.freeFormatted}</span>
+              <span className="text-white font-medium">Capacity: {quota.totalFormatted}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5 text-center">
+            <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <p className="text-[10px] text-slate-400 uppercase">Cloud Provider</p>
+              <p className="text-xs font-semibold text-white mt-1">Google Drive API</p>
+            </div>
+            <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <p className="text-[10px] text-slate-400 uppercase">Connection Status</p>
+              <p className={`text-xs font-semibold mt-1 ${isConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {isConnected ? 'Active & Healthy' : 'Awaiting Auth'}
+              </p>
+            </div>
+            <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <p className="text-[10px] text-slate-400 uppercase">Encryption Vault</p>
+              <p className="text-xs font-semibold text-[#B99A68] mt-1">AES-256-GCM</p>
             </div>
           </div>
         </div>
 
-        {/* Quota Progress Bar */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-serif font-bold text-white">
-                {quota.usedFormatted}
-              </span>
-              <span className="text-slate-400">used of</span>
-              <span className="text-xl font-serif font-bold text-[#B99A68]">
-                {quota.totalFormatted}
-              </span>
+        {/* Card 2: Connected Account Card */}
+        <div className="bg-[#201e1b] border border-[#38332c] rounded-2xl p-6 shadow-md flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex items-center gap-2 text-white font-medium text-sm mb-3">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              Connected Google Account
             </div>
-            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-              {quota.availableFormatted} Available ({100 - quota.usagePercent}%)
-            </span>
+
+            {isConnected ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl">
+                  <p className="text-[11px] text-emerald-300 font-medium break-all">
+                    {statusData?.connectedEmail || 'owner@saadfurniture.com'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {statusData?.accountName || 'Saad Furniture Vault Owner'}
+                  </p>
+                </div>
+
+                <div className="text-[11px] text-slate-400 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Root Folder:</span>
+                    <span className="text-white font-mono">SAAD FURNITURE MASTER</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Last Check:</span>
+                    <span className="text-slate-300">
+                      {statusData?.lastConnectionCheck
+                        ? new Date(statusData.lastConnectionCheck).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : 'Just now'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 space-y-2">
+                <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
+                <p className="text-xs text-slate-300">No Google Account Connected</p>
+                <p className="text-[11px] text-slate-500">
+                  Connect the Google Account associated with your 5TB storage plan.
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden p-0.5 flex">
-            <div
-              className="h-full bg-gradient-to-r from-[#B99A68] to-amber-300 rounded-full transition-all duration-700 shadow-sm"
-              style={{ width: `${Math.max(quota.usagePercent, 2)}%` }}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex items-center gap-2 text-[#B99A68] text-xs font-medium mb-1">
-                <FileText className="w-3.5 h-3.5" />
-                <span>Catalogues & PDFs</span>
-              </div>
-              <div className="text-sm font-bold text-white">38.4 GB</div>
-              <div className="text-[10px] text-slate-400">142 Documents</div>
-            </div>
-
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex items-center gap-2 text-sky-400 text-xs font-medium mb-1">
-                <Image className="w-3.5 h-3.5" />
-                <span>Product HD Photos</span>
-              </div>
-              <div className="text-sm font-bold text-white">52.8 GB</div>
-              <div className="text-[10px] text-slate-400">1,240 Assets</div>
-            </div>
-
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex items-center gap-2 text-purple-400 text-xs font-medium mb-1">
-                <Video className="w-3.5 h-3.5" />
-                <span>4K Craft Videos</span>
-              </div>
-              <div className="text-sm font-bold text-white">29.1 GB</div>
-              <div className="text-[10px] text-slate-400">86 Files</div>
-            </div>
-
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium mb-1">
-                <FileCheck className="w-3.5 h-3.5" />
-                <span>Patron Invoices</span>
-              </div>
-              <div className="text-sm font-bold text-white">4.2 GB</div>
-              <div className="text-[10px] text-slate-400">520 Records</div>
-            </div>
+          <div className="pt-3 border-t border-white/5">
+            {isConnected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                className="w-full text-xs border-[#B99A68]/40 text-[#B99A68] hover:bg-[#B99A68]/10"
+              >
+                Verify Tokens & Write Privileges
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => {
+                  window.location.href = '/api/admin/google-drive/connect';
+                }}
+                className="w-full text-xs bg-[#B99A68] text-[#262421] font-bold"
+              >
+                Initiate Google OAuth
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Root Folder & Storage Architecture */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Folder Configuration */}
-        <div className="bg-[#141822] border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[#B99A68]/10 text-[#B99A68]">
-              <Folder className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-serif font-bold text-white">
-                Google Drive Storage Directory
-              </h4>
-              <p className="text-xs text-slate-400">
-                Designated parent folder in Google Drive for all media assets
-              </p>
-            </div>
+      {/* Google Cloud Credentials Configuration Form */}
+      <div className="bg-[#201e1b] border border-[#38332c] rounded-2xl p-6 shadow-md space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-white/5 pb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Key className="w-4 h-4 text-[#B99A68]" />
+              Google Cloud OAuth 2.0 Credentials
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Configure credentials here or via Vercel Environment Variables (<code className="text-[#B99A68]">GOOGLE_CLIENT_ID</code>, <code className="text-[#B99A68]">GOOGLE_CLIENT_SECRET</code>).
+            </p>
           </div>
-
-          <form onSubmit={handleUpdateFolder} className="space-y-3 pt-2">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                Parent Storage Folder ID / Alias
-              </label>
-              <input
-                type="text"
-                value={folderInput}
-                onChange={(e) => setFolderInput(e.target.value)}
-                placeholder="Saad-Furniture-Media-Root (or Drive Folder ID)"
-                className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono focus:border-[#B99A68] outline-none"
-              />
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Leave default or provide a specific Google Drive folder ID to keep showroom archives isolated.
-              </span>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={savingFolder}
-              className="w-full bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-10"
-            >
-              {savingFolder ? 'Saving...' : 'Update Storage Folder'}
-            </Button>
-          </form>
+          {credentialsData?.configured && (
+            <Badge variant="green">
+              Credentials Configured ({credentialsData.source === 'env' ? 'Vercel Env' : 'Database Vault'})
+            </Badge>
+          )}
         </div>
 
-        {/* Security & Access Isolation */}
-        <div className="bg-[#141822] border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <ShieldCheck className="w-5 h-5" />
+        {/* Redirect URI Display */}
+        <div className="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase font-semibold">Authorized Redirect URI (Google Cloud Console)</p>
+            <p className="text-xs text-[#B99A68] font-mono break-all mt-0.5">{redirectUri}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={copyRedirectToClipboard}
+            className="text-xs text-white border border-white/10 shrink-0 h-8"
+          >
+            {copiedRedirect ? <Check className="w-3.5 h-3.5 text-emerald-400 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+            {copiedRedirect ? 'Copied' : 'Copy URI'}
+          </Button>
+        </div>
+
+        <form onSubmit={handleSaveCredentials} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Google Client ID</label>
+              <input
+                type="text"
+                value={clientIdInput}
+                onChange={(e) => setClientIdInput(e.target.value)}
+                placeholder="e.g. 1234567890-abcdef.apps.googleusercontent.com"
+                className="w-full p-2.5 bg-black/40 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#B99A68]"
+              />
             </div>
             <div>
-              <h4 className="text-sm font-serif font-bold text-white">
-                Zero-Leak Security Controls
-              </h4>
-              <p className="text-xs text-slate-400">
-                End-to-end token encryption & secure file streaming
-              </p>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Google Client Secret {credentialsData?.configured && '(Leave blank to retain saved secret)'}
+              </label>
+              <input
+                type="password"
+                value={clientSecretInput}
+                onChange={(e) => setClientSecretInput(e.target.value)}
+                placeholder={credentialsData?.configured ? '••••••••••••••••••••••••••••' : 'Enter client secret'}
+                className="w-full p-2.5 bg-black/40 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#B99A68]"
+              />
             </div>
           </div>
 
-          <div className="space-y-2.5 text-xs text-slate-300 pt-1">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>Encrypted Token Storage:</strong> Refresh tokens are stored safely in Turso Cloud Database with salted secrets.
-              </span>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="submit"
+              disabled={savingCredentials}
+              className="bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-9 px-4"
+            >
+              {savingCredentials ? 'Encrypting & Saving...' : 'Save & Encrypt Credentials in Vault'}
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Automatic Folder Structure Visualization */}
+      <div className="bg-[#201e1b] border border-[#38332c] rounded-2xl p-6 shadow-md space-y-4">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <FolderTree className="w-4 h-4 text-[#B99A68]" />
+              Automated 5TB Google Drive Folder Structure
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Files uploaded to Saad Furniture are automatically organized into their designated category folders.
+            </p>
+          </div>
+          <Badge variant="blue">Automated Routing</Badge>
+        </div>
+
+        <div className="bg-black/30 border border-white/5 rounded-xl p-4 font-mono text-xs text-slate-300 space-y-2">
+          <div className="flex items-center gap-2 text-[#B99A68] font-bold">
+            <Folder className="w-4 h-4" />
+            <span>SAAD FURNITURE MASTER/</span>
+          </div>
+
+          <div className="pl-6 space-y-1.5 border-l border-white/10 ml-2">
+            <div>
+              <div className="flex items-center gap-2 text-white font-medium">
+                <Folder className="w-3.5 h-3.5 text-[#B99A68]" />
+                <span>Product Catalog/</span>
+              </div>
+              <div className="pl-6 pt-1 space-y-1 text-slate-400 text-[11px] border-l border-white/5 ml-1.5 grid grid-cols-2 md:grid-cols-4 gap-1">
+                <span>├── Sofas/</span>
+                <span>├── Double Beds/</span>
+                <span>├── Single Beds/</span>
+                <span>├── Wardrobes/</span>
+                <span>├── Center Tables/</span>
+                <span>├── Mattresses/</span>
+                <span>├── Room Chairs/</span>
+                <span>└── Custom Furniture/</span>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>In-App Proxy Streaming:</strong> Direct Google Drive URLs are never exposed to clients; all media streams through authenticated endpoints.
-              </span>
+
+            <div className="flex items-center gap-2 text-slate-300">
+              <Video className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Product Videos/</span>
             </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>Granular Customer Isolation:</strong> Private documents (e.g., custom architectural blueprints) are strictly locked to target patron IDs.
-              </span>
+            <div className="flex items-center gap-2 text-slate-300">
+              <FileText className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Catalogues & Brochures/</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <FileCheck className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Price Lists/</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <Layers className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Customer Orders/ (Customer folders & order photos/videos)</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <FileText className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Customer Documents/</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>Warranty Documents/</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <Folder className="w-3.5 h-3.5 text-[#B99A68]" />
+              <span>General Business Documents/</span>
             </div>
           </div>
         </div>
@@ -384,28 +556,28 @@ export const CloudStorageSettingsModule: React.FC = () => {
 
       {/* Disconnect Modal */}
       {disconnectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#181d28] border border-red-500/30 rounded-3xl p-6 max-w-md w-full space-y-4 text-white shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-red-950/60 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#201e1b] border border-red-500/30 rounded-2xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-base font-bold">Disconnect Google Drive 5TB Storage?</h3>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-serif font-bold text-white">Disconnect Google Drive?</h3>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Disconnecting will pause new catalogue and file uploads to Google Drive. Existing media records in the Turso database will remain preserved.
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to disconnect this Google Drive account? Cloud media uploads and automatic synchronization will be paused until re-authenticated. Existing files in Google Drive remain safe.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
               <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setDisconnectModalOpen(false)}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs h-11"
+                className="text-slate-400 hover:text-white text-xs"
               >
                 Cancel
               </Button>
               <Button
+                size="sm"
                 onClick={handleDisconnect}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold h-11"
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold"
               >
                 Confirm Disconnect
               </Button>
@@ -416,4 +588,3 @@ export const CloudStorageSettingsModule: React.FC = () => {
     </div>
   );
 };
-

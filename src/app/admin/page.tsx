@@ -46,6 +46,9 @@ import { OnlineOrdersModule } from '@/components/admin/OnlineOrdersModule';
 import { ShopProfileSettingsModule } from '@/components/admin/ShopProfileSettingsModule';
 import { AdminMediaLibraryModule } from '@/components/admin/AdminMediaLibraryModule';
 import { CloudStorageSettingsModule } from '@/components/admin/CloudStorageSettingsModule';
+import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBuilderModal';
+import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
+import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -91,6 +94,8 @@ export default function SuperAdminDashboard() {
   const [showCreateStaff, setShowCreateStaff] = useState(false);
   const [showEditStaff, setShowEditStaff] = useState<any>(null);
   const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [selectedOrderForView, setSelectedOrderForView] = useState<string | null>(null);
   const [showSendNotification, setShowSendNotification] = useState(false);
   const [targetCustomerForNotif, setTargetCustomerForNotif] = useState<string>('all');
 
@@ -1028,10 +1033,20 @@ export default function SuperAdminDashboard() {
                           </span>
                         </td>
                         <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                          {/* Quick Multi-Item Dossier Modal */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderForView(ord.id)}
+                            className="p-1.5 rounded-lg bg-[#c5a880]/20 hover:bg-[#c5a880] text-[#e5caa2] hover:text-slate-950 transition-colors inline-block"
+                            title="Quick Multi-Item Commission Modal"
+                          >
+                            <Layers className="w-4 h-4" />
+                          </button>
+
                           {/* Dedicated Order Details Page */}
                           <Link
                             href={`/orders/${ord.id}`}
-                            className="p-1.5 rounded-lg bg-[#c5a880]/20 hover:bg-[#c5a880] text-[#e5caa2] hover:text-slate-950 transition-colors inline-block"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#c5a880] text-slate-300 hover:text-slate-950 transition-colors inline-block"
                             title="Open Separate Order Details Page & Visual Timeline"
                           >
                             <Eye className="w-4 h-4" />
@@ -1644,12 +1659,22 @@ export default function SuperAdminDashboard() {
                             ${prod.price?.toLocaleString()}
                           </span>
                         </div>
-                        <button
-                          onClick={() => handleDeleteProduct(prod.id)}
-                          className="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-300 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setEditingProduct(prod)}
+                            className="p-2 rounded-lg bg-slate-800 hover:bg-[#c5a880]/20 text-slate-300 hover:text-[#c5a880] transition-colors"
+                            title="Edit Piece & Upload Google Drive Media"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(prod.id)}
+                            className="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-300 transition-colors"
+                            title="Delete Piece"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2027,224 +2052,15 @@ export default function SuperAdminDashboard() {
         </form>
       </Modal>
 
-      {/* MODAL: CREATE ORDER */}
-      <Modal
+      {/* MODAL: CREATE MULTI-ITEM ORDER */}
+      <MultiItemOrderBuilderModal
         isOpen={showCreateOrder}
         onClose={() => setShowCreateOrder(false)}
-        title="Commission New Furniture Order"
-        subtitle="Create an order for an existing patron with custom specifications"
-        maxWidth="lg"
-      >
-        <form onSubmit={handleCreateOrder} className="space-y-4 text-xs">
-          <div>
-            <label className="block text-slate-300 mb-1">Select Patron *</label>
-            <select
-              required
-              value={orderForm.customerId}
-              onChange={(e) => {
-                const c = customersList.find((x) => x.id === e.target.value);
-                setOrderForm({
-                  ...orderForm,
-                  customerId: e.target.value,
-                  deliveryAddress: c?.address || '',
-                });
-              }}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-            >
-              <option value="">-- Choose Patron --</option>
-              {customersList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.email})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Product Name *</label>
-              <input
-                type="text"
-                required
-                value={orderForm.productName}
-                onChange={(e) => setOrderForm({ ...orderForm, productName: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="e.g. Sovereign Mahogany Executive Desk"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Product Category *</label>
-              <select
-                value={orderForm.productCategory}
-                onChange={(e) => setOrderForm({ ...orderForm, productCategory: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              >
-                <option value="Living Room">Living Room</option>
-                <option value="Bedroom">Bedroom</option>
-                <option value="Dining Room">Dining Room</option>
-                <option value="Executive Office">Executive Office</option>
-                <option value="Custom Luxury">Custom Luxury</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1">Product Description</label>
-            <textarea
-              rows={2}
-              value={orderForm.productDescription}
-              onChange={(e) => setOrderForm({ ...orderForm, productDescription: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="e.g. Master carved desk with brass inlays and full-grain Italian leather writing pad."
-            />
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1">Custom Design Details</label>
-            <input
-              type="text"
-              value={orderForm.customDesignDetails}
-              onChange={(e) => setOrderForm({ ...orderForm, customDesignDetails: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="e.g. Hand-carved family crest monogram, hidden soft-close safe drawer."
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Dimensions & Measurements</label>
-              <input
-                type="text"
-                value={orderForm.dimensions}
-                onChange={(e) => setOrderForm({ ...orderForm, dimensions: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="240cm W x 105cm D x 78cm H"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Fabric Information</label>
-              <input
-                type="text"
-                value={orderForm.fabricInfo}
-                onChange={(e) => setOrderForm({ ...orderForm, fabricInfo: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="Belgian Velvet / Italian Leather"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Colour Information</label>
-              <input
-                type="text"
-                value={orderForm.colourInfo}
-                onChange={(e) => setOrderForm({ ...orderForm, colourInfo: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="Dark Espresso / Cognac"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Quantity</label>
-              <input
-                type="number"
-                min={1}
-                value={orderForm.quantity}
-                onChange={(e) => setOrderForm({ ...orderForm, quantity: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Total Agreed Price ($) *</label>
-              <input
-                type="number"
-                required
-                min={1}
-                value={orderForm.totalAmount}
-                onChange={(e) => setOrderForm({ ...orderForm, totalAmount: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="15000"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Advance Payment ($)</label>
-              <input
-                type="number"
-                min={0}
-                value={orderForm.paidAmount}
-                onChange={(e) => setOrderForm({ ...orderForm, paidAmount: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="7500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Expected Completion Date</label>
-              <input
-                type="date"
-                value={orderForm.expectedCompletionDate}
-                onChange={(e) => setOrderForm({ ...orderForm, expectedCompletionDate: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Assigned Staff Member</label>
-              <select
-                value={orderForm.assignedStaffId}
-                onChange={(e) => {
-                  const s = staffList.find((x) => x.id === e.target.value);
-                  setOrderForm({
-                    ...orderForm,
-                    assignedStaffId: e.target.value,
-                    assignedStaffName: s ? s.name : '',
-                  });
-                }}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              >
-                <option value="">-- Assign Master Artisan / Staff --</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.permissions?.join(', ') || 'Staff'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1">Delivery Destination Address</label>
-            <input
-              type="text"
-              value={orderForm.deliveryAddress}
-              onChange={(e) => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="Estate Delivery Address"
-            />
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1">Special Instructions & White-Glove Notes</label>
-            <textarea
-              rows={2}
-              value={orderForm.specialInstructions}
-              onChange={(e) => setOrderForm({ ...orderForm, specialInstructions: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="e.g. White-glove installation, freight lift coordination required."
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" type="button" onClick={() => setShowCreateOrder(false)}>
-              Cancel
-            </Button>
-            <Button variant="gold" type="submit">
-              Place Workshop Commission
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSuccess={refreshAllData}
+        customersList={customersList}
+        productsList={productsList}
+        staffList={staffList}
+      />
 
       {/* MODAL: UPDATE ORDER PROGRESS */}
       <Modal
@@ -2429,13 +2245,50 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div>
+            <label className="block text-slate-300 mb-1">Upload Photo or Video to Google Drive (5TB Cloud Storage)</label>
+            <input
+              type="file"
+              accept="image/*,video/mp4"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !showUploadMedia) return;
+                try {
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  fd.append('orderId', showUploadMedia.id);
+                  fd.append('category', 'Customer Orders');
+                  fd.append('title', mediaUploadForm.title || `${showUploadMedia.orderNumber} Workshop Milestone`);
+                  const res = await fetch('/api/admin/google-drive/upload', {
+                    method: 'POST',
+                    body: fd,
+                  });
+                  const json = await res.json();
+                  if (res.ok && json.media) {
+                    setMediaUploadForm((prev) => ({
+                      ...prev,
+                      url: json.media.url || json.media.viewUrl,
+                      mediaType: json.media.mediaType,
+                    }));
+                    alert(`Uploaded ${file.name} directly to Google Drive!`);
+                  } else {
+                    alert(json.error || 'Upload failed');
+                  }
+                } catch (err: any) {
+                  alert(err.message || 'Error uploading file');
+                }
+              }}
+              className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-[#B99A68] file:text-slate-950 file:font-bold"
+            />
+          </div>
+
+          <div>
             <label className="block text-slate-300 mb-1">Media URL or Google Drive Link</label>
             <input
               type="text"
               value={mediaUploadForm.url}
               onChange={(e) => setMediaUploadForm({ ...mediaUploadForm, url: e.target.value })}
               className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="Leave empty to use high-res sample workshop media"
+              placeholder="Auto-filled from upload above or enter external link"
             />
           </div>
 
@@ -2606,125 +2459,24 @@ export default function SuperAdminDashboard() {
         </form>
       </Modal>
 
-      {/* MODAL: CREATE PRODUCT */}
-      <Modal
-        isOpen={showCreateProduct}
-        onClose={() => setShowCreateProduct(false)}
-        title="Add Showroom Furniture Piece"
-        subtitle="New bespoke item for the physical showroom and digital catalog"
-        maxWidth="lg"
-      >
-        <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
-          <div>
-            <label className="block text-slate-300 mb-1">Piece Title *</label>
-            <input
-              type="text"
-              required
-              value={productForm.title}
-              onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="e.g. Royal Emerald 4-Piece Chesterfield Set"
-            />
-          </div>
+      {/* MODAL: CREATE / EDIT PRODUCT WITH GOOGLE DRIVE MEDIA */}
+      <ProductMediaUploadModal
+        isOpen={showCreateProduct || !!editingProduct}
+        existingProduct={editingProduct}
+        onClose={() => {
+          setShowCreateProduct(false);
+          setEditingProduct(null);
+        }}
+        onSuccess={refreshAllData}
+      />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Room Category *</label>
-              <select
-                value={productForm.category}
-                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              >
-                <option value="Living Room">Living Room</option>
-                <option value="Bedroom">Bedroom</option>
-                <option value="Dining Room">Dining Room</option>
-                <option value="Executive Office">Executive Office</option>
-                <option value="Custom Luxury">Custom Luxury</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Price ($) *</label>
-              <input
-                type="number"
-                required
-                min={1}
-                value={productForm.price}
-                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="8500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Material & Wood Finish</label>
-              <input
-                type="text"
-                value={productForm.material}
-                onChange={(e) => setProductForm({ ...productForm, material: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="Solid Teak & Hand-Stitched Leather"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Dimensions</label>
-              <input
-                type="text"
-                value={productForm.dimensions}
-                onChange={(e) => setProductForm({ ...productForm, dimensions: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="240cm W x 95cm D x 85cm H"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-300 mb-1">Showroom Display Location</label>
-              <input
-                type="text"
-                value={productForm.showroomLocation}
-                onChange={(e) => setProductForm({ ...productForm, showroomLocation: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                placeholder="Grand Hall Salon B"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 mb-1">Availability</label>
-              <select
-                value={productForm.status}
-                onChange={(e) => setProductForm({ ...productForm, status: e.target.value })}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              >
-                <option value="available">Available in Showroom</option>
-                <option value="made_to_order">Made to Order (Bespoke)</option>
-                <option value="out_of_stock">Out of Stock</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1">Description</label>
-            <textarea
-              rows={2}
-              value={productForm.description}
-              onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              placeholder="Handcrafted masterwork..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" type="button" onClick={() => setShowCreateProduct(false)}>
-              Cancel
-            </Button>
-            <Button variant="gold" type="submit">
-              Save To Catalog
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* MODAL: VIEW DETAILED ORDER DOSSIER & MULTI-ITEM SPECIFICATIONS */}
+      <AdminOrderDetailsModal
+        orderId={selectedOrderForView}
+        isOpen={!!selectedOrderForView}
+        onClose={() => setSelectedOrderForView(null)}
+        onRefresh={refreshAllData}
+      />
 
       {/* MODAL: BROADCAST / INDIVIDUAL NOTIFICATION */}
       <Modal

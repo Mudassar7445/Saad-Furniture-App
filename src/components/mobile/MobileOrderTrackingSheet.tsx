@@ -394,39 +394,94 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
             </div>
           )}
 
-          {/* TAB 3: SPECIFICATIONS & DELIVERY */}
+          {/* TAB 3: SPECIFICATIONS & MULTI-ITEM BREAKDOWN */}
           {activeTab === 'details' && (
             <div className="space-y-4">
-              <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">
-                  Piece Specifications & Custom Notes
-                </h3>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
-                    <span className="text-[10px] text-[#89847C] uppercase font-bold block">Category</span>
-                    <span className="font-semibold text-[#262421]">{currentOrder.productCategory || 'Living Room'}</span>
+              {/* Multi-Item Breakdown */}
+              {orderDetails?.items && orderDetails.items.length > 0 ? (
+                <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">
+                      Commissioned Furniture Items ({orderDetails.items.length})
+                    </h3>
+                    <span className="text-[10px] text-[#B99A68] font-bold">Multi-Piece Order</span>
                   </div>
-                  <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
-                    <span className="text-[10px] text-[#89847C] uppercase font-bold block">Timber / Wood</span>
-                    <span className="font-semibold text-[#262421]">{currentOrder.woodType || 'Solid Seasoned Sheesham'}</span>
-                  </div>
-                  <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
-                    <span className="text-[10px] text-[#89847C] uppercase font-bold block">Fabric / Upholstery</span>
-                    <span className="font-semibold text-[#262421]">{currentOrder.fabricDetails || currentOrder.colourInfo || 'Velvet Sand Beige'}</span>
-                  </div>
-                  <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
-                    <span className="text-[10px] text-[#89847C] uppercase font-bold block">Dimensions</span>
-                    <span className="font-semibold text-[#262421]">{currentOrder.dimensions || 'Bespoke Sizing'}</span>
+
+                  <div className="space-y-2.5">
+                    {orderDetails.items.map((it: any, itIdx: number) => (
+                      <div
+                        key={it.id || itIdx}
+                        className="p-3 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-9 h-9 rounded-lg bg-white border border-[#EAE2D6] flex items-center justify-center text-[#B99A68] shrink-0 font-bold text-xs">
+                              {itIdx + 1}
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs text-[#262421] block leading-tight">
+                                {it.productTitle || it.title || 'Bespoke Piece'}
+                              </span>
+                              {it.skuSnapshot && (
+                                <span className="text-[10px] text-[#89847C] font-mono block mt-0.5">
+                                  SKU: {it.skuSnapshot}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-xs text-[#262421] font-serif block">
+                              ₨{(it.lineTotal || it.totalPrice || 0).toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-[#89847C] block">
+                              {it.quantity} {it.unit || 'pcs'} × ₨{(it.unitPrice || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {(it.customDetails || it.specifications || it.customizationDetails) && (
+                          <div className="pt-2 border-t border-[#EAE2D6]/60 text-[11px] text-[#5c5852] space-y-0.5">
+                            {it.customDetails && <p className="italic">{it.customDetails}</p>}
+                            {it.specifications && <p>{it.specifications}</p>}
+                            {it.customizationDetails && <p>{it.customizationDetails}</p>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                {currentOrder.specialInstructions && (
-                  <div className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs">
-                    <span className="text-[10px] text-[#89847C] uppercase font-bold block">Custom Details & Notes</span>
-                    <span className="text-[#262421]">{currentOrder.specialInstructions}</span>
+              ) : (
+                <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">
+                    Piece Specifications & Custom Notes
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
+                      <span className="text-[10px] text-[#89847C] uppercase font-bold block">Category</span>
+                      <span className="font-semibold text-[#262421]">{currentOrder.productCategory || 'Living Room'}</span>
+                    </div>
+                    <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
+                      <span className="text-[10px] text-[#89847C] uppercase font-bold block">Timber / Wood</span>
+                      <span className="font-semibold text-[#262421]">{currentOrder.woodType || 'Solid Seasoned Sheesham'}</span>
+                    </div>
+                    <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
+                      <span className="text-[10px] text-[#89847C] uppercase font-bold block">Fabric / Upholstery</span>
+                      <span className="font-semibold text-[#262421]">{currentOrder.fabricDetails || currentOrder.colourInfo || 'Velvet Sand Beige'}</span>
+                    </div>
+                    <div className="p-2.5 bg-[#F7F5F0] rounded-xl">
+                      <span className="text-[10px] text-[#89847C] uppercase font-bold block">Dimensions</span>
+                      <span className="font-semibold text-[#262421]">{currentOrder.dimensions || 'Bespoke Sizing'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {currentOrder.specialInstructions && (
+                    <div className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs">
+                      <span className="text-[10px] text-[#89847C] uppercase font-bold block">Custom Details & Notes</span>
+                      <span className="text-[#262421]">{currentOrder.specialInstructions}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Delivery Details */}
               <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-2">
@@ -453,14 +508,38 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
               <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">Order Financial Summary</h3>
                 <div className="space-y-2 text-xs">
+                  {currentOrder.subtotal !== undefined && currentOrder.subtotal !== null && (
+                    <div className="flex justify-between py-1.5 border-b border-[#F7F5F0]">
+                      <span className="text-[#89847C]">Order Subtotal</span>
+                      <span className="font-medium text-[#262421] font-serif">
+                        ₨{Number(currentOrder.subtotal).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  {Number(currentOrder.discount) > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-[#F7F5F0] text-emerald-600">
+                      <span>Order Discount</span>
+                      <span className="font-medium font-serif">
+                        -₨{Number(currentOrder.discount).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  {Number(currentOrder.deliveryCharges) > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-[#F7F5F0]">
+                      <span className="text-[#89847C]">Delivery Charges</span>
+                      <span className="font-medium text-[#262421] font-serif">
+                        +₨{Number(currentOrder.deliveryCharges).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-1.5 border-b border-[#F7F5F0]">
-                    <span className="text-[#89847C]">Total Confirmed Price</span>
-                    <span className="font-bold text-[#262421] font-serif">
+                    <span className="text-[#89847C] font-bold">Grand Total</span>
+                    <span className="font-bold text-[#262421] font-serif text-sm">
                       ₨{(currentOrder.totalAmount || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-[#F7F5F0]">
-                    <span className="text-[#89847C]">Total Paid to Date</span>
+                    <span className="text-[#89847C]">Total Paid (Advance)</span>
                     <span className="font-bold text-emerald-600 font-serif">
                       ₨{(currentOrder.paidAmount || 0).toLocaleString()}
                     </span>

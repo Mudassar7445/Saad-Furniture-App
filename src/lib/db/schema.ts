@@ -46,6 +46,11 @@ export const products = sqliteTable('products', {
   status: text('status').notNull().default('available'), // 'available' | 'made_to_order' | 'out_of_stock' | 'custom_only'
   showroomLocation: text('showroom_location'), // e.g., 'Main Gallery A-14', 'VIP Salon 2'
   featured: integer('featured').notNull().default(0),
+  featuredImage: text('featured_image'),
+  videos: text('videos').default('[]'), // JSON array of video URLs/Drive IDs
+  documents: text('documents').default('[]'), // JSON array of PDF catalogues/spec sheets
+  warrantyDetails: text('warranty_details'),
+  isPublished: integer('is_published').notNull().default(1),
   images: text('images').notNull().default('[]'), // JSON array of URLs
   specs: text('specs').default('{}'), // JSON key-value
   createdAt: text('created_at').notNull(),
@@ -71,7 +76,10 @@ export const orders = sqliteTable('orders', {
   colourInfo: text('colour_info'),
   quantity: integer('quantity').notNull().default(1),
 
-  // Financials
+  // Multi-Item Financials & Live Breakdown
+  subtotal: real('subtotal'),
+  discount: real('discount').notNull().default(0),
+  deliveryCharges: real('delivery_charges').notNull().default(0),
   totalAmount: real('total_amount').notNull(),
   paidAmount: real('paid_amount').notNull().default(0), // Advance payment
   remainingBalance: real('remaining_balance').notNull().default(0), // Remaining balance
@@ -120,10 +128,17 @@ export const orderItems = sqliteTable('order_items', {
   orderId: text('order_id').notNull().references(() => orders.id),
   productId: text('product_id'),
   productTitle: text('product_title').notNull(),
-  customDetails: text('custom_details'),
+  skuSnapshot: text('sku_snapshot'),
+  unit: text('unit').notNull().default('pcs'),
   quantity: integer('quantity').notNull().default(1),
   unitPrice: real('unit_price').notNull(),
+  discount: real('discount').notNull().default(0),
   totalPrice: real('total_price').notNull(),
+  lineTotal: real('line_total'),
+  customDetails: text('custom_details'),
+  specifications: text('specifications'),
+  customizationDetails: text('customization_details'),
+  createdAt: text('created_at'),
 });
 
 // 6. Media Files Table (Google Drive 5TB storage integration with secure server-side token)

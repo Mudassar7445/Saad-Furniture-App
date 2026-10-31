@@ -65,9 +65,19 @@ export async function initializeDatabase() {
       );
     `);
 
-    try {
-      await client.execute(`ALTER TABLE users ADD COLUMN marketing_opt_in INTEGER DEFAULT 1;`);
-    } catch {}
+    // Safe column migrations for users
+    const userAlters = [
+      "ALTER TABLE users ADD COLUMN avatar_url TEXT",
+      "ALTER TABLE users ADD COLUMN address TEXT",
+      "ALTER TABLE users ADD COLUMN city TEXT",
+      "ALTER TABLE users ADD COLUMN first_business_date TEXT",
+      "ALTER TABLE users ADD COLUMN marketing_opt_in INTEGER DEFAULT 1"
+    ];
+    for (const alt of userAlters) {
+      try {
+        await client.execute(alt);
+      } catch {}
+    }
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS product_categories (
@@ -196,6 +206,31 @@ export async function initializeDatabase() {
       await client.execute(`ALTER TABLE payments ADD COLUMN reversal_reason TEXT;`);
     } catch {}
 
+    // Multi-Item Orders & Products Migrations
+    const newAlters = [
+      "ALTER TABLE orders ADD COLUMN subtotal REAL",
+      "ALTER TABLE orders ADD COLUMN discount REAL NOT NULL DEFAULT 0",
+      "ALTER TABLE orders ADD COLUMN delivery_charges REAL NOT NULL DEFAULT 0",
+      "ALTER TABLE order_items ADD COLUMN sku_snapshot TEXT",
+      "ALTER TABLE order_items ADD COLUMN unit TEXT NOT NULL DEFAULT 'pcs'",
+      "ALTER TABLE order_items ADD COLUMN discount REAL NOT NULL DEFAULT 0",
+      "ALTER TABLE order_items ADD COLUMN line_total REAL",
+      "ALTER TABLE order_items ADD COLUMN specifications TEXT",
+      "ALTER TABLE order_items ADD COLUMN customization_details TEXT",
+      "ALTER TABLE order_items ADD COLUMN created_at TEXT",
+      "ALTER TABLE products ADD COLUMN featured_image TEXT",
+      "ALTER TABLE products ADD COLUMN videos TEXT DEFAULT '[]'",
+      "ALTER TABLE products ADD COLUMN documents TEXT DEFAULT '[]'",
+      "ALTER TABLE products ADD COLUMN warranty_details TEXT",
+      "ALTER TABLE products ADD COLUMN is_published INTEGER NOT NULL DEFAULT 1"
+    ];
+
+    for (const alt of newAlters) {
+      try {
+        await client.execute(alt);
+      } catch {}
+    }
+
     await client.execute(`
       CREATE TABLE IF NOT EXISTS delivery_records (
         id TEXT PRIMARY KEY,
@@ -220,16 +255,6 @@ export async function initializeDatabase() {
         FOREIGN KEY (customer_id) REFERENCES users(id)
       );
     `);
-
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN received_by TEXT DEFAULT 'Saad Finance Bureau';`);
-    } catch {}
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN is_reversed INTEGER DEFAULT 0;`);
-    } catch {}
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN reversal_reason TEXT;`);
-    } catch {}
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS delivery_status_history (
@@ -264,16 +289,6 @@ export async function initializeDatabase() {
         FOREIGN KEY (customer_id) REFERENCES users(id)
       );
     `);
-
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN received_by TEXT DEFAULT 'Saad Finance Bureau';`);
-    } catch {}
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN is_reversed INTEGER DEFAULT 0;`);
-    } catch {}
-    try {
-      await client.execute(`ALTER TABLE payments ADD COLUMN reversal_reason TEXT;`);
-    } catch {}
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS customer_ledger (
