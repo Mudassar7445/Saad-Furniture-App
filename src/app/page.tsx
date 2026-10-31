@@ -29,9 +29,11 @@ import { CartDrawer } from '@/components/ecommerce/CartDrawer';
 import { ProductDetailModal } from '@/components/ecommerce/ProductDetailModal';
 import { CheckoutModal } from '@/components/ecommerce/CheckoutModal';
 import { MobileAppShell } from '@/components/mobile/MobileAppShell';
+import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 export default function ShowroomHomePage() {
   const router = useRouter();
+  const { settings } = useShopSettings();
 
   // Screen Responsive State
   const [mounted, setMounted] = useState(false);
@@ -593,8 +595,20 @@ export default function ShowroomHomePage() {
               } catch {
                 imgs = [];
               }
+              const defaultByCat: Record<string, string> = {
+                'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80',
+                'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
+                'Single Beds': 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=1200&q=80',
+                'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1200&q=80',
+                'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80',
+                'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1200&q=80',
+                'Room Chairs': 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=1200&q=80',
+                'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
+              };
               const primaryImg =
+                (prod.featuredImage && typeof prod.featuredImage === 'string' && prod.featuredImage.trim()) ||
                 imgs[0] ||
+                defaultByCat[prod.category] ||
                 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80';
               const effectivePrice =
                 prod.discountPrice && prod.discountPrice > 0 ? prod.discountPrice : prod.price;
@@ -840,12 +854,14 @@ export default function ShowroomHomePage() {
           </div>
 
           <div className="text-center md:text-right space-y-1">
-            <p className="text-slate-400">
-              Saad Grand Showroom, 742 Prestige Avenue, Luxury Design District
+            <p className="text-slate-300 font-medium">
+              {settings.completeAddress || 'Sheikh-U-Pura Road Near Imtiaz Mega Mall, Faisalabad'}
             </p>
-            <p>Direct Concierge: +1 (800) 555-SAAD | Email: concierge@saadfurniture.com</p>
-            <p className="text-[10px] text-slate-600">
-              © {new Date().getFullYear()} Saad Furniture. All rights reserved.
+            <p>
+              Direct Showroom: {settings.primaryPhone || '+92 300 7207445'} | WhatsApp: {settings.whatsappNumber || '+92 313-0207445'} | Email: {settings.officialEmail || 'saadfurniture360@gmail.com'}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              © {new Date().getFullYear()} {settings.shopName || 'Saad Furniture'}. All rights reserved.
             </p>
           </div>
         </div>

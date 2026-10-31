@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
-import { shopSettings, auditLogs } from '@/lib/db/schema';
+import { shopSettings, settings, auditLogs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 // In-memory cached settings to prevent excessive DB queries while invalidating on PUT
@@ -144,6 +144,21 @@ export async function PUT(request: Request) {
       .update(shopSettings)
       .set(updatedData)
       .where(eq(shopSettings.id, 'default'));
+
+    // Also synchronize into system settings
+    try {
+      await db
+        .update(settings)
+        .set({
+          companyName: shopName.trim(),
+          showroomAddress: completeAddress || undefined,
+          supportPhone: primaryPhone || undefined,
+          supportEmail: officialEmail || supportEmail || undefined,
+        })
+        .where(eq(settings.id, 'system_settings'));
+    } catch (sysErr) {
+      console.warn('Sync to system settings note:', sysErr);
+    }
 
     // Invalidate local cache immediately
     cachedShopSettings = { id: 'default', ...updatedData };

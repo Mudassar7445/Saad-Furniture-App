@@ -16,15 +16,6 @@ export async function POST(req: NextRequest) {
     }
 
     const connected = await isDriveConnected();
-    if (!connected) {
-      return NextResponse.json(
-        {
-          error:
-            'Google Drive is not connected. Please connect your Google account in Settings > Google Drive Storage before uploading.',
-        },
-        { status: 400 }
-      );
-    }
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
@@ -51,33 +42,48 @@ export async function POST(req: NextRequest) {
     else if (mimeType === 'application/pdf') mediaType = 'pdf';
     else if (mimeType.includes('document') || mimeType.includes('text')) mediaType = 'document';
 
-    // Get path segments in Google Drive
-    const pathSegments = getFolderPathSegments(category, mimeType);
+    let directUrl = '';
+    let viewUrl = '';
+    let downloadUrl = '';
+    let driveFileId = `local_${Date.now()}`;
+    let fileSize = buffer.length;
 
-    // Upload directly to Google Drive
-    const driveResult = await uploadBufferToDrive({
-      buffer,
-      filename,
-      mimeType,
-      pathSegments,
-      description: title || `${category} luxury furniture media asset`,
-    });
+    if (connected) {
+      // Get path segments in Google Drive
+      const pathSegments = getFolderPathSegments(category, mimeType);
+
+      // Upload directly to Google Drive
+      const driveResult = await uploadBufferToDrive({
+        buffer,
+        filename,
+        mimeType,
+        pathSegments,
+        description: title || `${category} luxury furniture media asset`,
+      });
+
+      driveFileId = driveResult.id;
+      fileSize = driveResult.size;
+      directUrl = `https://drive.google.com/thumbnail?id=${driveResult.id}&sz=w1200`;
+      viewUrl = driveResult.webViewLink || `https://drive.google.com/file/d/${driveResult.id}/view`;
+      downloadUrl = driveResult.webContentLink || `https://drive.google.com/uc?id=${driveResult.id}&export=download`;
+    } else {
+      // High-reliability local fallback so uploads never fail if Google Drive is not connected yet
+      const base64Data = buffer.toString('base64');
+      directUrl = `data:${mimeType};base64,${base64Data}`;
+      viewUrl = directUrl;
+      downloadUrl = directUrl;
+    }
 
     const mediaId = `media_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
 
-    // High reliability direct Google Drive thumbnail / preview URL
-    const directUrl = `https://drive.google.com/thumbnail?id=${driveResult.id}&sz=w1200`;
-    const viewUrl = driveResult.webViewLink || `https://drive.google.com/file/d/${driveResult.id}/view`;
-    const downloadUrl = driveResult.webContentLink || `https://drive.google.com/uc?id=${driveResult.id}&export=download`;
-
     await db.insert(mediaFiles).values({
       id: mediaId,
-      googleDriveFileId: driveResult.id,
+      googleDriveFileId: driveFileId,
       fileName: filename,
       originalName: filename,
       mimeType,
-      fileSize: driveResult.size,
+      fileSize,
       mediaType,
       category,
       title: title || filename,
@@ -103,7 +109,9 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       userName: user.name,
       action: 'UPLOAD_MEDIA_DRIVE',
-      details: `Uploaded ${filename} (${(driveResult.size / 1024 / 1024).toFixed(2)} MB) to Google Drive folder [${pathSegments.join('/')}]`,
+      details: connected
+        ? `Uploaded ${filename} (${(fileSize / 1024 / 1024).toFixed(2)} MB) to Google Drive 5TB storage`
+        : `Uploaded ${filename} (${(fileSize / 1024).toFixed(1)} KB) directly (local storage active)`,
       ipAddress: req.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
@@ -112,13 +120,13 @@ export async function POST(req: NextRequest) {
       success: true,
       media: {
         id: mediaId,
-        driveFileId: driveResult.id,
+        driveFileId,
         fileName: filename,
         url: directUrl,
         viewUrl,
         downloadUrl,
         mimeType,
-        size: driveResult.size,
+        size: fileSize,
         category,
         mediaType,
       },
@@ -131,3 +139,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

@@ -353,12 +353,21 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS push_subscriptions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
-        fcm_token TEXT NOT NULL,
-        device_type TEXT NOT NULL DEFAULT 'desktop',
+        fcm_token TEXT,
+        subscription_json TEXT,
+        endpoint TEXT,
+        p256dh TEXT,
+        auth TEXT,
+        device_type TEXT NOT NULL DEFAULT 'android',
         created_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id)
       );
     `);
+
+    try { await client.execute(`ALTER TABLE push_subscriptions ADD COLUMN subscription_json TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE push_subscriptions ADD COLUMN endpoint TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE push_subscriptions ADD COLUMN p256dh TEXT;`); } catch {}
+    try { await client.execute(`ALTER TABLE push_subscriptions ADD COLUMN auth TEXT;`); } catch {}
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS communication_logs (

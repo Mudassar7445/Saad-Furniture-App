@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface MobileProfileScreenProps {
   currentUser: any | null;
@@ -56,8 +57,10 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
   onNavigateToDocuments,
 }) => {
   const router = useRouter();
+  const { settings } = useShopSettings();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
   const [activeSection, setActiveSection] = useState<
     'overview' | 'personal' | 'balance' | 'payments' | 'addresses' | 'support' | 'password'
   >('overview');
@@ -92,6 +95,65 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
   const showToast = (type: 'success' | 'error', message: string) => {
     setFeedback({ type, message });
     setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const handleTestPushNotification = async () => {
+    try {
+      setTestingPush(true);
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        showToast('error', 'Push notifications are not supported on this browser.');
+        return;
+      }
+
+      let perm = Notification.permission;
+      if (perm !== 'granted') {
+        perm = await Notification.requestPermission();
+      }
+
+      if (perm !== 'granted') {
+        showToast('error', 'Notification permission was denied. Please allow notifications in site settings.');
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+
+      if (!sub) {
+        const keyRes = await fetch('/api/notifications/subscribe');
+        const { publicKey } = await keyRes.json();
+        const padding = '='.repeat((4 - (publicKey.length % 4)) % 4);
+        const base64 = (publicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const converted = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) converted[i] = rawData.charCodeAt(i);
+
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: converted,
+        });
+      }
+
+      const res = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: sub.toJSON(),
+          userId: currentUser?.id || 'patron_guest',
+          deviceType: /Android/i.test(navigator.userAgent) ? 'android' : 'mobile_web',
+          test: true,
+        }),
+      });
+
+      if (res.ok) {
+        showToast('success', '🔔 Live Test Push Sent! Check your mobile status bar.');
+      } else {
+        showToast('error', 'Failed to dispatch test notification.');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Error triggering push notification.');
+    } finally {
+      setTestingPush(false);
+    }
   };
 
   const fetchProfile = async () => {
@@ -247,10 +309,16 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
     return (
       <div className="space-y-6 pb-20 select-none animate-fadeIn">
         <div className="p-6 bg-white rounded-3xl border border-[#EAE2D6] text-center shadow-sm">
-          <div className="w-20 h-20 rounded-2xl bg-[#262421] text-[#B99A68] border border-[#B99A68]/30 flex items-center justify-center mx-auto mb-3 font-serif font-bold text-2xl shadow-inner">
-            SF
+          <div className="w-24 h-24 rounded-3xl overflow-hidden border border-[#B99A68]/50 shadow-md mx-auto mb-3 bg-[#1C1A18] p-2 flex items-center justify-center">
+            <img
+              src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
+              alt="Saad Furniture DP"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <h2 className="text-lg font-serif font-bold text-[#262421]">Welcome to Saad Furniture</h2>
+          <h2 className="text-lg font-serif font-bold text-[#262421]">
+            {settings.displayName || 'Saad Furniture & Interior Studio'}
+          </h2>
           <p className="text-xs text-[#89847C] mt-1 max-w-xs mx-auto leading-relaxed">
             Sign in or create your patron account to track bespoke craftsmanship progress, view verified payment receipts, and manage delivery addresses.
           </p>
@@ -331,8 +399,16 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
 
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-14 h-14 rounded-2xl bg-[#B99A68]/20 border border-[#B99A68]/40 flex items-center justify-center font-serif font-bold text-xl text-[#B99A68] shrink-0 shadow-inner">
-              {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : 'SF'}
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#1C1A18] border border-[#B99A68]/50 flex items-center justify-center shrink-0 shadow-inner p-1">
+              {currentUser.avatarUrl && !currentUser.avatarUrl.includes('placeholder') ? (
+                <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-full h-full object-cover rounded-xl" />
+              ) : (
+                <img
+                  src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
+                  alt="DP"
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -643,31 +719,63 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           <ChevronRight className="w-4 h-4 text-[#89847C]" />
         </button>
 
-        {/* Section 7: Support & Concierge */}
-        <div className="p-3.5 space-y-2">
+        {/* Mobile Background Push Notifications Alert Card */}
+        <div className="p-3.5 m-2 rounded-2xl bg-gradient-to-r from-[#262421] via-[#262421] to-[#1C1A18] text-white border border-[#B99A68]/40 shadow-sm space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#B99A68]/20 border border-[#B99A68]/40 flex items-center justify-center text-[#B99A68]">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-white block">Mobile Push Notifications</span>
+                <span className="text-[10px] text-[#EAE2D6]/80 block">Receive alerts even when in other apps</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleTestPushNotification}
+              disabled={testingPush}
+              className="px-2.5 py-1.5 rounded-xl bg-[#B99A68] text-[#262421] text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm flex items-center gap-1"
+            >
+              {testingPush ? 'Testing...' : 'Test Alert 🔔'}
+            </button>
+          </div>
+          <p className="text-[10px] text-stone-300 leading-tight">
+            When our artisans update your furniture carving stage or upload workshop photos, your phone will ring and show status alerts immediately.
+          </p>
+        </div>
+
+        {/* Section 7: Showroom Concierge & Support */}
+        <div className="p-3.5 space-y-2 border-t border-[#EAE2D6]">
           <div className="flex items-center gap-3">
-            <PhoneCall className="w-4 h-4 text-[#B99A68]" />
-            <div>
-              <span className="text-xs font-bold text-[#262421] block">Artisan Concierge & Support</span>
-              <span className="text-[10px] text-[#89847C] block">Contact master workshop directly</span>
+            <div className="w-8 h-8 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center shrink-0">
+              <PhoneCall className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-[#262421] block truncate">
+                {settings.displayName || 'Saad Showroom & Workshop Concierge'}
+              </span>
+              <span className="text-[10px] text-[#89847C] block truncate">
+                {settings.completeAddress || 'Sheikh-U-Pura Road Near Imtiaz Mega Mall, Faisalabad'}
+              </span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 pl-7 pt-1">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <a
-              href="https://wa.me/923001234567"
+              href={`https://wa.me/${(settings.whatsappNumber || '+923130207445').replace(/[^0-9]/g, '')}`}
               target="_blank"
               rel="noreferrer"
-              className="p-2.5 rounded-xl bg-[#262421] text-[#B99A68] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+              className="p-2.5 rounded-xl bg-[#128C7E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
+              <span className="truncate">WhatsApp: {settings.whatsappNumber || '+92 313-0207445'}</span>
             </a>
             <a
-              href="tel:+923001234567"
-              className="p-2.5 rounded-xl border border-[#EAE2D6] text-[#262421] text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#F7F5F0]"
+              href={`tel:${(settings.primaryPhone || '+923007207445').replace(/\s+/g, '')}`}
+              className="p-2.5 rounded-xl bg-[#262421] text-[#B99A68] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>Call Us</span>
+              <span className="truncate">Call: {settings.primaryPhone || '+92 300 7207445'}</span>
             </a>
           </div>
         </div>

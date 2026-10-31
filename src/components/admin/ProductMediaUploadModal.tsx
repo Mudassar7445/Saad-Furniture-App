@@ -63,6 +63,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
   const [featuredImage, setFeaturedImage] = useState<string>('');
   const [videos, setVideos] = useState<string[]>([]);
   const [documents, setDocuments] = useState<string[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgressText, setUploadProgressText] = useState('');
@@ -183,6 +184,14 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     if (featuredImage === removedUrl) {
       setFeaturedImage(updated[0] || '');
     }
+  };
+
+  const handleAddImageUrl = () => {
+    if (!imageUrlInput.trim()) return;
+    const url = imageUrlInput.trim();
+    setImages((prev) => [...prev, url]);
+    if (!featuredImage) setFeaturedImage(url);
+    setImageUrlInput('');
   };
 
   const handleSetMainImage = (url: string) => {
@@ -469,6 +478,26 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
             </div>
           </div>
 
+          {/* Direct Image URL Option */}
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="text"
+              value={imageUrlInput}
+              onChange={(e) => setImageUrlInput(e.target.value)}
+              placeholder="Or paste direct image URL (https://...)..."
+              className="flex-1 p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddImageUrl}
+              className="text-xs h-9"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" /> Attach URL
+            </Button>
+          </div>
+
           {/* Uploaded Images Gallery */}
           {images.length > 0 && (
             <div className="space-y-2 pt-2">
@@ -597,3 +626,4 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     </Modal>
   );
 };
+

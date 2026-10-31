@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { orders, orderMedia, orderTimelineEvents, auditLogs } from '@/lib/db/schema';
 import { uploadBufferToDrive, ROOT_FOLDER_NAME, isDriveConnected } from '@/lib/storage/google-drive';
 import { fcmService } from '@/lib/services/fcm';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -142,12 +143,21 @@ export async function POST(
       createdAt: now,
     });
 
-    // 3. Notify customer
+    // 3. Notify customer via In-App and Real-time Mobile Push (status bar alert)
     await fcmService.sendNotification({
       userId: order.customerId,
       title: `New ${mediaType === 'video' ? 'Video' : 'Photo'} for Order ${order.orderNumber}`,
       message: `A new workshop ${mediaType} "${title}" has been uploaded to your order portal.`,
       type: 'order_update',
+      relatedOrderId: id,
+    });
+
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `📸 New Workshop ${mediaType === 'video' ? 'Video' : 'Photo'} Uploaded!`,
+      message: `Artisan uploaded visual proof for Order #${order.orderNumber} in [${stage}]: "${title}". Tap to view in Saad Furniture.`,
+      url: `/orders/${id}`,
+      type: 'media_uploaded',
       relatedOrderId: id,
     });
 

@@ -14,6 +14,7 @@ import { MobileCartSheet } from './MobileCartSheet';
 import { MobileCheckoutSheet } from './MobileCheckoutSheet';
 import { MobileOrderTrackingSheet } from './MobileOrderTrackingSheet';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { PushNotificationManager } from '@/components/notifications/PushNotificationManager';
 
 interface MobileAppShellProps {
   currentUser: any | null;
@@ -254,6 +255,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           }
         }}
       />
+      {/* Live Background Push Notification Controller */}
+      <PushNotificationManager currentUser={currentUser} />
     </div>
   );
 };

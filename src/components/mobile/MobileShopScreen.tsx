@@ -68,13 +68,31 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
     return (b.featured || 0) - (a.featured || 0);
   });
 
+  const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
+    'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
+    'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
+    'Single Beds': 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=800&q=80',
+    'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
+    'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80',
+    'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
+    'Room Chairs': 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=800&q=80',
+    'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+  };
+
   const getPrimaryImage = (p: any) => {
+    if (p.featuredImage && typeof p.featuredImage === 'string' && p.featuredImage.trim()) {
+      return p.featuredImage;
+    }
     try {
       const imgs = Array.isArray(p.images) ? p.images : JSON.parse(p.images || '[]');
-      return imgs[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
-    } catch {
-      return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
-    }
+      if (imgs && imgs.length > 0 && imgs[0]) {
+        return imgs[0];
+      }
+    } catch {}
+    return (
+      CATEGORY_DEFAULT_IMAGES[p.category] ||
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'
+    );
   };
 
   return (

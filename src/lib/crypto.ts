@@ -69,3 +69,4 @@ export function decryptText(cipherPayload: string): string {
     return '';
   }
 }
+

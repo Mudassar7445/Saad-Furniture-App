@@ -281,12 +281,16 @@ export const notificationPreferences = sqliteTable('notification_preferences', {
   updatedAt: text('updated_at').notNull(),
 });
 
-// 14. Push Subscriptions Table (FCM)
+// 14. Push Subscriptions Table (Web Push & FCM)
 export const pushSubscriptions = sqliteTable('push_subscriptions', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id),
-  fcmToken: text('fcm_token').notNull(),
-  deviceType: text('device_type').notNull().default('desktop'), // 'android' | 'desktop' | 'ios' | 'pwa'
+  fcmToken: text('fcm_token'),
+  subscriptionJson: text('subscription_json'),
+  endpoint: text('endpoint'),
+  p256dh: text('p256dh'),
+  auth: text('auth'),
+  deviceType: text('device_type').notNull().default('android'), // 'android' | 'desktop' | 'ios' | 'pwa'
   createdAt: text('created_at').notNull(),
 });
 

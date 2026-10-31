@@ -33,11 +33,11 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         onClick={onOpenProfile}
         className="flex items-center gap-2.5 cursor-pointer group"
       >
-        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-sm shrink-0 bg-[#262421] group-hover:scale-105 transition-transform">
+        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#B99A68]/50 shadow-sm shrink-0 bg-[#1C1A18] group-hover:scale-105 transition-transform p-0.5 flex items-center justify-center">
           <img
             src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
             alt={settings.shopName}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
         <div>

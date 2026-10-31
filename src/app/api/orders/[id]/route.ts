@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { orders, orderItems, orderMedia, orderTimelineEvents, payments, users, auditLogs } from '@/lib/db/schema';
 import { fcmService } from '@/lib/services/fcm';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -181,11 +182,21 @@ export async function PATCH(
       createdAt: now,
     });
 
-    // Notify customer
+    // Notify customer in-app
     await fcmService.sendNotification({
       userId: order.customerId,
       title: `Order Update: ${order.orderNumber}`,
       message: `Your order has progressed to [${finalStageTitle}] (${updates.productionProgress ?? order.productionProgress}%). ${finalDesc}`,
+      type: 'stage_completed',
+      relatedOrderId: id,
+    });
+
+    // Real-time Mobile Push (Alerts user's phone status bar even if they are in other apps)
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `🛋️ Saad Furniture: Order #${order.orderNumber}`,
+      message: `Progressed to [${finalStageTitle}] (${updates.productionProgress ?? order.productionProgress}%). Tap to view live craftsman status.`,
+      url: `/orders/${id}`,
       type: 'stage_completed',
       relatedOrderId: id,
     });
@@ -207,6 +218,15 @@ export async function PATCH(
       userId: order.customerId,
       title: `Schedule Notice: ${order.orderNumber}`,
       message: `A timeline update has been recorded for your order: ${delayReason || 'Artisanal curing adjustments.'}`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
+
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `⏱️ Saad Furniture: Timeline Notice #${order.orderNumber}`,
+      message: `${delayReason || 'Workshop schedule notice regarding your piece.'}`,
+      url: `/orders/${id}`,
       type: 'order_update',
       relatedOrderId: id,
     });

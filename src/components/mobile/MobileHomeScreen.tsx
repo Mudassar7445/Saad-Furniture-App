@@ -10,14 +10,17 @@ import {
   Search,
   Play,
   Phone,
+  MessageCircle,
   ChevronRight,
   Heart,
   Star,
   Award,
   FileText,
   BookOpen,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface MobileHomeScreenProps {
   products: any[];
@@ -42,6 +45,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   onOpenShop,
   onOpenDocuments,
 }) => {
+  const { settings } = useShopSettings();
   const [quickOrderInput, setQuickOrderInput] = useState('');
 
   const categories = [
@@ -55,17 +59,37 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
     { name: 'Custom Furniture', icon: '✨', image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80' },
   ];
 
-  const featured = products.slice(0, 4);
-  const bestSellers = products.slice(2, 6);
-  const newArrivals = products.slice(1, 5);
+  const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
+    'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
+    'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
+    'Single Beds': 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=800&q=80',
+    'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
+    'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80',
+    'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
+    'Room Chairs': 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=800&q=80',
+    'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+  };
+
+  const featured = products.filter((p) => p.featured || p.isPublished).slice(0, 8);
+  const newArrivals = [...products]
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .slice(0, 8);
+  const bestSellers = [...products].reverse().slice(0, 8);
 
   const getPrimaryImage = (p: any) => {
+    if (p.featuredImage && typeof p.featuredImage === 'string' && p.featuredImage.trim()) {
+      return p.featuredImage;
+    }
     try {
       const imgs = Array.isArray(p.images) ? p.images : JSON.parse(p.images || '[]');
-      return imgs[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
-    } catch {
-      return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
-    }
+      if (imgs && imgs.length > 0 && imgs[0]) {
+        return imgs[0];
+      }
+    } catch {}
+    return (
+      CATEGORY_DEFAULT_IMAGES[p.category] ||
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'
+    );
   };
 
   return (
@@ -346,26 +370,47 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
       <div className="px-4">
         <div className="bg-[#FFFFFF] border border-[#EAE2D6] rounded-3xl p-5 space-y-3 mobile-card-shadow">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#262421] text-[#B99A68] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-[#262421] text-[#B99A68] flex items-center justify-center shrink-0">
               <Award className="w-5 h-5" />
             </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#262421]">Saad Grand Flagship Showroom</h4>
-              <span className="text-[10px] text-[#89847C]">742 Prestige Avenue, Luxury Design District</span>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-[#262421] truncate">
+                {settings.displayName || settings.shopName || 'Saad Grand Flagship Showroom'}
+              </h4>
+              <span className="text-[10px] text-[#89847C] flex items-center gap-1 line-clamp-1 mt-0.5">
+                <MapPin className="w-3 h-3 text-[#B99A68] shrink-0" />
+                <span className="truncate">{settings.completeAddress || 'Sheikh-U-Pura Road Near Imtiaz Mega Mall, Faisalabad'}</span>
+              </span>
             </div>
           </div>
           <p className="text-[11px] text-[#89847C] leading-relaxed">
-            Experience our timber finishes, velvet swatches, and ergonomic suites in person. Private concierge consultations available daily.
+            {settings.description ||
+              'Experience our solid teak wood finishes, velvet swatches, and bespoke royal living room suites in person.'}
           </p>
-          <div className="flex gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <a
-              href="tel:+18005557223"
-              className="flex-1 py-2 rounded-xl bg-[#262421] text-[#F7F5F0] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+              href={`tel:${(settings.primaryPhone || '+923007207445').replace(/\s+/g, '')}`}
+              className="py-2.5 px-3 rounded-xl bg-[#262421] text-[#F7F5F0] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
             >
               <Phone className="w-3.5 h-3.5 text-[#B99A68]" />
-              <span>Call Concierge</span>
+              <span className="truncate">Call: {settings.primaryPhone || '+92 300 7207445'}</span>
+            </a>
+            <a
+              href={`https://wa.me/${(settings.whatsappNumber || '+923130207445').replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="py-2.5 px-3 rounded-xl bg-[#128C7E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>WhatsApp</span>
             </a>
           </div>
+          {settings.openingHours && (
+            <div className="text-[10px] text-[#89847C] flex items-center gap-1.5 pt-1 border-t border-[#EAE2D6]">
+              <Clock className="w-3 h-3 text-[#B99A68]" />
+              <span>Timings: {settings.openingHours}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

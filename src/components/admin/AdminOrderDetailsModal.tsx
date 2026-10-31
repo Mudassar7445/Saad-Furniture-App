@@ -256,3 +256,4 @@ export const AdminOrderDetailsModal: React.FC<AdminOrderDetailsModalProps> = ({
     </Modal>
   );
 };
+

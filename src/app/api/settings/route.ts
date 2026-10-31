@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
-import { settings, auditLogs } from '@/lib/db/schema';
+import { settings, shopSettings, auditLogs } from '@/lib/db/schema';
 import { googleDriveService } from '@/lib/services/googleDrive';
 import { fcmService } from '@/lib/services/fcm';
 import { eq } from 'drizzle-orm';
@@ -62,6 +62,23 @@ export async function PUT(request: Request) {
         googleDriveServiceAccountEmail: googleDriveServiceAccountEmail ?? undefined,
       })
       .where(eq(settings.id, 'system_settings'));
+
+    // Synchronize into shopSettings so customer frontend reflects showroom numbers immediately
+    try {
+      await db
+        .update(shopSettings)
+        .set({
+          shopName: companyName ?? undefined,
+          completeAddress: showroomAddress ?? undefined,
+          primaryPhone: supportPhone ?? undefined,
+          supportEmail: supportEmail ?? undefined,
+          updatedAt: new Date().toISOString(),
+          updatedBy: sessionUser.name,
+        })
+        .where(eq(shopSettings.id, 'default'));
+    } catch (syncErr) {
+      console.warn('Sync to shopSettings note:', syncErr);
+    }
 
     await db.insert(auditLogs).values({
       id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
