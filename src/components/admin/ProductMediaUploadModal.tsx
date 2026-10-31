@@ -130,7 +130,57 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     }
   }, [existingProduct, isOpen]);
 
-  // Handle direct file upload to Google Drive 5TB storage
+  // Helper: Client-side high efficiency image compressor
+  const compressImageFile = (file: File): Promise<{ dataUrl: string; blob: Blob }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxWidth = 1280;
+          const maxHeight = 1280;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            return resolve({ dataUrl: readerEvent.target?.result as string, blob: file });
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          canvas.toBlob(
+            (blob) => {
+              resolve({ dataUrl, blob: blob || file });
+            },
+            'image/jpeg',
+            0.82
+          );
+        };
+        img.onerror = () => resolve({ dataUrl: readerEvent.target?.result as string, blob: file });
+        img.src = readerEvent.target?.result as string;
+      };
+      reader.onerror = () => resolve({ dataUrl: '', blob: file });
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle direct file upload to Google Drive 5TB storage or local asset
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'pdf') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -141,35 +191,70 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        setUploadProgressText(`Uploading ${file.name} directly to Google Drive 5TB Storage...`);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', category);
-        formData.append('title', `${title || 'Catalogue'} - ${file.name}`);
+        if (type === 'image') {
+          setUploadProgressText(`Optimizing & attaching ${file.name}...`);
+          // 1. Instantly compress and generate local data URL so the user's exact photo is visible immediately
+          const { dataUrl, blob } = await compressImageFile(file);
+          
+          if (dataUrl) {
+            setImages((prev) => [...prev, dataUrl]);
+            setFeaturedImage((prev) => prev || dataUrl);
+          }
 
-        const res = await fetch('/api/admin/google-drive/upload', {
-          method: 'POST',
-          body: formData,
-        });
+          // 2. Upload compressed asset to Google Drive in background
+          try {
+            setUploadProgressText(`Uploading ${file.name} to Cloud Storage...`);
+            const formData = new FormData();
+            formData.append('file', blob, file.name);
+            formData.append('category', category);
+            formData.append('title', `${title || 'Catalogue'} - ${file.name}`);
 
-        const data = await res.json();
-        if (res.ok && data.media) {
-          const uploadedUrl = data.media.url || data.media.viewUrl;
-          if (type === 'image') {
-            setImages((prev) => [...prev, uploadedUrl]);
-            setFeaturedImage((prev) => prev || uploadedUrl);
-          } else if (type === 'video') {
-            setVideos((prev) => [...prev, uploadedUrl]);
-          } else if (type === 'pdf') {
-            setDocuments((prev) => [...prev, uploadedUrl]);
+            const res = await fetch('/api/admin/google-drive/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            const data = await res.json();
+            if (res.ok && data.media) {
+              const uploadedUrl = data.media.url || data.media.viewUrl;
+              if (uploadedUrl) {
+                // Update with permanent cloud URL
+                setImages((prev) => prev.map((img) => (img === dataUrl ? uploadedUrl : img)));
+                setFeaturedImage((prev) => (prev === dataUrl ? uploadedUrl : prev));
+              }
+            }
+          } catch (uploadCloudErr) {
+            console.warn('Cloud storage sync skipped, using optimized direct asset:', uploadCloudErr);
           }
         } else {
-          throw new Error(data.error || `Upload failed for ${file.name}`);
+          // For video / pdf
+          setUploadProgressText(`Uploading ${file.name} to Storage...`);
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('category', category);
+          formData.append('title', `${title || 'Catalogue'} - ${file.name}`);
+
+          const res = await fetch('/api/admin/google-drive/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (res.ok && data.media) {
+            const uploadedUrl = data.media.url || data.media.viewUrl;
+            if (type === 'video') {
+              setVideos((prev) => [...prev, uploadedUrl]);
+            } else if (type === 'pdf') {
+              setDocuments((prev) => [...prev, uploadedUrl]);
+            }
+          } else {
+            throw new Error(data.error || `Upload failed for ${file.name}`);
+          }
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'File upload to Google Drive failed.');
+      setErrorMsg(err.message || 'File upload failed.');
     } finally {
       setUploading(false);
       setUploadProgressText('');
@@ -232,7 +317,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
             : category === 'Center Tables'
             ? 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80'
             : category === 'Room Chairs'
-            ? 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=1200&q=80'
+            ? 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
             : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80'
         ],
         videos,

@@ -138,7 +138,7 @@ export default function AboutUsPage() {
               },
               {
                 title: 'Solid Wood Hand Carving',
-                url: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=600&q=80',
+                url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80',
               },
               {
                 title: 'Luxury Velvet Upholstery',

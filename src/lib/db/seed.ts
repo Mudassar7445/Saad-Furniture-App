@@ -246,7 +246,7 @@ export async function seedDatabase() {
       status: 'available',
       showroomLocation: 'Studio Salon 2',
       featured: 0,
-      images: JSON.stringify(['https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=1200&q=80']),
+      images: JSON.stringify(['https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80']),
       createdAt: now,
     },
     {

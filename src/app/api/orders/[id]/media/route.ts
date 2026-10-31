@@ -90,7 +90,7 @@ export async function POST(
         // Fallback marker
         fileUrl = isVideo
           ? 'https://assets.mixkit.co/videos/preview/mixkit-carpenter-measuring-a-piece-of-wood-41584-large.mp4'
-          : 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=1000&q=80';
+          : 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1000&q=80';
         gdriveId = `local_${Date.now()}`;
       }
     } else {

@@ -51,22 +51,22 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   const categories = [
     { name: 'Sofas', icon: '🛋️', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80' },
     { name: 'Double Beds', icon: '🛏️', image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80' },
-    { name: 'Single Beds', icon: '🛏️', image: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=600&q=80' },
+    { name: 'Single Beds', icon: '🛏️', image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80' },
     { name: 'Wardrobes', icon: '🚪', image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
     { name: 'Center Tables', icon: '🪵', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80' },
     { name: 'Mattresses', icon: '☁️', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=600&q=80' },
-    { name: 'Room Chairs', icon: '🪑', image: 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=600&q=80' },
+    { name: 'Room Chairs', icon: '🪑', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80' },
     { name: 'Custom Furniture', icon: '✨', image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80' },
   ];
 
   const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
     'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
     'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
-    'Single Beds': 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=800&q=80',
+    'Single Beds': 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80',
     'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
     'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80',
     'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
-    'Room Chairs': 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=800&q=80',
+    'Room Chairs': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
     'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
   };
 
@@ -199,7 +199,14 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
               className="flex-shrink-0 w-24 snap-start text-center group space-y-1.5"
             >
               <div className="w-24 h-24 rounded-2xl overflow-hidden relative border border-[#EAE2D6] bg-[#FFFFFF] shadow-sm group-active:scale-95 transition-transform">
-                <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                <img
+                  src={cat.image}
+                  alt={cat.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
+                  }}
+                />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                 <span className="absolute bottom-1 right-1.5 text-sm">{cat.icon}</span>
               </div>
@@ -238,7 +245,14 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                 className="flex-shrink-0 w-44 snap-start rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] overflow-hidden mobile-card-shadow flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
               >
                 <div className="relative aspect-square bg-[#F7F5F0] overflow-hidden">
-                  <img src={getPrimaryImage(prod)} alt={prod.title} className="w-full h-full object-cover" />
+                  <img
+                    src={getPrimaryImage(prod)}
+                    alt={prod.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
                   <button
                     type="button"
                     onClick={(e) => {
@@ -337,7 +351,14 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                 className="flex-shrink-0 w-44 snap-start rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] overflow-hidden mobile-card-shadow flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
               >
                 <div className="relative aspect-square bg-[#F7F5F0] overflow-hidden">
-                  <img src={getPrimaryImage(prod)} alt={prod.title} className="w-full h-full object-cover" />
+                  <img
+                    src={getPrimaryImage(prod)}
+                    alt={prod.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
                   <button
                     type="button"
                     onClick={(e) => {

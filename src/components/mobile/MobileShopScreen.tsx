@@ -71,11 +71,11 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
     'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
     'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
-    'Single Beds': 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=800&q=80',
+    'Single Beds': 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80',
     'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
     'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80',
     'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
-    'Room Chairs': 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=800&q=80',
+    'Room Chairs': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
     'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
   };
 
@@ -159,9 +159,21 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
 
       {/* Two-Column Product Grid */}
       {sorted.length === 0 ? (
-        <div className="py-16 text-center text-xs text-[#89847C] space-y-2">
-          <ShoppingBag className="w-8 h-8 opacity-40 mx-auto text-[#B99A68]" />
-          <p>No products found matching &ldquo;{search}&rdquo; in this category.</p>
+        <div className="py-16 text-center text-xs text-[#89847C] space-y-3 px-6">
+          <ShoppingBag className="w-10 h-10 opacity-40 mx-auto text-[#B99A68]" />
+          <p className="font-medium">No furniture suites found {selectedCategory !== 'All' ? `in "${selectedCategory}"` : ''} {search ? `matching "${search}"` : ''}.</p>
+          {(selectedCategory !== 'All' || search) && (
+            <button
+              type="button"
+              onClick={() => {
+                onSelectCategory('All');
+                setSearch('');
+              }}
+              className="px-4 py-2 rounded-xl bg-[#262421] text-[#F7F5F0] text-xs font-bold inline-block shadow-sm"
+            >
+              View All Catalogue Pieces
+            </button>
+          )}
         </div>
       ) : (
         <div className="px-4 grid grid-cols-2 gap-3.5">
@@ -180,6 +192,9 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                     src={getPrimaryImage(prod)}
                     alt={prod.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
+                    }}
                   />
                   <button
                     type="button"

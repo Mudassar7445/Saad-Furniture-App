@@ -68,6 +68,11 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     setAuthModalOpen(true);
   };
 
+  const handleOpenShop = (category: string = 'All') => {
+    setSelectedCategory(category);
+    setActiveTab('shop');
+  };
+
   // Fetch unread notifications count
   useEffect(() => {
     if (currentUser) {
@@ -99,8 +104,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         cartCount={cart.totalCount}
         wishlistCount={wishlistProductIds.size}
         onOpenCart={() => setCartSheetOpen(true)}
-        onSearchClick={() => setActiveTab('shop')}
-        onOpenWishlist={() => setActiveTab('shop')}
+        onSearchClick={() => handleOpenShop('All')}
+        onOpenWishlist={() => handleOpenShop('All')}
         onOpenProfile={() => setActiveTab('profile')}
       />
 
@@ -109,16 +114,13 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'home' && (
           <MobileHomeScreen
             products={products}
-            onSelectCategory={(cat: string) => {
-              setSelectedCategory(cat);
-              setActiveTab('shop');
-            }}
+            onSelectCategory={(cat: string) => handleOpenShop(cat)}
             onOpenProductDetail={(p: any) => setSelectedProduct(p)}
             onAddToCart={(p: any) => onAddToCart(p)}
             wishlistIds={wishlistProductIds}
             onToggleWishlist={onToggleWishlist}
             onOpenTracking={() => setActiveTab('orders')}
-            onOpenShop={() => setActiveTab('shop')}
+            onOpenShop={() => handleOpenShop('All')}
             onOpenDocuments={() => setActiveTab('documents')}
           />
         )}
@@ -139,7 +141,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <MobileOrdersScreen
             currentUser={currentUser}
             onOpenAuth={() => handleOpenAuth('orders')}
-            onExploreShop={() => setActiveTab('shop')}
+            onExploreShop={() => handleOpenShop('All')}
           />
         )}
 
@@ -161,7 +163,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             onOpenAuth={() => handleOpenAuth('profile')}
             onLogout={handleLogout}
             onNavigateToOrders={() => setActiveTab('orders')}
-            onNavigateToWishlist={() => setActiveTab('shop')}
+            onNavigateToWishlist={() => handleOpenShop('All')}
             onNavigateToDocuments={() => setActiveTab('documents')}
           />
         )}
@@ -170,7 +172,12 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       {/* 3. Mobile Fixed Bottom 5-Tab Bar */}
       <MobileBottomNav
         activeTab={activeTab}
-        onChangeTab={(tab: MobileTab) => setActiveTab(tab)}
+        onChangeTab={(tab: MobileTab) => {
+          if (tab === 'shop') {
+            setSelectedCategory('All');
+          }
+          setActiveTab(tab);
+        }}
         cartCount={cart.totalCount}
         unreadNotificationsCount={unreadNotificationsCount}
       />
