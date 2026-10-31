@@ -5,12 +5,28 @@ import { products, auditLogs } from '@/lib/db/schema';
 import { seedDatabase } from '@/lib/db/seed';
 import { desc, eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   await initializeDatabase();
   await seedDatabase();
 
-  const allProducts = await db.select().from(products).orderBy(desc(products.featured), desc(products.createdAt));
-  return NextResponse.json({ products: allProducts });
+  const allProducts = await db
+    .select()
+    .from(products)
+    .orderBy(desc(products.createdAt));
+
+  return NextResponse.json(
+    { products: allProducts },
+    {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    }
+  );
 }
 
 export async function POST(request: Request) {

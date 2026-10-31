@@ -106,11 +106,17 @@ export default function ShowroomHomePage() {
     }
   };
 
-  // 2. Fetch products
+  // 2. Fetch products (Always fresh, no browser caching)
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const res = await fetch('/api/products');
+      const res = await fetch(`/api/products?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setProducts(data.products || []);

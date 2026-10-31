@@ -211,12 +211,12 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 4. FEATURED PRODUCTS (HORIZONTAL CAROUSEL) */}
+      {/* 4. LATEST CATALOG PIECES & NEW ARRIVALS (HORIZONTAL CAROUSEL) */}
       <div className="space-y-2.5">
         <div className="px-4 flex items-center justify-between">
           <div>
-            <h3 className="font-serif text-base font-bold text-[#262421]">Featured Masterpieces</h3>
-            <span className="text-[10px] text-[#89847C] block">Handcrafted by Master Artisans</span>
+            <h3 className="font-serif text-base font-bold text-[#262421]">Latest Showroom Pieces</h3>
+            <span className="text-[10px] text-[#89847C] block">Newly Added Handcrafted Suites ({products.length} Available)</span>
           </div>
           <button
             onClick={onOpenShop}
@@ -228,7 +228,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
         </div>
 
         <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-4 pb-2 snap-x">
-          {featured.map((prod) => {
+          {newArrivals.map((prod) => {
             const price = prod.discountPrice || prod.price;
             const isWish = wishlistIds.has(prod.id);
             return (
@@ -263,11 +263,11 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   <h4 className="text-xs font-bold text-[#262421] line-clamp-1">{prod.title}</h4>
                   <div className="flex items-baseline gap-1.5 pt-0.5">
                     <span className="text-xs font-serif font-black text-[#262421]">
-                      ${price?.toLocaleString()}
+                      ₨ {price?.toLocaleString()}
                     </span>
                     {prod.discountPrice && (
                       <span className="text-[10px] text-[#89847C] line-through">
-                        ${prod.price?.toLocaleString()}
+                        ₨ {prod.price?.toLocaleString()}
                       </span>
                     )}
                   </div>
@@ -357,7 +357,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   </div>
                   <h4 className="text-xs font-bold text-[#262421] line-clamp-1">{prod.title}</h4>
                   <div className="text-xs font-serif font-black text-[#262421]">
-                    ${price?.toLocaleString()}
+                    ₨ {price?.toLocaleString()}
                   </div>
                 </div>
               </div>

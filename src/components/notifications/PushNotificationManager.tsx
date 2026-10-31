@@ -159,3 +159,4 @@ export const PushNotificationManager: React.FC<{ currentUser?: any }> = ({ curre
     </div>
   );
 };
+

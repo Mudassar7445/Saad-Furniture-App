@@ -32,7 +32,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   onToggleWishlist,
 }) => {
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'newest'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'newest'>('newest');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
@@ -209,11 +209,11 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                   </h4>
                   <div className="flex items-baseline gap-1.5 pt-0.5">
                     <span className="text-xs font-serif font-black text-[#262421]">
-                      ${price?.toLocaleString()}
+                      ₨ {price?.toLocaleString()}
                     </span>
                     {prod.discountPrice && (
                       <span className="text-[10px] text-[#89847C] line-through">
-                        ${prod.price?.toLocaleString()}
+                        ₨ {prod.price?.toLocaleString()}
                       </span>
                     )}
                   </div>

@@ -224,7 +224,17 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
         warrantyDetails: warrantyDetails.trim(),
         featured: featured ? 1 : 0,
         featuredImage: featuredImage || (images.length > 0 ? images[0] : null),
-        images,
+        images: images.length > 0 ? images : [
+          category === 'Double Beds'
+            ? 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80'
+            : category === 'Wardrobes'
+            ? 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1200&q=80'
+            : category === 'Center Tables'
+            ? 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80'
+            : category === 'Room Chairs'
+            ? 'https://images.unsplash.com/photo-1580481077195-c22ae4b9868e?auto=format&fit=crop&w=1200&q=80'
+            : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80'
+        ],
         videos,
         documents,
       };
