@@ -11,6 +11,7 @@ interface MobileTopBarProps {
   onOpenCart: () => void;
   onOpenWishlist: () => void;
   onSearchClick: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const MobileTopBar: React.FC<MobileTopBarProps> = ({
@@ -20,6 +21,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   onOpenCart,
   onOpenWishlist,
   onSearchClick,
+  onOpenProfile,
 }) => {
   const { settings } = useShopSettings();
   const firstName = currentUser?.name ? currentUser.name.split(' ')[0] : null;
@@ -27,8 +29,11 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-[#F7F5F0]/95 backdrop-blur-md border-b border-[#EAE2D6] px-4 py-3 flex items-center justify-between md:hidden">
       {/* Brand & Greeting */}
-      <div className="flex items-center gap-2.5">
-        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-sm shrink-0 bg-[#262421]">
+      <div
+        onClick={onOpenProfile}
+        className="flex items-center gap-2.5 cursor-pointer group"
+      >
+        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#B99A68]/40 shadow-sm shrink-0 bg-[#262421] group-hover:scale-105 transition-transform">
           <img
             src={settings.appIconUrl || '/assets/branding/app-dp.svg'}
             alt={settings.shopName}

@@ -212,3 +212,4 @@ export const MobileDocumentsScreen: React.FC = () => {
     </div>
   );
 };
+

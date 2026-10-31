@@ -104,3 +104,4 @@ export async function DELETE(request: Request) {
   await db.delete(mediaFolders).where(eq(mediaFolders.id, folderId));
   return NextResponse.json({ success: true, message: 'Folder deleted.' });
 }
+

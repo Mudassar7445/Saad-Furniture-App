@@ -41,7 +41,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               }
               onChangeTab(tab.id);
             }}
-            className="flex-1 flex flex-col items-center justify-center py-1 relative transition-all duration-200"
+            className="flex-1 flex flex-col items-center justify-center py-1 relative transition-all duration-200 touch-manipulation cursor-pointer select-none"
           >
             <div className="relative">
               <div

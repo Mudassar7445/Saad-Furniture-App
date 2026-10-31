@@ -55,11 +55,17 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const [activeTab, setActiveTab] = useState<MobileTab>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [intendedDestination, setIntendedDestination] = useState<MobileTab>('home');
   const [cartSheetOpen, setCartSheetOpen] = useState(false);
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [quickTrackOrder, setQuickTrackOrder] = useState<any | null>(null);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  const handleOpenAuth = (destination: MobileTab = 'profile') => {
+    setIntendedDestination(destination);
+    setAuthModalOpen(true);
+  };
 
   // Fetch unread notifications count
   useEffect(() => {
@@ -94,6 +100,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         onOpenCart={() => setCartSheetOpen(true)}
         onSearchClick={() => setActiveTab('shop')}
         onOpenWishlist={() => setActiveTab('shop')}
+        onOpenProfile={() => setActiveTab('profile')}
       />
 
       {/* 2. Main Screen View Area */}
@@ -130,7 +137,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'orders' && (
           <MobileOrdersScreen
             currentUser={currentUser}
-            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenAuth={() => handleOpenAuth('orders')}
             onExploreShop={() => setActiveTab('shop')}
           />
         )}
@@ -138,7 +145,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'notifications' && (
           <MobileNotificationsScreen
             currentUser={currentUser}
-            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenAuth={() => handleOpenAuth('notifications')}
             onNavigateToOrders={() => setActiveTab('orders')}
           />
         )}
@@ -150,7 +157,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'profile' && (
           <MobileProfileScreen
             currentUser={currentUser}
-            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenAuth={() => handleOpenAuth('profile')}
             onLogout={handleLogout}
             onNavigateToOrders={() => setActiveTab('orders')}
             onNavigateToWishlist={() => setActiveTab('shop')}
@@ -238,9 +245,13 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       {/* Auth Modal (Sign in / Sign up) */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => {
-          setAuthModalOpen(false);
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(user) => {
           onRefreshUser();
+          setAuthModalOpen(false);
+          if (intendedDestination) {
+            setActiveTab(intendedDestination);
+          }
         }}
       />
     </div>

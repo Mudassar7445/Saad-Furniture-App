@@ -24,7 +24,12 @@ export async function GET() {
     userOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
   }
 
-  return NextResponse.json({ orders: userOrders });
+  const mappedOrders = userOrders.map((o) => ({
+    ...o,
+    status: o.customStatus || o.orderStatus,
+  }));
+
+  return NextResponse.json({ orders: mappedOrders });
 }
 
 export async function POST(request: Request) {

@@ -896,7 +896,8 @@ export default function ShowroomHomePage() {
       {/* Customer Auth Modal */}
       <AuthModal
         isOpen={showAuthModal}
-        onClose={() => {
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
           setShowAuthModal(false);
           fetchUser();
           fetchCart();

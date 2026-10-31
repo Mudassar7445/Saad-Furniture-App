@@ -80,6 +80,12 @@ export default function CustomerPortalPage() {
         return;
       }
 
+      // If viewing on mobile screen, keep customer in the seamless mobile application experience
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        router.push('/');
+        return;
+      }
+
       if (authData.user.role !== 'customer') {
         if (authData.user.role === 'super_admin') {
           router.push('/admin');

@@ -84,8 +84,8 @@ export async function POST(request: Request) {
       console.warn('Audit log write skipped:', auditErr);
     }
 
-    // Determine redirect destination
-    let redirectUrl = '/portal';
+    // Determine redirect destination (Customers remain inside the app, Staff/Admin go to management consoles)
+    let redirectUrl: string | null = null;
     if (user.role === 'super_admin') {
       redirectUrl = '/admin';
     } else if (user.role === 'staff') {
