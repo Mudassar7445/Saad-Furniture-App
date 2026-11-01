@@ -1,9 +1,0 @@
-perf: instant video thumbnails in Customer Library and Google Drive optimization
-
-- Fixed root cause: eliminated multi-megabyte video base64/stream URLs from thumbnail_url fields
-- Auto-extract lightweight 20-50KB WebP thumbnails once upon video upload using client Canvas API
-- Store dedicated video thumbnails in Google Drive THUMBNAILS folder and save references in DB
-- Added /api/media/thumbnail/[id] endpoint with 15-minute in-memory caching and immutable headers
-- Added in-memory caching in MobileDocumentsScreen for 0ms frame-1 library rendering
-- Replaced direct <video> mounting in MobileOrderTrackingSheet with instant thumbnail preview cards
-- Sanitized existing database rows with safe category workshop stills
