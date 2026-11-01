@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MobileTopBar } from './MobileTopBar';
 import { MobileBottomNav, MobileTab } from './MobileBottomNav';
 import { MobileHomeScreen } from './MobileHomeScreen';
@@ -16,6 +16,7 @@ import { MobileCheckoutSheet } from './MobileCheckoutSheet';
 import { MobileOrderTrackingSheet } from './MobileOrderTrackingSheet';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { PushNotificationManager } from '@/components/notifications/PushNotificationManager';
+import { LogOut, Sparkles } from 'lucide-react';
 
 interface MobileAppShellProps {
   currentUser: any | null;
@@ -64,14 +65,239 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const [quickTrackOrder, setQuickTrackOrder] = useState<any | null>(null);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  const handleOpenAuth = (destination: MobileTab = 'profile') => {
-    setIntendedDestination(destination);
-    setAuthModalOpen(true);
+  // Android Navigation, Back Stack & Transition Animation State
+  const [navDirection, setNavDirection] = useState<'forward' | 'backward'>('forward');
+  const [showExitModal, setShowExitModal] = useState<boolean>(false);
+  const tabHistory = useRef<MobileTab[]>(['home']);
+  const scrollPositions = useRef<Record<string, number>>({});
+  const isHandlingPopState = useRef<boolean>(false);
+
+  // Synchronized state reference for the native popstate handler
+  const stateRef = useRef({
+    activeTab,
+    selectedCategory,
+    selectedProduct,
+    cartSheetOpen,
+    checkoutSheetOpen,
+    quickTrackOrder,
+    authModalOpen,
+    showExitModal,
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      activeTab,
+      selectedCategory,
+      selectedProduct,
+      cartSheetOpen,
+      checkoutSheetOpen,
+      quickTrackOrder,
+      authModalOpen,
+      showExitModal,
+    };
+  });
+
+  // Browser History Navigation Engine & Android Hardware Back Interceptor
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Establish root history anchor
+    window.history.replaceState({ app: 'saad-app', level: 0, screen: 'home' }, '');
+
+    const handlePopState = () => {
+      const cur = stateRef.current;
+      isHandlingPopState.current = true;
+
+      // 1. If Exit Modal is open, dismiss it
+      if (cur.showExitModal) {
+        setShowExitModal(false);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 2. If Product Detail Sheet is open, dismiss it
+      if (cur.selectedProduct) {
+        setNavDirection('backward');
+        setSelectedProduct(null);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 3. If Checkout Sheet is open, dismiss it
+      if (cur.checkoutSheetOpen) {
+        setNavDirection('backward');
+        setCheckoutSheetOpen(false);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 4. If Cart Sheet is open, dismiss it
+      if (cur.cartSheetOpen) {
+        setNavDirection('backward');
+        setCartSheetOpen(false);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 5. If Quick Track Sheet is open, dismiss it
+      if (cur.quickTrackOrder) {
+        setNavDirection('backward');
+        setQuickTrackOrder(null);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 6. If Auth Modal is open, dismiss it
+      if (cur.authModalOpen) {
+        setNavDirection('backward');
+        setAuthModalOpen(false);
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 7. If in Shop tab and filtered by a category, return to 'All'
+      if (cur.activeTab === 'shop' && cur.selectedCategory !== 'All') {
+        setNavDirection('backward');
+        setSelectedCategory('All');
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 8. If in any secondary tab, navigate back to previous tab
+      if (cur.activeTab !== 'home') {
+        setNavDirection('backward');
+        if (tabHistory.current.length > 1) {
+          tabHistory.current.pop();
+          const prevTab = tabHistory.current[tabHistory.current.length - 1] || 'home';
+          setActiveTab(prevTab);
+        } else {
+          setActiveTab('home');
+        }
+        isHandlingPopState.current = false;
+        return;
+      }
+
+      // 9. If on root Home screen with no modals open:
+      // Prevent immediate silent browser/app exit -> Trigger Luxury Exit Confirmation Dialog!
+      window.history.pushState({ app: 'saad-app', level: 0, screen: 'home' }, '');
+      setShowExitModal(true);
+      isHandlingPopState.current = false;
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const pushNavEntry = (screenKey: string) => {
+    if (!isHandlingPopState.current && typeof window !== 'undefined') {
+      window.history.pushState({ app: 'saad-app', screen: screenKey, timestamp: Date.now() }, '');
+    }
+  };
+
+  const handleOpenProductDetail = (p: any) => {
+    setNavDirection('forward');
+    setSelectedProduct(p);
+    pushNavEntry(`product-${p.id}`);
+  };
+
+  const handleCloseProductDetail = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      setSelectedProduct(null);
+    }
+  };
+
+  const handleOpenCart = () => {
+    setNavDirection('forward');
+    setCartSheetOpen(true);
+    pushNavEntry('cart');
+  };
+
+  const handleCloseCart = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      setCartSheetOpen(false);
+    }
+  };
+
+  const handleOpenCheckout = () => {
+    setNavDirection('forward');
+    setCheckoutSheetOpen(true);
+    pushNavEntry('checkout');
+  };
+
+  const handleCloseCheckout = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      setCheckoutSheetOpen(false);
+    }
   };
 
   const handleOpenShop = (category: string = 'All') => {
+    setNavDirection('forward');
     setSelectedCategory(category);
-    setActiveTab('shop');
+    if (activeTab !== 'shop') {
+      handleChangeTab('shop');
+    } else {
+      pushNavEntry(`shop-${category}`);
+    }
+  };
+
+  const handleChangeTab = (nextTab: MobileTab) => {
+    if (nextTab === activeTab) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Save scroll position of previous tab
+    if (typeof window !== 'undefined') {
+      scrollPositions.current[activeTab] = window.scrollY;
+    }
+
+    setNavDirection('forward');
+    if (nextTab === 'shop' && selectedCategory !== 'All') {
+      setSelectedCategory('All');
+    }
+
+    tabHistory.current.push(nextTab);
+    setActiveTab(nextTab);
+    pushNavEntry(`tab-${nextTab}`);
+
+    // Restore scroll position
+    requestAnimationFrame(() => {
+      const savedY = scrollPositions.current[nextTab] || 0;
+      window.scrollTo({ top: savedY, behavior: 'instant' as ScrollBehavior });
+    });
+  };
+
+  const handleOpenAuth = (destination: MobileTab = 'profile') => {
+    setIntendedDestination(destination);
+    setAuthModalOpen(true);
+    pushNavEntry('auth');
+  };
+
+  const handleCloseAuth = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      setAuthModalOpen(false);
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    if (typeof window !== 'undefined') {
+      try {
+        window.history.go(-2);
+      } catch {
+        window.close();
+      }
+    }
   };
 
   // Fetch unread notifications count
@@ -101,120 +327,124 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] flex flex-col font-sans select-none antialiased">
+    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#0b0d11] flex flex-col font-sans select-none antialiased transition-colors duration-200">
       {/* 1. Mobile Luxury Sticky Header */}
       <MobileTopBar
         currentUser={currentUser}
         cartCount={cart.totalCount}
         wishlistCount={wishlistProductIds.size}
         unreadInboxCount={unreadNotificationsCount}
-        onOpenCart={() => setCartSheetOpen(true)}
+        onOpenCart={handleOpenCart}
         onSearchClick={() => handleOpenShop('All')}
         onOpenWishlist={() => handleOpenShop('Saved (💖)')}
-        onOpenProfile={() => setActiveTab('profile')}
-        onOpenWorkshop={() => setActiveTab('workshop')}
-        onOpenInbox={() => setActiveTab('notifications')}
+        onOpenProfile={() => handleChangeTab('profile')}
+        onOpenWorkshop={() => handleChangeTab('workshop')}
+        onOpenInbox={() => handleChangeTab('notifications')}
       />
 
-      {/* 2. Main Screen View Area */}
+      {/* 2. Main Screen View Area with Fluid Directional Transitions */}
       <main className="flex-1 px-4 pt-3 pb-24 max-w-md mx-auto w-full">
-        {activeTab === 'home' && (
-          <MobileHomeScreen
-            products={products}
-            currentUser={currentUser}
-            onSelectCategory={(cat: string) => handleOpenShop(cat)}
-            onOpenProductDetail={(p: any) => setSelectedProduct(p)}
-            onAddToCart={(p: any) => onAddToCart(p)}
-            wishlistIds={wishlistProductIds}
-            onToggleWishlist={onToggleWishlist}
-            onOpenTracking={async (orderNum?: string) => {
-              if (orderNum) {
-                try {
-                  const res = await fetch('/api/orders');
-                  if (res.ok) {
-                    const data = await res.json();
-                    const allOrders: any[] = data.orders || [];
-                    const found = allOrders.find(
-                      (o: any) =>
-                        o.orderNumber?.toLowerCase() === orderNum.toLowerCase() ||
-                        o.id?.toLowerCase() === orderNum.toLowerCase()
-                    );
-                    if (found) {
-                      setQuickTrackOrder(found);
-                      return;
+        <div
+          key={`${activeTab}-${activeTab === 'shop' ? selectedCategory : 'root'}`}
+          className={navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward'}
+        >
+          {activeTab === 'home' && (
+            <MobileHomeScreen
+              products={products}
+              currentUser={currentUser}
+              onSelectCategory={(cat: string) => handleOpenShop(cat)}
+              onOpenProductDetail={handleOpenProductDetail}
+              onAddToCart={(p: any) => onAddToCart(p)}
+              wishlistIds={wishlistProductIds}
+              onToggleWishlist={onToggleWishlist}
+              onOpenTracking={async (orderNum?: string) => {
+                if (orderNum) {
+                  try {
+                    const res = await fetch('/api/orders');
+                    if (res.ok) {
+                      const data = await res.json();
+                      const allOrders: any[] = data.orders || [];
+                      const found = allOrders.find(
+                        (o: any) =>
+                          o.orderNumber?.toLowerCase() === orderNum.toLowerCase() ||
+                          o.id?.toLowerCase() === orderNum.toLowerCase()
+                      );
+                      if (found) {
+                        setQuickTrackOrder(found);
+                        pushNavEntry(`track-${found.id}`);
+                        return;
+                      }
                     }
-                  }
-                } catch {}
-              }
-              setActiveTab('orders');
-            }}
-            onOpenShop={() => handleOpenShop('All')}
-            onOpenDocuments={() => setActiveTab('documents')}
-            onOpenWorkshop={() => setActiveTab('workshop')}
-          />
-        )}
+                  } catch {}
+                }
+                handleChangeTab('orders');
+              }}
+              onOpenShop={() => handleOpenShop('All')}
+              onOpenDocuments={() => handleChangeTab('documents')}
+              onOpenWorkshop={() => handleChangeTab('workshop')}
+            />
+          )}
 
-        {activeTab === 'workshop' && (
-          <MobileWorkshopScreen
-            onBackToHome={() => setActiveTab('home')}
-            onExploreShop={() => handleOpenShop('All')}
-          />
-        )}
+          {activeTab === 'workshop' && (
+            <MobileWorkshopScreen
+              onBackToHome={() => handleChangeTab('home')}
+              onExploreShop={() => handleOpenShop('All')}
+            />
+          )}
 
-        {activeTab === 'shop' && (
-          <MobileShopScreen
-            products={products}
-            selectedCategory={selectedCategory}
-            onSelectCategory={(cat: string) => setSelectedCategory(cat)}
-            onOpenProductDetail={(p: any) => setSelectedProduct(p)}
-            onAddToCart={(p: any) => onAddToCart(p)}
-            wishlistIds={wishlistProductIds}
-            onToggleWishlist={onToggleWishlist}
-          />
-        )}
+          {activeTab === 'shop' && (
+            <MobileShopScreen
+              products={products}
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat: string) => {
+                setSelectedCategory(cat);
+                pushNavEntry(`category-${cat}`);
+              }}
+              onOpenProductDetail={handleOpenProductDetail}
+              onAddToCart={(p: any) => onAddToCart(p)}
+              wishlistIds={wishlistProductIds}
+              onToggleWishlist={onToggleWishlist}
+            />
+          )}
 
-        {activeTab === 'orders' && (
-          <MobileOrdersScreen
-            currentUser={currentUser}
-            onOpenAuth={() => handleOpenAuth('orders')}
-            onExploreShop={() => handleOpenShop('All')}
-          />
-        )}
+          {activeTab === 'orders' && (
+            <MobileOrdersScreen
+              currentUser={currentUser}
+              onOpenAuth={() => handleOpenAuth('orders')}
+              onExploreShop={() => handleOpenShop('All')}
+            />
+          )}
 
-        {activeTab === 'notifications' && (
-          <MobileNotificationsScreen
-            currentUser={currentUser}
-            onOpenAuth={() => handleOpenAuth('notifications')}
-            onNavigateToOrders={() => setActiveTab('orders')}
-            onUpdateUnreadCount={(count: number) => setUnreadNotificationsCount(count)}
-          />
-        )}
+          {activeTab === 'notifications' && (
+            <MobileNotificationsScreen
+              currentUser={currentUser}
+              onOpenAuth={() => handleOpenAuth('notifications')}
+              onNavigateToOrders={() => handleChangeTab('orders')}
+              onUpdateUnreadCount={(count: number) => setUnreadNotificationsCount(count)}
+            />
+          )}
 
-        {activeTab === 'documents' && (
-          <MobileDocumentsScreen />
-        )}
+          {activeTab === 'documents' && (
+            <MobileDocumentsScreen />
+          )}
 
-        {activeTab === 'profile' && (
-          <MobileProfileScreen
-            currentUser={currentUser}
-            onOpenAuth={() => handleOpenAuth('profile')}
-            onLogout={handleLogout}
-            onNavigateToOrders={() => setActiveTab('orders')}
-            onNavigateToWishlist={() => handleOpenShop('Saved (💖)')}
-            onNavigateToDocuments={() => setActiveTab('documents')}
-          />
-        )}
+          {activeTab === 'profile' && (
+            <MobileProfileScreen
+              currentUser={currentUser}
+              onOpenAuth={() => handleOpenAuth('profile')}
+              onLogout={handleLogout}
+              onNavigateToOrders={() => handleChangeTab('orders')}
+              onNavigateToWishlist={() => handleOpenShop('Saved (💖)')}
+              onNavigateToDocuments={() => handleChangeTab('documents')}
+            />
+          )}
+        </div>
       </main>
 
       {/* 3. Mobile Fixed Bottom 5-Tab Bar */}
       <MobileBottomNav
         activeTab={activeTab}
-        onChangeTab={(tab: MobileTab) => {
-          if (tab === 'shop') {
-            setSelectedCategory('All');
-          }
-          setActiveTab(tab);
-        }}
+        onChangeTab={handleChangeTab}
         cartCount={cart.totalCount}
         unreadNotificationsCount={unreadNotificationsCount}
       />
@@ -223,7 +453,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       {/* Product Detail Sheet */}
       <MobileProductDetailSheet
         product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        onClose={handleCloseProductDetail}
         isWishlisted={selectedProduct ? wishlistProductIds.has(selectedProduct.id) : false}
         onToggleWishlist={(id: string) => onToggleWishlist(id)}
         onAddToCart={(options: {
@@ -235,7 +465,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         }) => {
           onAddToCart(selectedProduct, options);
           setSelectedProduct(null);
-          setCartSheetOpen(true);
+          handleOpenCart();
         }}
         onBuyNow={(options: {
           productId: string;
@@ -246,14 +476,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         }) => {
           onAddToCart(selectedProduct, options);
           setSelectedProduct(null);
-          setCheckoutSheetOpen(true);
+          handleOpenCheckout();
         }}
       />
 
       {/* Cart Sheet */}
       <MobileCartSheet
         isOpen={cartSheetOpen}
-        onClose={() => setCartSheetOpen(false)}
+        onClose={handleCloseCart}
         cart={cart}
         onUpdateQuantity={onUpdateCartQty}
         onRemoveItem={onRemoveCartItem}
@@ -261,14 +491,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         appliedCoupon={appliedCoupon}
         onProceedToCheckout={() => {
           setCartSheetOpen(false);
-          setCheckoutSheetOpen(true);
+          handleOpenCheckout();
         }}
       />
 
       {/* Checkout Sheet */}
       <MobileCheckoutSheet
         isOpen={checkoutSheetOpen}
-        onClose={() => setCheckoutSheetOpen(false)}
+        onClose={handleCloseCheckout}
         cart={cart}
         appliedCoupon={appliedCoupon}
         currentUser={currentUser}
@@ -283,22 +513,76 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         <MobileOrderTrackingSheet
           order={quickTrackOrder}
           isOpen={!!quickTrackOrder}
-          onClose={() => setQuickTrackOrder(null)}
+          onClose={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              window.history.back();
+            } else {
+              setQuickTrackOrder(null);
+            }
+          }}
         />
       )}
 
       {/* Auth Modal (Sign in / Sign up) */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={handleCloseAuth}
         onSuccess={(user) => {
           onRefreshUser();
-          setAuthModalOpen(false);
+          handleCloseAuth();
           if (intendedDestination) {
-            setActiveTab(intendedDestination);
+            handleChangeTab(intendedDestination);
           }
         }}
       />
+
+      {/* 5. Luxury Exit Confirmation Dialog (Android Back Prevention on Home) */}
+      {showExitModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setShowExitModal(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#131722] rounded-3xl p-6 text-center shadow-2xl border border-[#EAE2D6] dark:border-white/10 relative transform scale-100 transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Saad Crest / Exit Icon */}
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#B99A68]/15 text-[#B99A68] flex items-center justify-center mb-4 ring-8 ring-[#B99A68]/5">
+              <Sparkles className="w-8 h-8 stroke-[1.8]" />
+            </div>
+
+            <h2 className="font-serif text-xl font-black text-[#262421] dark:text-[#F1F5F9] tracking-tight">
+              Exit Saad Furniture?
+            </h2>
+
+            <p className="text-xs text-[#89847C] dark:text-[#94A3B8] mt-2 mb-6 leading-relaxed">
+              Are you sure you want to leave? Your luxury cart, custom selections and wishlist will be securely preserved.
+            </p>
+
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => setShowExitModal(false)}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#262421] dark:bg-[#B99A68] text-[#F7F5F0] dark:text-[#131722] font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                Stay in App
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmExit}
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-[#89847C] dark:text-[#94A3B8] hover:text-rose-500 dark:hover:text-rose-400 active:scale-95 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Exit App
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Live Background Push Notification Controller */}
       <PushNotificationManager currentUser={currentUser} />
     </div>

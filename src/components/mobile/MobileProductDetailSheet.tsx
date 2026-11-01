@@ -100,87 +100,130 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
-  // Dedicated Hardware-Accelerated Pointer & Touch Swipe Engine
+  // Dedicated Hardware-Accelerated Touch & Gesture Swipe Engine
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const pointerStartX = useRef<number | null>(null);
-  const pointerStartY = useRef<number | null>(null);
-  const isHorizontalSwipe = useRef<boolean | null>(null);
-  const capturedPointerId = useRef<number | null>(null);
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const touchStartTime = useRef<number>(0);
+  const isSwipingHorizontal = useRef<boolean | null>(null);
+
+  // Mouse drag support for desktop/testing
+  const isMouseDown = useRef(false);
+  const mouseStartX = useRef(0);
+  const mouseStartTime = useRef(0);
 
   // Reset to first image when viewing a new product
   useEffect(() => {
     setActiveImageIdx(0);
     setDragOffset(0);
     setIsDragging(false);
+    isSwipingHorizontal.current = null;
   }, [product?.id]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!e.isPrimary) return;
-    pointerStartX.current = e.clientX;
-    pointerStartY.current = e.clientY;
-    isHorizontalSwipe.current = null;
-    capturedPointerId.current = e.pointerId;
-    setIsDragging(false);
-    setDragOffset(0);
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+    isSwipingHorizontal.current = null;
+    setIsDragging(true);
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pointerStartX.current === null) return;
-    const deltaX = e.clientX - pointerStartX.current;
-    const deltaY = e.clientY - (pointerStartY.current ?? e.clientY);
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging && isSwipingHorizontal.current === false) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - touchStartX.current;
+    const deltaY = currentY - touchStartY.current;
 
-    // Lock onto horizontal gesture once 6px motion occurs
-    if (isHorizontalSwipe.current === null) {
+    // Detect gesture direction after 6px
+    if (isSwipingHorizontal.current === null) {
       if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
         if (Math.abs(deltaX) >= Math.abs(deltaY)) {
-          isHorizontalSwipe.current = true;
-          setIsDragging(true);
-          try {
-            e.currentTarget.setPointerCapture(e.pointerId);
-          } catch (_) {}
+          isSwipingHorizontal.current = true;
         } else {
-          // Vertical movement takes over page scroll
-          isHorizontalSwipe.current = false;
-          pointerStartX.current = null;
+          isSwipingHorizontal.current = false;
+          setIsDragging(false);
+          setDragOffset(0);
           return;
         }
       }
     }
 
-    if (isHorizontalSwipe.current) {
+    if (isSwipingHorizontal.current === true) {
       // Elastic boundaries
       const isAtStart = activeImageIdx === 0 && deltaX > 0;
       const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
-      const effectiveDelta = isAtStart || isAtEnd ? deltaX * 0.35 : deltaX;
+      const effectiveDelta = isAtStart || isAtEnd ? deltaX * 0.25 : deltaX;
       setDragOffset(effectiveDelta);
     }
   };
 
-  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pointerStartX.current !== null && isHorizontalSwipe.current) {
-      const threshold = 35; // 35px threshold for intuitive snap
-      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isSwipingHorizontal.current === true) {
+      const deltaX = (e.changedTouches[0]?.clientX || touchStartX.current) - touchStartX.current;
+      const elapsed = Date.now() - touchStartTime.current;
+      const isFastFlick = elapsed < 300 && Math.abs(deltaX) > 25;
+      const isSignificantSwipe = Math.abs(deltaX) > 40;
+
+      if ((isFastFlick || isSignificantSwipe) && deltaX < 0 && activeImageIdx < imageList.length - 1) {
         setActiveImageIdx((prev) => prev + 1);
-      } else if (dragOffset > threshold && activeImageIdx > 0) {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(8); } catch {}
+        }
+      } else if ((isFastFlick || isSignificantSwipe) && deltaX > 0 && activeImageIdx > 0) {
         setActiveImageIdx((prev) => prev - 1);
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(8); } catch {}
+        }
       }
     }
 
-    if (capturedPointerId.current !== null) {
-      try {
-        if (e.currentTarget.hasPointerCapture(capturedPointerId.current)) {
-          e.currentTarget.releasePointerCapture(capturedPointerId.current);
-        }
-      } catch (_) {}
-    }
-
-    pointerStartX.current = null;
-    pointerStartY.current = null;
-    isHorizontalSwipe.current = null;
-    capturedPointerId.current = null;
+    isSwipingHorizontal.current = null;
     setIsDragging(false);
     setDragOffset(0);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    isMouseDown.current = true;
+    mouseStartX.current = e.clientX;
+    mouseStartTime.current = Date.now();
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown.current) return;
+    const deltaX = e.clientX - mouseStartX.current;
+    const isAtStart = activeImageIdx === 0 && deltaX > 0;
+    const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
+    const effectiveDelta = isAtStart || isAtEnd ? deltaX * 0.25 : deltaX;
+    setDragOffset(effectiveDelta);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown.current) return;
+    isMouseDown.current = false;
+    const deltaX = e.clientX - mouseStartX.current;
+    const elapsed = Date.now() - mouseStartTime.current;
+    const isFastFlick = elapsed < 300 && Math.abs(deltaX) > 25;
+    const isSignificant = Math.abs(deltaX) > 40;
+
+    if ((isFastFlick || isSignificant) && deltaX < 0 && activeImageIdx < imageList.length - 1) {
+      setActiveImageIdx((prev) => prev + 1);
+    } else if ((isFastFlick || isSignificant) && deltaX > 0 && activeImageIdx > 0) {
+      setActiveImageIdx((prev) => prev - 1);
+    }
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handleMouseLeave = () => {
+    if (isMouseDown.current) {
+      isMouseDown.current = false;
+      setIsDragging(false);
+      setDragOffset(0);
+    }
   };
 
   const scrollToImage = (idx: number) => {
@@ -188,6 +231,9 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
     setActiveImageIdx(targetIdx);
     setDragOffset(0);
     setIsDragging(false);
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(5); } catch {}
+    }
   };
 
   const effectivePrice = product.discountPrice || product.price;
@@ -251,19 +297,23 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
       <div className="flex-1 pb-28 space-y-4">
         {/* Full-bleed Swipeable Gallery */}
         <div
-          className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none"
+          className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none cursor-grab active:cursor-grabbing"
           style={{ touchAction: 'pan-y' }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
         >
           {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
           <div
             className="w-full h-full flex"
             style={{
               transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
-              transition: isDragging ? 'none' : 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1)',
+              transition: isDragging ? 'none' : 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
               willChange: 'transform',
             }}
           >
@@ -326,25 +376,31 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
             </div>
           )}
 
-          {/* Dots Indicator */}
+          {/* Touch-Friendly Dots Indicator */}
           {imageList.length > 1 && (
-            <div className="absolute bottom-3.5 left-0 right-0 flex justify-center items-center gap-1.5 z-20 pointer-events-auto">
-              {imageList.map((_, idx) => (
-                <button
-                  type="button"
-                  key={idx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    scrollToImage(idx);
-                  }}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    activeImageIdx === idx
-                      ? 'w-6 bg-[#262421] shadow-sm'
-                      : 'w-2 bg-stone-400/60 hover:bg-stone-600'
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center z-20 pointer-events-auto">
+              <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full">
+                {imageList.map((_, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      scrollToImage(idx);
+                    }}
+                    className="p-1.5 flex items-center justify-center touch-manipulation cursor-pointer"
+                    aria-label={`Go to slide ${idx + 1}`}
+                  >
+                    <span
+                      className={`block h-2 rounded-full transition-all duration-300 ${
+                        activeImageIdx === idx
+                          ? 'w-6 bg-white shadow-sm'
+                          : 'w-2 bg-white/50 hover:bg-white/80'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
