@@ -167,7 +167,7 @@ export const AdminWorkshopModule: React.FC = () => {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        setUploadProgress(`Uploading ${i + 1}/${files.length}: "${file.name}" to Google Drive...`);
+        setUploadProgress(`Uploading ${i + 1}/${files.length}: "${file.name}" to cloud media vault...`);
 
         const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
         const detectedType = isVideo ? 'video' : 'photo';
@@ -208,7 +208,7 @@ export const AdminWorkshopModule: React.FC = () => {
 
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to upload media file to Google Drive');
+          throw new Error(data.error || 'Failed to upload media file');
         }
 
         const media = data.media;
@@ -219,7 +219,7 @@ export const AdminWorkshopModule: React.FC = () => {
         if (media.thumbnailUrl) setThumbnailUrl(media.thumbnailUrl);
       }
 
-      setUploadProgress('Successfully uploaded and synced with Google Drive!');
+      setUploadProgress('Successfully uploaded and catalogued!');
       await fetchMedia();
     } catch (err: any) {
       setErrorMsg(err.message || 'Upload error');
@@ -301,7 +301,7 @@ export const AdminWorkshopModule: React.FC = () => {
 
     try {
       setReplacing(true);
-      setReplaceProgress(`Uploading new replacement file to Google Drive...`);
+      setReplaceProgress(`Uploading new replacement file...`);
 
       const isVideo = replaceFile.type.startsWith('video/') || replaceFile.name.endsWith('.mp4');
       const detectedType = isVideo ? 'video' : 'photo';
@@ -967,7 +967,7 @@ export const AdminWorkshopModule: React.FC = () => {
               <div className="p-3 bg-slate-900 rounded-xl border border-[#B99A68]/40 space-y-2">
                 <div className="flex items-center gap-2 text-[#B99A68] font-bold">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{replaceProgress || 'Replacing media in Google Drive...'}</span>
+                  <span>{replaceProgress || 'Replacing media in cloud storage...'}</span>
                 </div>
                 <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-[#B99A68] h-1.5 rounded-full animate-pulse w-full" />
@@ -1022,9 +1022,9 @@ export const AdminWorkshopModule: React.FC = () => {
             </div>
 
             <div className="p-3 bg-black/40 rounded-xl border border-white/10 text-[11px] text-slate-300 space-y-1">
-              <span className="font-semibold text-white block">Safe Google Drive Storage Guard:</span>
+              <span className="font-semibold text-white block">Safe Storage Reference Guard:</span>
               <p>
-                The system will automatically verify whether this file is referenced in another customer order or product catalogue before removing original Drive binaries.
+                The system will automatically verify whether this file is referenced in another customer order or product catalogue before removing original cloud media binaries.
               </p>
             </div>
 
@@ -1165,7 +1165,7 @@ export const AdminWorkshopModule: React.FC = () => {
           <div className="p-4 bg-black/40 border border-[#B99A68]/30 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#B99A68] uppercase tracking-wider flex items-center gap-1.5">
-                <UploadCloud className="w-4 h-4" /> Cloud Storage Attachment (Google Drive 5TB)
+                <UploadCloud className="w-4 h-4" /> Cloud Media Attachment
               </span>
             </div>
 

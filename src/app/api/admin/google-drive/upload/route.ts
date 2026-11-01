@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
       userName: user.name,
       action: 'UPLOAD_MEDIA_DRIVE',
       details: connected
-        ? `Uploaded ${filename} (${(fileSize / 1024 / 1024).toFixed(2)} MB) to Google Drive 5TB storage`
+        ? `Uploaded ${filename} (${(fileSize / 1024 / 1024).toFixed(2)} MB) to cloud storage`
         : `Uploaded ${filename} (${(fileSize / 1024).toFixed(1)} KB) directly (local storage active)`,
       ipAddress: req.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,

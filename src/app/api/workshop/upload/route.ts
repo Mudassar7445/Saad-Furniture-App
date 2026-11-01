@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       userName: user.name,
       action: 'UPLOAD_WORKSHOP_MEDIA',
-      details: `Uploaded ${mediaType} "${title}" to Google Drive (folder: ${pathSegments.join('/')})`,
+      details: `Uploaded ${mediaType} "${title}" to cloud media vault`,
       ipAddress: req.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });

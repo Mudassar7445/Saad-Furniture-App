@@ -283,7 +283,7 @@ export const OrderCraftingGallery: React.FC<OrderCraftingGalleryProps> = ({
 
       setUploadProgressText(
         selectedFiles.length > 0
-          ? `Transmitting ${selectedFiles.length} file(s) to 5TB Cloud Storage...`
+          ? `Transmitting ${selectedFiles.length} file(s) to cloud media vault...`
           : 'Saving craftsmanship progress note...'
       );
 
@@ -910,7 +910,7 @@ export const OrderCraftingGallery: React.FC<OrderCraftingGalleryProps> = ({
             ? 'Publish Artisan Milestone Progress Update'
             : 'Upload High-Definition Crafting Photos'
         }
-        subtitle={`Order #${order?.orderNumber || orderId.slice(0, 8).toUpperCase()} • Dispatches directly to 5TB Cloud Storage`}
+        subtitle={`Order #${order?.orderNumber || orderId.slice(0, 8).toUpperCase()} • Dispatches directly to patron gallery`}
         maxWidth="lg"
       >
         <form onSubmit={handleSubmitUpload} className="space-y-4 text-xs">
@@ -1101,7 +1101,7 @@ export const OrderCraftingGallery: React.FC<OrderCraftingGalleryProps> = ({
               <div className="flex items-center justify-between text-[11px] text-[#B99A68]">
                 <span className="flex items-center gap-1.5 font-bold">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  {uploadProgressText || 'Uploading to 5TB Cloud Storage...'}
+                  {uploadProgressText || 'Uploading to cloud media vault...'}
                 </span>
               </div>
               <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">

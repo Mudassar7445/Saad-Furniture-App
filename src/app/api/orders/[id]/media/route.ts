@@ -397,7 +397,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         uploaded: uploadedMediaList,
-        message: `Successfully uploaded ${uploadedMediaList.length} media file(s) to Google Drive.`,
+        message: `Successfully uploaded ${uploadedMediaList.length} media file(s).`,
       });
     }
 

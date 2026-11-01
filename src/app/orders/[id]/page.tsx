@@ -1546,7 +1546,7 @@ export default function OrderDetailsPage() {
         isOpen={showUploadMediaModal}
         onClose={() => setShowUploadMediaModal(false)}
         title="Upload Workshop Photographic / Video Evidence"
-        subtitle="Dispatches to patron dashboard and Google Drive 5TB storage"
+        subtitle="Dispatches directly to patron order crafting gallery"
         maxWidth="md"
       >
         <form onSubmit={handleUploadMedia} className="space-y-4 text-xs">
@@ -1861,7 +1861,7 @@ export default function OrderDetailsPage() {
             )}
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5">
               <span>Saad Atelier Certification</span>
-              <span className="text-[#c5a880]">Google Drive 5TB Synced</span>
+              <span className="text-[#c5a880]">Verified Atelier Media</span>
             </div>
           </div>
         </Modal>

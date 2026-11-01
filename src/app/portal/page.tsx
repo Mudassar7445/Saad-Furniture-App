@@ -798,7 +798,7 @@ export default function CustomerPortalPage() {
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-[#c5a880]" />
-                            Live Artisan Workshop Media (Google Cloud 5TB Vault)
+                            Live Artisan Workshop Craftsmanship Gallery
                           </h3>
                           <span className="text-xs text-slate-400">
                             {selectedOrderDetails?.media?.length || 0} files captured
@@ -1680,7 +1680,7 @@ export default function CustomerPortalPage() {
             )}
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5">
               <span>Verified by Saad Quality Assurance</span>
-              <span className="text-[#c5a880]">Google Drive 5TB Storage Synchronized</span>
+              <span className="text-[#c5a880]">Cloud Media Synchronized</span>
             </div>
           </div>
         </Modal>

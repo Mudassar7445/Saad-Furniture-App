@@ -5,7 +5,7 @@ import { AppLockProvider } from '@/components/auth/AppLockProvider';
 export const metadata: Metadata = {
   title: 'Saad Furniture – Premium Customer Order Tracking & Showroom Management',
   description:
-    'Handcrafted Luxury Furniture, Live Workshop Milestones, Google Drive 5TB Storage Vault, and White-Glove Dispatch.',
+    'Handcrafted Luxury Furniture, Live Workshop Milestones, Private Client Showroom, and White-Glove Dispatch.',
   manifest: '/manifest.json',
   icons: {
     icon: [

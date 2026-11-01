@@ -874,7 +874,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
 
                 {videoPlaybackError ? (
                   <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center z-20 space-y-3">
-                    <span className="text-xs text-[#EAE2D6]">Craftsmanship video is currently syncing from Google Drive vault.</span>
+                    <span className="text-xs text-[#EAE2D6]">Craftsmanship video is currently being prepared by the atelier.</span>
                     <button
                       type="button"
                       onClick={() => setVideoPlaybackError(false)}

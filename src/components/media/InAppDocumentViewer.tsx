@@ -269,7 +269,7 @@ export const InAppDocumentViewer: React.FC<InAppDocumentViewerProps> = ({
             </div>
             <h3 className="text-xl font-serif font-bold text-[#262421]">{document.name}</h3>
             <p className="text-xs text-[#89847C] max-w-md">
-              Office documents (Word, Excel, PowerPoint) are securely protected. You can preview them via Google Docs or download directly to edit on your device.
+              Office documents are securely stored in your private atelier library. Download directly to view or edit on your device.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
               <Button
@@ -279,17 +279,6 @@ export const InAppDocumentViewer: React.FC<InAppDocumentViewerProps> = ({
                 <Download className="w-4 h-4 mr-2" />
                 Download Document
               </Button>
-              {document.googleDriveUrl && (
-                <a
-                  href={document.googleDriveUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#262421] text-[#262421] font-bold text-xs hover:bg-[#F7F5F0] transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Open in Google Drive
-                </a>
-              )}
             </div>
           </div>
         )}
@@ -301,8 +290,8 @@ export const InAppDocumentViewer: React.FC<InAppDocumentViewerProps> = ({
           <Shield className="w-3.5 h-3.5 text-[#B99A68]" />
           <span>Saad Furniture Encrypted Cloud Library</span>
         </div>
-        <div className="font-mono text-[10px] text-slate-500">
-          Powered by Google Drive Enterprise (5TB)
+        <div className="text-[10px] text-[#B99A68] font-medium">
+          Verified Atelier Document Vault
         </div>
       </div>
     </div>

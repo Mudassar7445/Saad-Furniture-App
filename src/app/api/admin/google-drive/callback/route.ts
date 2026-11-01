@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         userId: sessionUser.id,
         userName: sessionUser.name,
         action: 'GOOGLE_DRIVE_CONNECTED',
-        details: `Connected Google Drive storage account: ${tokens.accountEmail}`,
+        details: `Connected cloud storage account: ${tokens.accountEmail}`,
         ipAddress: req.headers.get('x-forwarded-for') || '127.0.0.1',
         createdAt: new Date().toISOString(),
       });
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.redirect(
       `${origin}${returnTo}${returnTo.includes('?') ? '&' : '?'}success=${encodeURIComponent(
-        `Successfully connected Google Drive 5TB Account (${tokens.accountEmail})! Dedicated SAAD FURNITURE MASTER folder is ready.`
+        `Successfully connected Cloud Storage Account (${tokens.accountEmail})! Dedicated SAAD FURNITURE MASTER folder is ready.`
       )}`
     );
 

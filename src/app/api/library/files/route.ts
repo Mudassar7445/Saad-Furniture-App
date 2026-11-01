@@ -335,7 +335,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: 'File successfully uploaded to Google Drive 5TB storage and catalogued.',
+        message: 'File successfully uploaded to cloud library and catalogued.',
         fileId,
       });
     }

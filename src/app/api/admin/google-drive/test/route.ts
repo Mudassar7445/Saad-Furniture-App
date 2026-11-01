@@ -34,7 +34,7 @@ export async function POST() {
       steps.push({
         name: 'OAuth Credentials',
         status: 'error',
-        message: 'Missing Google Cloud OAuth Credentials',
+        message: 'Missing Cloud OAuth Credentials',
         details:
           'Neither GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET environment variables nor database vault credentials were found.',
       });
@@ -42,7 +42,7 @@ export async function POST() {
       return NextResponse.json({
         success: false,
         status: 'error',
-        message: 'Google OAuth credentials are not configured.',
+        message: 'Cloud storage OAuth credentials are not configured.',
         steps,
       });
     }
@@ -60,14 +60,14 @@ export async function POST() {
       steps.push({
         name: 'Account Connection',
         status: 'error',
-        message: 'No active Google Account connection found',
-        details: "Click 'Connect Google Drive' to initiate the OAuth 2.0 authorization flow.",
+        message: 'No active cloud storage connection found',
+        details: "Click 'Connect Cloud Storage' to initiate authorization.",
       });
 
       return NextResponse.json({
         success: false,
         status: 'error',
-        message: 'Google Account is not connected yet.',
+        message: 'Cloud Storage Account is not connected yet.',
         steps,
       });
     }
@@ -149,21 +149,21 @@ export async function POST() {
       }
 
       steps.push({
-        name: 'Drive Write & Delete Verification',
+        name: 'Storage Write & Delete Verification',
         status: 'success',
-        message: 'Live test file created in Google Drive and cleaned up successfully',
-        details: `Verified complete read/write access. File ID created: ${uploaded.id}`,
+        message: 'Live test file created in cloud storage and verified successfully',
+        details: `Verified complete read/write access. File ID: ${uploaded.id}`,
       });
     } catch (uploadTestErr: any) {
       steps.push({
-        name: 'Drive Write & Delete Verification',
+        name: 'Storage Write & Delete Verification',
         status: 'warning',
         message: 'Live upload verification test note',
         details: uploadTestErr.message,
       });
     }
 
-    // Step 6: Query Live Storage Quota from Drive API
+    // Step 6: Query Live Storage Quota
     try {
       const quotaRes = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota,user', {
         headers: { Authorization: `Bearer ${validAccessToken}` },
@@ -180,8 +180,8 @@ export async function POST() {
         steps.push({
           name: 'Storage Quota Verification',
           status: 'success',
-          message: 'Google Drive 5TB quota active and healthy',
-          details: `Used: ${formatGB(usageBytes)} GB | Total Allocated: ${limitBytes > 0 ? `${formatTB(limitBytes)} TB` : '5.0 TB (Enterprise Vault)'}`,
+          message: 'Cloud storage quota active and healthy',
+          details: `Used: ${formatGB(usageBytes)} GB | Total Allocated: ${limitBytes > 0 ? `${formatTB(limitBytes)} TB` : 'Enterprise Vault Tier'}`,
         });
       }
     } catch (qErr: any) {
@@ -189,14 +189,14 @@ export async function POST() {
     }
 
     await client.execute({
-      sql: `UPDATE google_drive_tokens SET last_test_status = 'success', last_test_message = 'All Google Drive 5TB storage diagnostics passed successfully', last_connection_check = ?, updated_at = ? WHERE id = 'active_account'`,
+      sql: `UPDATE google_drive_tokens SET last_test_status = 'success', last_test_message = 'All cloud storage diagnostics passed successfully', last_connection_check = ?, updated_at = ? WHERE id = 'active_account'`,
       args: [now, now],
     });
 
     return NextResponse.json({
       success: true,
       status: 'success',
-      message: 'All Google Drive 5TB storage diagnostics passed successfully.',
+      message: 'All cloud storage diagnostics passed successfully.',
       steps,
     });
   } catch (err: any) {

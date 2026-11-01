@@ -407,7 +407,7 @@ export default function StaffOperationsDashboard() {
                 Workshop Media Dispatcher
               </h3>
               <p className="text-xs text-slate-400 mb-6">
-                Select any active order below to upload verified workshop photos or video recordings directly into the patron's personal dashboard and Google Drive 5TB storage.
+                Select any active order below to upload verified workshop photos or video recordings directly into the patron's personal dashboard and cloud archive.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -660,7 +660,7 @@ export default function StaffOperationsDashboard() {
         isOpen={!!showUploadMedia}
         onClose={() => setShowUploadMedia(null)}
         title={`Upload Media: ${showUploadMedia?.orderNumber}`}
-        subtitle="Dispatches to patron dashboard & Google Drive"
+        subtitle="Dispatches directly to patron dashboard"
         maxWidth="md"
       >
         <form onSubmit={handleUploadMedia} className="space-y-4 text-xs">

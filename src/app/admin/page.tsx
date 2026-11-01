@@ -596,7 +596,7 @@ export default function SuperAdminDashboard() {
     { id: 'sale_codes', label: 'Sale Code Management', icon: Tag },
     { id: 'payment_settings', label: 'Payment & Bank Accounts', icon: CreditCard },
     { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
-    { id: 'cloud_storage', label: 'Google Drive 5TB Storage', icon: HardDrive },
+    { id: 'cloud_storage', label: 'Cloud Media Storage', icon: HardDrive },
     { id: 'orders', label: 'Showroom Commissions', icon: Package, count: ordersList.filter((o) => o.orderType !== 'online').length },
     { id: 'deliveries', label: 'Logistics & Deliveries', icon: Truck, count: deliveriesList.length },
     { id: 'ledger', label: 'Financial Ledgers', icon: CreditCard, count: ledgersData?.customers?.length || 0 },
@@ -706,7 +706,7 @@ export default function SuperAdminDashboard() {
         <div className="p-4 border-t border-white/5 space-y-2">
           <div className="p-2.5 rounded-lg bg-[#141822] border border-white/5 text-[11px] text-slate-400 flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-xs text-white">
-              <HardDrive className="w-3.5 h-3.5 text-[#c5a880]" /> 5TB Google Vault
+              <HardDrive className="w-3.5 h-3.5 text-[#c5a880]" /> Cloud Media Vault
             </span>
             <span className="text-[10px] text-emerald-400 font-bold">SYNCHRONIZED</span>
           </div>
@@ -1693,7 +1693,7 @@ export default function SuperAdminDashboard() {
                           <button
                             onClick={() => setEditingProduct(prod)}
                             className="p-2 rounded-lg bg-slate-800 hover:bg-[#c5a880]/20 text-slate-300 hover:text-[#c5a880] transition-colors"
-                            title="Edit Piece & Upload Google Drive Media"
+                            title="Edit Piece & Upload Media"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -1758,7 +1758,7 @@ export default function SuperAdminDashboard() {
           <AdminMediaLibraryModule />
         )}
 
-        {/* DIRECT GOOGLE DRIVE CLOUD STORAGE MODULE */}
+        {/* DIRECT CLOUD MEDIA STORAGE MODULE */}
         {activeModule === 'cloud_storage' && (
           <CloudStorageSettingsModule />
         )}
@@ -1791,7 +1791,7 @@ export default function SuperAdminDashboard() {
                     Protected Super Admin Settings Area
                   </h2>
                   <p className="text-xs text-slate-400">
-                    High-security configuration for Google Drive 5TB Storage, Firebase Push, and Luxury Showroom Identity.
+                    High-security configuration for Cloud Storage Vault, Push Alerts, and Luxury Showroom Identity.
                   </p>
                 </div>
               </div>
@@ -1820,7 +1820,7 @@ export default function SuperAdminDashboard() {
                 }`}
               >
                 <HardDrive className="w-3.5 h-3.5" />
-                <span>Cloud Storage (Google Drive 5TB)</span>
+                <span>Cloud Storage Vault</span>
               </button>
               <button
                 type="button"
@@ -1846,14 +1846,14 @@ export default function SuperAdminDashboard() {
               <CloudStorageSettingsModule />
             ) : (
             <form onSubmit={handleSaveSettings} className="space-y-6">
-              {/* Google Drive 5TB Storage Box */}
+              {/* Cloud Media Storage Service Box */}
               <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <HardDrive className="w-4 h-4 text-[#c5a880]" />
-                    Google Drive 5TB Enterprise Storage API
+                    Cloud Media Storage Service API
                   </h3>
-                  <Badge variant="green">5.0 TB Storage Quota Connected</Badge>
+                  <Badge variant="green">Cloud Storage Connected</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div>
@@ -2269,7 +2269,7 @@ export default function SuperAdminDashboard() {
         isOpen={!!showUploadMedia}
         onClose={() => setShowUploadMedia(null)}
         title={`Upload Workshop Media: ${showUploadMedia?.orderNumber}`}
-        subtitle="Dispatches directly to patron's gallery and syncs with 5TB Cloud Vault"
+        subtitle="Dispatches directly to patron's gallery and cloud media vault"
         maxWidth="md"
       >
         <form onSubmit={handleUploadOrderMedia} className="space-y-4 text-xs">
@@ -2327,7 +2327,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div>
-            <label className="block text-slate-300 mb-1">Upload Photo or Video to Google Drive (5TB Cloud Storage)</label>
+            <label className="block text-slate-300 mb-1">Upload Photo or Video to Cloud Storage</label>
             <input
               type="file"
               accept="image/*,video/mp4"
@@ -2351,7 +2351,7 @@ export default function SuperAdminDashboard() {
                       url: json.media.url || json.media.viewUrl,
                       mediaType: json.media.mediaType,
                     }));
-                    alert(`Uploaded ${file.name} directly to Google Drive!`);
+                    alert(`Uploaded ${file.name} successfully!`);
                   } else {
                     alert(json.error || 'Upload failed');
                   }
@@ -2364,7 +2364,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div>
-            <label className="block text-slate-300 mb-1">Media URL or Google Drive Link</label>
+            <label className="block text-slate-300 mb-1">Media URL or Direct File Link</label>
             <input
               type="text"
               value={mediaUploadForm.url}
@@ -2541,7 +2541,7 @@ export default function SuperAdminDashboard() {
         </form>
       </Modal>
 
-      {/* MODAL: CREATE / EDIT PRODUCT WITH GOOGLE DRIVE MEDIA */}
+      {/* MODAL: CREATE / EDIT PRODUCT WITH CLOUD MEDIA */}
       <ProductMediaUploadModal
         isOpen={showCreateProduct || !!editingProduct}
         existingProduct={editingProduct}

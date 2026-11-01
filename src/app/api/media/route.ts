@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       totalVideos,
       totalBytes,
       formattedSize: `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`,
-      driveCapacity: '5.0 TB Google Cloud Storage Tier',
+      driveCapacity: 'Cloud Storage Tier (High-Capacity)',
     },
   });
 }
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
       userId: sessionUser.id,
       userName: sessionUser.name,
       action: 'UPLOAD_MEDIA_FILES',
-      details: `Uploaded ${files.length} media files to Google Drive for order [${order.orderNumber}]`,
+      details: `Uploaded ${files.length} media files for order [${order.orderNumber}]`,
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });

@@ -123,7 +123,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
       if (data.success) {
         setNotice({
           type: 'success',
-          message: 'All Google Drive 5TB storage diagnostics passed successfully with verified write access!',
+          message: 'All cloud storage diagnostics passed successfully with verified write access!',
         });
         await fetchStatusAndCredentials();
       } else {
@@ -149,7 +149,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
         await fetchStatusAndCredentials();
         setDisconnectModalOpen(false);
         setTestResults(null);
-        setNotice({ type: 'success', message: 'Google Drive cloud storage disconnected.' });
+        setNotice({ type: 'success', message: 'Cloud media storage disconnected.' });
       }
     } catch (err: any) {
       setNotice({ type: 'error', message: err.message || 'Failed to disconnect.' });
@@ -195,10 +195,10 @@ export const CloudStorageSettingsModule: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-serif font-bold tracking-wide text-white">
-                  Google Drive 5TB Storage System
+                  Cloud Media Storage Vault
                 </h2>
                 {isConnected ? (
-                  <Badge variant="green">Active 5TB Connected</Badge>
+                  <Badge variant="green">Active Cloud Storage Connected</Badge>
                 ) : (
                   <Badge variant="amber">Not Connected</Badge>
                 )}
@@ -216,7 +216,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
               className="bg-[#38332c] hover:bg-[#4d463d] text-white border border-white/10 text-xs rounded-xl h-10 px-4"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${testing ? 'animate-spin' : ''}`} />
-              {testing ? 'Testing...' : 'Test & Verify 5TB'}
+              {testing ? 'Testing...' : 'Test & Verify Storage'}
             </Button>
 
             {isConnected ? (
@@ -235,7 +235,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
                 className="bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-10 px-5 shadow-lg flex items-center"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Connect Google Drive
+                Connect Cloud Storage
               </Button>
             )}
           </div>
@@ -301,7 +301,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-white font-medium text-sm">
               <Cloud className="w-4 h-4 text-[#B99A68]" />
-              5TB Cloud Storage Allocation
+              Cloud Storage Allocation
             </div>
             <span className="text-xs text-[#B99A68] font-mono">{quota.usagePercent}% Allocated</span>
           </div>
@@ -323,7 +323,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
           <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5 text-center">
             <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
               <p className="text-[10px] text-slate-400 uppercase">Cloud Provider</p>
-              <p className="text-xs font-semibold text-white mt-1">Google Drive API</p>
+              <p className="text-xs font-semibold text-white mt-1">Atelier Cloud Storage API</p>
             </div>
             <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
               <p className="text-[10px] text-slate-400 uppercase">Connection Status</p>
@@ -343,7 +343,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-white font-medium text-sm mb-3">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Connected Google Account
+              Connected Storage Account
             </div>
 
             {isConnected ? (
@@ -375,9 +375,9 @@ export const CloudStorageSettingsModule: React.FC = () => {
             ) : (
               <div className="text-center py-4 space-y-2">
                 <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
-                <p className="text-xs text-slate-300">No Google Account Connected</p>
+                <p className="text-xs text-slate-300">No Cloud Storage Account Connected</p>
                 <p className="text-[11px] text-slate-500">
-                  Connect the Google Account associated with your 5TB storage plan.
+                  Connect the account associated with your cloud storage plan.
                 </p>
               </div>
             )}
@@ -408,13 +408,13 @@ export const CloudStorageSettingsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Google Cloud Credentials Configuration Form */}
+      {/* Cloud Storage Credentials Configuration Form */}
       <div className="bg-[#201e1b] border border-[#38332c] rounded-2xl p-6 shadow-md space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-white/5 pb-3">
           <div>
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Key className="w-4 h-4 text-[#B99A68]" />
-              Google Cloud OAuth 2.0 Credentials
+              OAuth 2.0 Cloud Storage Credentials
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               Configure credentials here or via Vercel Environment Variables (<code className="text-[#B99A68]">GOOGLE_CLIENT_ID</code>, <code className="text-[#B99A68]">GOOGLE_CLIENT_SECRET</code>).
@@ -430,7 +430,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
         {/* Redirect URI Display */}
         <div className="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-semibold">Authorized Redirect URI (Google Cloud Console)</p>
+            <p className="text-[10px] text-slate-400 uppercase font-semibold">Authorized Redirect URI (Cloud Console)</p>
             <p className="text-xs text-[#B99A68] font-mono break-all mt-0.5">{redirectUri}</p>
           </div>
           <Button
@@ -448,7 +448,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
         <form onSubmit={handleSaveCredentials} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Google Client ID</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">OAuth Client ID</label>
               <input
                 type="text"
                 value={clientIdInput}
@@ -459,7 +459,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                Google Client Secret {credentialsData?.configured && '(Leave blank to retain saved secret)'}
+                OAuth Client Secret {credentialsData?.configured && '(Leave blank to retain saved secret)'}
               </label>
               <input
                 type="password"
@@ -489,7 +489,7 @@ export const CloudStorageSettingsModule: React.FC = () => {
           <div>
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <FolderTree className="w-4 h-4 text-[#B99A68]" />
-              Automated 5TB Google Drive Folder Structure
+              Automated Media Folder Structure
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               Files uploaded to Saad Furniture are automatically organized into their designated category folders.
@@ -560,10 +560,10 @@ export const CloudStorageSettingsModule: React.FC = () => {
           <div className="bg-[#201e1b] border border-red-500/30 rounded-2xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-base font-bold">Disconnect Google Drive 5TB Storage?</h3>
+              <h3 className="text-base font-bold">Disconnect Cloud Media Storage?</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Are you sure you want to disconnect this Google Drive account? Cloud media uploads and automatic synchronization will be paused until re-authenticated. Existing files in Google Drive remain safe.
+              Are you sure you want to disconnect this cloud storage account? Cloud media uploads and automatic synchronization will be paused until re-authenticated. Existing files in cloud storage remain safe.
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <Button

@@ -1285,7 +1285,7 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
               <p className="text-[10px] text-[#B99A68] font-mono mt-0.5">Version 2.4.0 (Turbopack Engine)</p>
             </div>
             <p className={`text-xs ${textMuted} leading-relaxed max-w-sm mx-auto`}>
-              Bespoke luxury furniture manufacturing platform with real-time 11-stage workshop tracking, 5TB Google Drive cloud storage vault, and biometric device security.
+              Bespoke luxury furniture manufacturing platform with real-time workshop tracking, seamless order management, premium furniture collections, and secure account protection.
             </p>
             <div className="pt-3 border-t border-white/5 flex justify-center gap-4 text-xs text-[#B99A68]">
               <span className="hover:underline cursor-pointer">Privacy Policy</span>

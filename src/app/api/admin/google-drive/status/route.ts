@@ -61,7 +61,7 @@ export async function GET() {
       lastTestMessage:
         quota.lastTestMessage ||
         tokens?.lastTestMessage ||
-        (isConnected ? 'Connected to Google Drive 5TB Storage' : 'Not Connected'),
+        (isConnected ? 'Connected to Cloud Media Storage' : 'Not Connected'),
       storageQuota: {
         totalBytes: effectiveLimit,
         usedBytes: effectiveUsage,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'disconnect') {
       await disconnectGoogleDrive();
-      return NextResponse.json({ success: true, message: 'Google Drive disconnected successfully.' });
+      return NextResponse.json({ success: true, message: 'Cloud media storage disconnected successfully.' });
     }
 
     // Refresh quota & status

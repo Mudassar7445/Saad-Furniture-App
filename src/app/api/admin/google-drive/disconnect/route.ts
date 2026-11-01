@@ -25,11 +25,11 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: 'Google Drive 5TB storage has been disconnected successfully.',
+      message: 'Cloud media storage has been disconnected successfully.',
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message || 'Failed to disconnect Google Drive' },
+      { error: err.message || 'Failed to disconnect cloud storage' },
       { status: 500 }
     );
   }

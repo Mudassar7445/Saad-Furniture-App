@@ -183,7 +183,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
 
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
 
-  // Handle direct file upload to Google Drive 5TB storage or local asset
+  // Handle direct file upload to cloud media repository or local asset
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'pdf') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -396,7 +396,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
       isOpen={isOpen}
       onClose={onClose}
       title={existingProduct ? `Edit Catalogue Piece: ${existingProduct.title}` : 'Add Showroom Furniture Piece'}
-      subtitle="Complete product specifications with direct Google Drive 5TB multi-media upload"
+      subtitle="Complete product specifications with high-resolution multi-media upload"
       maxWidth="xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6 text-xs text-white">
@@ -549,13 +549,13 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
           </div>
         </div>
 
-        {/* SECTION 2: GOOGLE DRIVE 5TB MEDIA UPLOADER */}
+        {/* SECTION 2: HIGH-RESOLUTION CLOUD MEDIA UPLOADER */}
         <div className="p-5 bg-black/40 border border-[#B99A68]/30 rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <div className="flex items-center gap-2 text-[#B99A68] font-bold uppercase tracking-wider text-[11px]">
-              <HardDrive className="w-4 h-4" /> Google Drive 5TB Cloud Media Repository
+              <HardDrive className="w-4 h-4" /> High-Resolution Media Repository
             </div>
-            <Badge variant="gold">Auto Folder: SAAD FURNITURE MASTER / Product Catalog / {category}</Badge>
+            <Badge variant="gold">Auto Category: {category}</Badge>
           </div>
 
           {uploadSuccessMsg && (
@@ -568,7 +568,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
           {uploading && (
             <div className="p-3 bg-[#B99A68]/20 border border-[#B99A68]/40 rounded-xl text-white text-xs flex items-center gap-2">
               <RefreshCw className="w-4 h-4 text-[#B99A68] animate-spin shrink-0" />
-              <span>{uploadProgressText || 'Uploading to Google Drive...'}</span>
+              <span>{uploadProgressText || 'Uploading media to cloud storage...'}</span>
             </div>
           )}
 

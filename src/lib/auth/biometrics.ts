@@ -147,3 +147,4 @@ export async function authenticateWithBiometric(): Promise<{ success: boolean; e
     };
   }
 }
+

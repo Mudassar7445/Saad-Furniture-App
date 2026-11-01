@@ -205,7 +205,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
     try {
       setIsUploading(true);
       setUploadProgress(10);
-      setUploadStatusText(`Preparing ${uploadFiles.length} file(s) for Google Drive 5TB storage...`);
+      setUploadStatusText(`Preparing ${uploadFiles.length} file(s) for cloud storage...`);
 
       for (let i = 0; i < uploadFiles.length; i++) {
         const currentFile = uploadFiles[i];
@@ -253,7 +253,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
       }
 
       setUploadStatusText('Complete! File records saved and indexed in Turso Cloud.');
-      showToast(`Successfully uploaded ${uploadFiles.length} file(s) to Google Drive!`);
+      showToast(`Successfully uploaded ${uploadFiles.length} file(s) to cloud library!`);
       setShowUploadModal(false);
       setUploadFiles([]);
       setUploadTitle('');
@@ -337,7 +337,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
       });
       if (res.ok) {
         setFiles((prev) => prev.filter((f) => f.id !== confirmDeleteFile.id));
-        showToast(`"${confirmDeleteFile.name}" deleted from library & Google Drive.`);
+        showToast(`"${confirmDeleteFile.name}" deleted from library.`);
         setConfirmDeleteFile(null);
       } else {
         const err = await res.json();
@@ -388,7 +388,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
             <h2 className="text-xl font-serif font-bold text-white tracking-wide">
               Central Media & Documents Library
             </h2>
-            <Badge variant="gold">Google Drive 5TB Synced</Badge>
+            <Badge variant="gold">Cloud Media Synced</Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             Enterprise repository for showroom catalogues, 4K production videos, wholesale price sheets, and patron documents.
@@ -558,7 +558,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
           <div>
             <h3 className="text-base font-serif font-bold text-white">No documents found</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              Upload your first furniture catalogue, HD photographs, or wholesale price lists to Google Drive 5TB storage.
+              Upload your first furniture catalogue, HD photographs, or wholesale price lists to cloud storage.
             </p>
           </div>
           <Button
@@ -809,7 +809,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-serif font-bold text-white">
-                    Upload Documents & Media to Google Drive 5TB
+                    Upload Documents & Media Files
                   </h3>
                   <p className="text-[11px] text-slate-400">
                     Resumable high-bandwidth binary storage with Turso indexing
@@ -1128,7 +1128,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
                   disabled={isUploading || uploadFiles.length === 0}
                   className="flex-1 bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold rounded-xl text-xs h-11 shadow-md"
                 >
-                  {isUploading ? 'Uploading to 5TB...' : `Upload ${uploadFiles.length} File(s)`}
+                  {isUploading ? 'Uploading...' : `Upload ${uploadFiles.length} File(s)`}
                 </Button>
               </div>
             </form>
@@ -1213,7 +1213,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
             <div className="text-center">
               <h3 className="text-base font-serif font-bold text-white">Delete Document?</h3>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Permanently delete <strong>"{confirmDeleteFile.name}"</strong> from both Google Drive 5TB storage and the system catalog.
+                Permanently delete <strong>"{confirmDeleteFile.name}"</strong> from the library catalog.
               </p>
             </div>
             <div className="flex gap-3 pt-2">
