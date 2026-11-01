@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import {
@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Ruler,
   Check,
+  ChevronLeft,
   ChevronRight,
   Maximize2,
   Clock,
@@ -88,12 +89,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     designs = ['Classic Baroque', 'Contemporary Minimalist', 'Art Deco Sculpted'];
   }
 
-  const [activeImage, setActiveImage] = useState(imageList[0]);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [selectedColour, setSelectedColour] = useState(colours[0]);
   const [selectedDesign, setSelectedDesign] = useState(designs[0]);
   const [customNotes, setCustomNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    setActiveImageIdx(0);
+  }, [product?.id]);
+
+  const activeImage = imageList[activeImageIdx] || imageList[0];
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = touchStartX.current - endX;
+    const diffY = touchStartY.current !== null ? Math.abs(touchStartY.current - endY) : 0;
+
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
+      if (diffX > 0 && activeImageIdx < imageList.length - 1) {
+        setActiveImageIdx((prev) => prev + 1);
+      } else if (diffX < 0 && activeImageIdx > 0) {
+        setActiveImageIdx((prev) => prev - 1);
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const effectivePrice =
     product.discountPrice && product.discountPrice > 0
@@ -133,11 +166,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-100">
         {/* Left: Product Images Gallery */}
         <div className="space-y-3">
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group">
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none touch-pan-y"
+          >
             <img
               src={activeImage}
               alt={product.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none select-none"
+              draggable={false}
             />
             {product.discountPrice && (
               <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg">
@@ -154,6 +192,46 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             >
               <Heart className="w-4 h-4 fill-current" />
             </button>
+
+            {/* Left/Right Navigation Chevrons */}
+            {imageList.length > 1 && (
+              <>
+                {activeImageIdx > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIdx((prev) => prev - 1);
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+
+                {activeImageIdx < imageList.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIdx((prev) => prev + 1);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Counter Badge */}
+            {imageList.length > 1 && (
+              <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm pointer-events-none">
+                {activeImageIdx + 1} / {imageList.length}
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
@@ -162,9 +240,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {imageList.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setActiveImage(img)}
+                  onClick={() => setActiveImageIdx(idx)}
                   className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                    activeImage === img
+                    activeImageIdx === idx
                       ? 'border-[#c5a880] scale-95'
                       : 'border-white/10 opacity-70 hover:opacity-100'
                   }`}

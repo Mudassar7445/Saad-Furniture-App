@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Heart,
@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Sparkles,
   ChevronLeft,
+  ChevronRight,
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -99,6 +100,70 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
+  // Swipeable Carousel State & Refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const isSwiping = useRef(false);
+
+  // Reset to first image when viewing a new product
+  useEffect(() => {
+    setActiveImageIdx(0);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+    }
+  }, [product?.id]);
+
+  const scrollToImage = (idx: number) => {
+    const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
+    setActiveImageIdx(targetIdx);
+    if (scrollContainerRef.current) {
+      const containerWidth = scrollContainerRef.current.clientWidth;
+      scrollContainerRef.current.scrollTo({
+        left: targetIdx * containerWidth,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const newIdx = Math.round(container.scrollLeft / width);
+      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
+        setActiveImageIdx(newIdx);
+      }
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = true;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isSwiping.current || touchStartX.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = touchStartX.current - endX;
+    const diffY = touchStartY.current !== null ? Math.abs(touchStartY.current - endY) : 0;
+
+    // Minimum 35px horizontal swipe distance and horizontal direction dominance
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
+      if (diffX > 0 && activeImageIdx < imageList.length - 1) {
+        scrollToImage(activeImageIdx + 1);
+      } else if (diffX < 0 && activeImageIdx > 0) {
+        scrollToImage(activeImageIdx - 1);
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+    isSwiping.current = false;
+  };
+
   const effectivePrice = product.discountPrice || product.price;
 
   const handleAdd = () => {
@@ -154,26 +219,93 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
       {/* Main Content */}
       <div className="flex-1 pb-28 space-y-4">
         {/* Full-bleed Swipeable Gallery */}
-        <div className="relative aspect-square bg-[#FFFFFF] overflow-hidden">
-          <img
-            src={imageList[activeImageIdx]}
-            alt={product.title}
-            className="w-full h-full object-cover transition-all"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80';
+        <div className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none">
+          {/* Native Horizontal Scroll Container with Touch & Snap Support */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth touch-pan-x"
+            style={{
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
             }}
-          />
+          >
+            {imageList.map((imgUrl, idx) => (
+              <div
+                key={idx}
+                className="min-w-full w-full h-full flex-shrink-0 snap-center relative bg-[#F7F5F0]"
+              >
+                <img
+                  src={imgUrl}
+                  alt={`${product.title} - ${idx + 1}`}
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                  draggable={false}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Floating Left/Right Navigation Chevrons */}
+          {imageList.length > 1 && (
+            <>
+              {activeImageIdx > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToImage(activeImageIdx - 1);
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+
+              {activeImageIdx < imageList.length - 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToImage(activeImageIdx + 1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Counter Badge */}
+          {imageList.length > 1 && (
+            <div className="absolute top-3.5 right-3.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full z-10 shadow-sm pointer-events-none tracking-wider">
+              {activeImageIdx + 1} / {imageList.length}
+            </div>
+          )}
 
           {/* Dots Indicator */}
           {imageList.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center items-center gap-1.5 z-10 pointer-events-auto">
               {imageList.map((_, idx) => (
                 <button
+                  type="button"
                   key={idx}
-                  onClick={() => setActiveImageIdx(idx)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    activeImageIdx === idx ? 'w-5 bg-[#262421]' : 'w-1.5 bg-[#89847C]/40'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToImage(idx);
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    activeImageIdx === idx ? 'w-5 bg-[#262421]' : 'w-1.5 bg-[#89847C]/40 hover:bg-[#89847C]'
                   }`}
+                  aria-label={`Go to slide ${idx + 1}`}
                 />
               ))}
             </div>
