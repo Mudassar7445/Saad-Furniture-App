@@ -22,13 +22,20 @@ import { Button } from '@/components/ui/Button';
 
 export const WORKSHOP_CATEGORIES = [
   { id: 'all', label: 'All Craftsmanship' },
+  { id: 'furniture_manufacturing', label: 'Furniture Manufacturing' },
+  { id: 'wood_cutting_prep', label: 'Wood Cutting & Preparation' },
+  { id: 'frame_making', label: 'Frame Making' },
+  { id: 'sofa_manufacturing', label: 'Sofa Manufacturing' },
+  { id: 'foam_work', label: 'Foam Work' },
+  { id: 'fabric_stitching', label: 'Fabric Cutting & Stitching' },
+  { id: 'upholstery', label: 'Upholstery' },
+  { id: 'polishing_finishing', label: 'Polishing & Finishing' },
+  { id: 'quality_inspection', label: 'Quality Inspection' },
+  { id: 'completed_furniture', label: 'Completed Furniture' },
+  { id: 'behind_the_scenes', label: 'Behind the Scenes' },
   { id: 'workshop_tour', label: 'Master Tour' },
   { id: 'sofa_frame', label: 'Sofa Frame' },
   { id: 'woodworking', label: 'Woodworking' },
-  { id: 'foam_work', label: 'Foam Work' },
-  { id: 'fabric_stitching', label: 'Fabric Stitching' },
-  { id: 'furniture_polishing', label: 'Polishing' },
-  { id: 'final_finishing', label: 'Finishing' },
   { id: 'completed_products', label: 'Completed Suites' },
 ];
 

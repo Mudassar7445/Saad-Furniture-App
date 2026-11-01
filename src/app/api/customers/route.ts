@@ -34,13 +34,20 @@ export async function GET(request: Request) {
 
   let filtered = allCustomers;
   if (search) {
+    const cleanSearch = search.trim().toLowerCase();
+    const cleanSearchDigits = cleanSearch.replace(/[^0-9]/g, '');
+
     filtered = allCustomers.filter((c) => {
-      const nameMatch = c.name?.toLowerCase().includes(search);
-      const phoneMatch = c.phone?.toLowerCase().includes(search);
-      const emailMatch = c.email?.toLowerCase().includes(search);
-      const cityMatch = c.city?.toLowerCase().includes(search);
-      const addressMatch = c.address?.toLowerCase().includes(search);
-      return nameMatch || phoneMatch || emailMatch || cityMatch || addressMatch;
+      const nameMatch = c.name?.toLowerCase().includes(cleanSearch);
+      const emailMatch = c.email?.toLowerCase().includes(cleanSearch);
+      const cityMatch = c.city?.toLowerCase().includes(cleanSearch);
+      const addressMatch = c.address?.toLowerCase().includes(cleanSearch);
+
+      const rawPhoneMatch = c.phone?.toLowerCase().includes(cleanSearch);
+      const cleanPhoneDigits = (c.phone || '').replace(/[^0-9]/g, '');
+      const normalizedPhoneMatch = cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits);
+
+      return nameMatch || rawPhoneMatch || normalizedPhoneMatch || emailMatch || cityMatch || addressMatch;
     });
   }
 

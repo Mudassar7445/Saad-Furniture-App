@@ -13,6 +13,7 @@ import {
 } from '@/lib/db/schema';
 import { googleDriveService } from '@/lib/services/googleDrive';
 import { fcmService } from '@/lib/services/fcm';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { eq, desc, and, or, inArray, like } from 'drizzle-orm';
 
 export async function GET(request: Request) {
@@ -129,7 +130,22 @@ export async function POST(request: Request) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
-      const title = (formData.get('title') as string) || file?.name || 'Untitled Document';
+      let rawTitle = (formData.get('title') as string)?.trim() || '';
+      // Strip WhatsApp filename patterns and technical file extensions from customer title
+      if (!rawTitle || rawTitle.toLowerCase().includes('whatsapp') || /\.(mp4|mov|avi|jpg|jpeg|png|webp|pdf)$/i.test(rawTitle)) {
+        if (rawTitle) {
+          rawTitle = rawTitle
+            .replace(/\.[^/.]+$/, '')
+            .replace(/whatsapp\s*video\s*at\s*[\d.-]+/i, 'Bespoke Production Milestone')
+            .replace(/whatsapp\s*video\s*/i, 'Workshop Milestone Video')
+            .replace(/whatsapp\s*image\s*/i, 'Workshop Progress Photograph')
+            .replace(/[-_]/g, ' ')
+            .trim();
+        } else {
+          rawTitle = 'Artisan Craftsmanship Milestone';
+        }
+      }
+      const title = rawTitle;
       const category = (formData.get('category') as string) || 'general';
       const folderId = (formData.get('folderId') as string) || null;
       const visibility = (formData.get('visibility') as string) || 'public';
@@ -260,6 +276,20 @@ export async function POST(request: Request) {
             type: 'announcement',
             relatedOrderId: orderId || undefined,
           });
+
+          // Dispatch real Mobile/Web Push notification to user's device status tray
+          try {
+            await sendWebPushNotification({
+              userId: targetUserId,
+              title: `Saad Furniture — New ${mediaType === 'video' ? 'Workshop Video' : 'Milestone'}`,
+              message: `${title}: A new ${mediaType === 'video' ? 'workshop video' : 'craftsmanship update'} has been published.`,
+              relatedOrderId: orderId || undefined,
+              url: orderId ? `/orders/${orderId}` : '/workshop',
+              type: 'media_uploaded',
+            });
+          } catch (pushErr) {
+            console.warn('Web Push dispatch note:', pushErr);
+          }
         } catch (notifErr) {
           console.warn('Notification dispatch note:', notifErr);
         }

@@ -7,6 +7,7 @@ import {
   isDriveConnected,
   deleteDriveFile,
 } from '@/lib/storage/google-drive';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       driveFileId = driveResult.id;
       rawMediaUrl = driveResult.webViewLink || `https://drive.google.com/file/d/${driveFileId}/view`;
 
-      // 2. Upload thumbnail if provided
+      // 2. Upload thumbnail if provided (Stored separately in THUMBNAILS folder)
       if (thumbnailFile) {
         try {
           const thumbArrayBuffer = await thumbnailFile.arrayBuffer();
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
             buffer: thumbBuffer,
             filename: `thumb_${safeFilename}.jpg`,
             mimeType: thumbnailFile.type || 'image/jpeg',
-            pathSegments: ['SAAD FURNITURE', 'WORKSHOP MEDIA', 'PHOTOS'],
+            pathSegments: ['SAAD FURNITURE', 'WORKSHOP MEDIA', 'THUMBNAILS'],
             description: `Thumbnail for ${title}`,
           });
           thumbnailDriveId = thumbResult.id;
@@ -142,6 +143,8 @@ export async function POST(req: NextRequest) {
       id: workshopId,
       title: title.trim(),
       description: description?.trim() || null,
+      originalName: file.name,
+      fileName: safeFilename,
       mediaType,
       category,
       url: publicUrl,
@@ -168,6 +171,19 @@ export async function POST(req: NextRequest) {
       ipAddress: req.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
+
+    // Real Mobile Push Notification delivery to subscribed patrons
+    try {
+      await sendWebPushNotification({
+        userId: 'all',
+        title: 'Saad Furniture — New Workshop Video',
+        message: `${title.trim()}: New master craftsmanship footage has been published in the atelier.`,
+        url: '/workshop',
+        type: 'announcement',
+      });
+    } catch (pushErr) {
+      console.warn('Workshop Web Push notification note:', pushErr);
+    }
 
     return NextResponse.json({
       success: true,

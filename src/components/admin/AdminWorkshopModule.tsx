@@ -43,7 +43,9 @@ export const AdminWorkshopModule: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('video');
-  const [category, setCategory] = useState('workshop_tour');
+  const [category, setCategory] = useState('furniture_manufacturing');
+  const [customCategory, setCustomCategory] = useState('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [videoDuration, setVideoDuration] = useState('');
@@ -81,7 +83,9 @@ export const AdminWorkshopModule: React.FC = () => {
     setTitle('');
     setDescription('');
     setMediaType('video');
-    setCategory('workshop_tour');
+    setCategory('furniture_manufacturing');
+    setCustomCategory('');
+    setThumbnailFile(null);
     setUrl('');
     setThumbnailUrl('');
     setVideoDuration('60');
@@ -98,7 +102,9 @@ export const AdminWorkshopModule: React.FC = () => {
     setTitle(item.title || '');
     setDescription(item.description || '');
     setMediaType(item.mediaType || 'photo');
-    setCategory(item.category || 'workshop_tour');
+    setCategory(item.category || 'furniture_manufacturing');
+    setCustomCategory('');
+    setThumbnailFile(null);
     setUrl(item.url || '');
     setThumbnailUrl(item.thumbnailUrl || '');
     setVideoDuration(item.videoDuration ? String(item.videoDuration) : '');
@@ -111,45 +117,64 @@ export const AdminWorkshopModule: React.FC = () => {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
 
     try {
       setUploading(true);
-      setUploadProgress(`Uploading ${file.name} to Google Drive Workshop Vault...`);
       setErrorMsg(null);
 
-      const isVideo = file.type.startsWith('video/');
-      const detectedType = isVideo ? 'video' : 'photo';
-      setMediaType(detectedType);
+      const targetCategory = category === 'custom' && customCategory.trim()
+        ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
+        : category;
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', category);
-      formData.append('title', title.trim() || file.name.replace(/\.[^/.]+$/, ''));
-      formData.append('description', description);
-      formData.append('mediaType', detectedType);
-      formData.append('isFeatured', isFeatured ? '1' : '0');
-      formData.append('displayOrder', displayOrder);
-      if (videoDuration) formData.append('videoDuration', videoDuration);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress(`Uploading ${i + 1}/${files.length}: "${file.name}" to Google Drive...`);
 
-      const res = await fetch('/api/workshop/upload', {
-        method: 'POST',
-        body: formData,
-      });
+        const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
+        const detectedType = isVideo ? 'video' : 'photo';
+        setMediaType(detectedType);
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload media file');
+        // Sanitize or use custom title
+        let uploadTitle = title.trim();
+        if (!uploadTitle || uploadTitle.toLowerCase().includes('whatsapp')) {
+          uploadTitle = files.length > 1
+            ? `${targetCategory.replace(/_/g, ' ')} Showcase ${i + 1}`
+            : 'Bespoke Atelier Production Milestone';
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', targetCategory);
+        formData.append('title', uploadTitle);
+        formData.append('description', description);
+        formData.append('mediaType', detectedType);
+        formData.append('isFeatured', isFeatured ? '1' : '0');
+        formData.append('displayOrder', displayOrder);
+        if (videoDuration) formData.append('videoDuration', videoDuration);
+        if (thumbnailFile) formData.append('thumbnail', thumbnailFile);
+
+        const res = await fetch('/api/workshop/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to upload media file to Google Drive');
+        }
+
+        const media = data.media;
+        setEditingItem(media);
+        setUrl(media.url || media.streamUrl || `/api/workshop/videos/${media.id}/stream`);
+        if (media.googleDriveFileId) setGoogleDriveFileId(media.googleDriveFileId);
+        setTitle(media.title);
+        if (media.thumbnailUrl) setThumbnailUrl(media.thumbnailUrl);
       }
 
-      const media = data.media;
-      setEditingItem(media);
-      setUrl(media.url || media.streamUrl || `/api/workshop/videos/${media.id}/stream`);
-      if (media.googleDriveFileId) setGoogleDriveFileId(media.googleDriveFileId);
-      if (!title.trim()) setTitle(media.title);
-      if (media.thumbnailUrl) setThumbnailUrl(media.thumbnailUrl);
-      setUploadProgress('Successfully uploaded to Google Drive!');
+      setUploadProgress('Successfully uploaded and synced with Google Drive!');
+      await fetchMedia();
     } catch (err: any) {
       setErrorMsg(err.message || 'Upload error');
     } finally {
@@ -161,8 +186,16 @@ export const AdminWorkshopModule: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !url.trim()) {
-      setErrorMsg('Title and media attachment/URL are required.');
+    const finalCategory = category === 'custom' && customCategory.trim()
+      ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
+      : category;
+
+    if (!title.trim() || title.toLowerCase().includes('whatsapp')) {
+      setErrorMsg('Please enter a descriptive customer-facing title. WhatsApp names cannot be displayed to customers.');
+      return;
+    }
+    if (!url.trim()) {
+      setErrorMsg('Media attachment or file upload is required.');
       return;
     }
 
@@ -174,7 +207,7 @@ export const AdminWorkshopModule: React.FC = () => {
         title: title.trim(),
         description: description.trim(),
         mediaType,
-        category,
+        category: finalCategory,
         url: url.trim(),
         thumbnailUrl: thumbnailUrl.trim() || (mediaType === 'photo' ? url.trim() : null),
         videoDuration: videoDuration ? Number(videoDuration) : null,
@@ -275,7 +308,7 @@ export const AdminWorkshopModule: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-            <Film className="w-5 h-5 text-[#B99A68]" /> Inside Our Workshop Media Manager
+            <Film className="w-5 h-5 text-[#B99A68]" /> Workshop Media Manager
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Curate manufacturing videos, hardwood joinery photos, polishing tours, and home page showcases
@@ -499,15 +532,18 @@ export const AdminWorkshopModule: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-slate-300 mb-1">Title *</label>
+            <label className="block text-slate-300 mb-1">Customer-Facing Title *</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Sofa Frame Joinery & Hardwood Cutting"
+              placeholder="e.g. Master Sofa Frame Manufacturing & Joinery"
               className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
             />
+            <span className="text-[10px] text-slate-500 mt-1 block">
+              Original filenames (e.g. WhatsApp Video...) will remain private in diagnostics. Customers will only see this title.
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -523,7 +559,17 @@ export const AdminWorkshopModule: React.FC = () => {
                     {c.label}
                   </option>
                 ))}
+                <option value="custom">+ Create Custom Category...</option>
               </select>
+              {category === 'custom' && (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Type new category name (e.g. Resin Inlay)..."
+                  className="w-full p-2 mt-2 bg-slate-950 border border-[#B99A68] rounded-xl text-white text-xs"
+                />
+              )}
             </div>
 
             <div>
@@ -545,6 +591,11 @@ export const AdminWorkshopModule: React.FC = () => {
               <span className="text-[11px] font-bold text-[#B99A68] uppercase tracking-wider flex items-center gap-1.5">
                 <UploadCloud className="w-4 h-4" /> Cloud Storage Attachment (Google Drive 5TB)
               </span>
+              {editingItem && (
+                <span className="text-[10px] text-amber-300">
+                  Select new file below to replace existing media
+                </span>
+              )}
             </div>
 
             {uploading && (
@@ -556,13 +607,16 @@ export const AdminWorkshopModule: React.FC = () => {
 
             <label className="cursor-pointer block p-4 rounded-xl border border-dashed border-[#B99A68]/50 hover:bg-[#B99A68]/10 text-center transition-all">
               <UploadCloud className="w-6 h-6 mx-auto text-[#B99A68] mb-1" />
-              <span className="font-bold text-white block">Select File to Upload</span>
+              <span className="font-bold text-white block">
+                {editingItem ? 'Replace Media: Select New File' : mediaType === 'photo' ? 'Select One or Multiple Photos' : 'Select Video File'}
+              </span>
               <span className="text-[10px] text-slate-400 block mt-0.5">
-                MP4, WebM (Videos) or JPG, PNG (Photos)
+                {mediaType === 'video' ? 'MP4, WebM (Stored in SAAD FURNITURE/WORKSHOP MEDIA/VIDEOS)' : 'JPG, PNG, WebP (Stored in SAAD FURNITURE/WORKSHOP MEDIA/PHOTOS)'}
               </span>
               <input
                 type="file"
-                accept="video/mp4,video/webm,image/jpeg,image/png,image/webp"
+                multiple={mediaType === 'photo'}
+                accept={mediaType === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp'}
                 onChange={handleFileUpload}
                 disabled={uploading}
                 className="hidden"
@@ -581,17 +635,33 @@ export const AdminWorkshopModule: React.FC = () => {
             </div>
 
             {mediaType === 'video' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 mb-1">Video Thumbnail Image URL</label>
-                  <input
-                    type="text"
-                    value={thumbnailUrl}
-                    onChange={(e) => setThumbnailUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-xs"
-                  />
+              <div className="space-y-3 pt-2 border-t border-white/5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 mb-1">Upload Custom Thumbnail (JPG/PNG)</label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const tf = e.target.files?.[0];
+                        if (tf) setThumbnailFile(tf);
+                      }}
+                      className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#B99A68] file:text-[#262421] cursor-pointer"
+                    />
+                    <span className="text-[9px] text-slate-500 mt-0.5 block">Stored in WORKSHOP MEDIA/THUMBNAILS</span>
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 mb-1">Or Thumbnail Image URL</label>
+                    <input
+                      type="text"
+                      value={thumbnailUrl}
+                      onChange={(e) => setThumbnailUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-xs"
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label className="block text-slate-300 mb-1">Duration (Seconds)</label>
                   <input
@@ -599,7 +669,7 @@ export const AdminWorkshopModule: React.FC = () => {
                     value={videoDuration}
                     onChange={(e) => setVideoDuration(e.target.value)}
                     placeholder="e.g. 60"
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-xs"
+                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-xs max-w-xs"
                   />
                 </div>
               </div>

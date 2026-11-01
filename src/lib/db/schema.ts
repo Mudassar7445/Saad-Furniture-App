@@ -595,6 +595,8 @@ export const workshopMedia = sqliteTable('workshop_media', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
+  originalName: text('original_name'),
+  fileName: text('file_name'),
   mediaType: text('media_type').notNull().default('photo'), // 'photo' | 'video'
   category: text('category').notNull().default('workshop_tour'), 
   // 'workshop_tour' | 'sofa_frame' | 'woodworking' | 'foam_work' | 'fabric_stitching' | 'furniture_polishing' | 'final_finishing' | 'completed_products' | 'general'

@@ -38,6 +38,7 @@ import {
   ShoppingBag,
   Store,
   Folder,
+  Film,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -588,7 +589,7 @@ export default function SuperAdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Executive Overview', icon: Layers },
     { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
-    { id: 'workshop', label: 'Workshop Showcase', icon: Play },
+    { id: 'workshop', label: 'Workshop Media Manager', icon: Film },
     { id: 'payment_settings', label: 'Payment & Bank Accounts', icon: CreditCard },
     { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
     { id: 'cloud_storage', label: 'Google Drive 5TB Storage', icon: HardDrive },

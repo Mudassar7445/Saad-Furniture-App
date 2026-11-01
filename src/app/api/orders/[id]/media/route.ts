@@ -61,9 +61,14 @@ export async function POST(
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
-      title = (formData.get('title') as string) || 'Workshop Progress Media';
+      let rawTitle = (formData.get('title') as string)?.trim() || '';
       stage = (formData.get('stage') as string) || order.productionStage;
       mediaType = ((formData.get('mediaType') as string) as 'photo' | 'video') || 'photo';
+
+      if (!rawTitle || rawTitle.toLowerCase().includes('whatsapp') || /\.(mp4|mov|avi|jpg|jpeg|png)$/i.test(rawTitle)) {
+        rawTitle = `Craftsmanship Milestone — ${stage.replace(/_/g, ' ')}`;
+      }
+      title = rawTitle;
 
       if (!file) {
         return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
@@ -116,6 +121,7 @@ export async function POST(
       orderId: id,
       customerId: order.customerId,
       googleDriveFileId: gdriveId,
+      originalName: `whatsapp_source_${Date.now()}`,
       fileName: `${title.replace(/\s+/g, '_')}.${mediaType === 'video' ? 'mp4' : 'jpg'}`,
       mimeType: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
       fileSize: 1024 * 1024 * 2,

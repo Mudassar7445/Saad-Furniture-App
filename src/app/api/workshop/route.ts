@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, initializeDatabase } from '@/lib/db';
 import { workshopMedia, auditLogs } from '@/lib/db/schema';
 import { getSessionUser } from '@/lib/auth/jwt';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { desc, asc, eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -148,6 +149,8 @@ export async function POST(request: Request) {
       id,
       title: title.trim(),
       description: description?.trim() || null,
+      originalName: body.originalName || null,
+      fileName: body.fileName || null,
       mediaType,
       category,
       url: url.trim(),
@@ -174,6 +177,20 @@ export async function POST(request: Request) {
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
+
+    if (record.isPublished === 1) {
+      try {
+        await sendWebPushNotification({
+          userId: 'all',
+          title: 'Saad Furniture — New Workshop Video',
+          message: `${record.title}: New master craftsmanship footage has been published in the atelier.`,
+          url: '/workshop',
+          type: 'announcement',
+        });
+      } catch (pushErr) {
+        console.warn('Push dispatch note:', pushErr);
+      }
+    }
 
     return NextResponse.json({ success: true, media: record });
   } catch (error: any) {

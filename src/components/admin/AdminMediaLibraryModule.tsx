@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Folder,
   FolderPlus,
@@ -32,6 +32,7 @@ import {
   Calendar,
   X,
   Plus,
+  Check,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -73,6 +74,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
   // Upload state
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadCategory, setUploadCategory] = useState('catalogues');
+  const [uploadTitle, setUploadTitle] = useState('');
   const [uploadFolderId, setUploadFolderId] = useState('');
   const [uploadVisibility, setUploadVisibility] = useState('public');
   const [uploadCustomerId, setUploadCustomerId] = useState('');
@@ -83,6 +85,37 @@ export const AdminMediaLibraryModule: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatusText, setUploadStatusText] = useState('');
+
+  // Searchable Customer Selector Combobox State
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const customerComboboxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (customerComboboxRef.current && !customerComboboxRef.current.contains(event.target as Node)) {
+        setCustomerDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredUploadCustomers = customers.filter((c) => {
+    if (!customerSearchTerm.trim()) return true;
+    const term = customerSearchTerm.trim().toLowerCase();
+    const cleanDigits = term.replace(/[^0-9]/g, '');
+    const cleanPhone = (c.phone || '').replace(/[^0-9]/g, '');
+
+    const nameMatch = c.name?.toLowerCase().includes(term);
+    const emailMatch = c.email?.toLowerCase().includes(term);
+    const phoneMatch = c.phone?.toLowerCase().includes(term);
+    const phoneDigitsMatch = cleanDigits.length >= 3 && cleanPhone.includes(cleanDigits);
+
+    return nameMatch || emailMatch || phoneMatch || phoneDigitsMatch;
+  });
+
+  const selectedUploadCustomer = customers.find((c) => c.id === uploadCustomerId);
 
   // New folder state
   const [newFolderName, setNewFolderName] = useState('');
@@ -180,6 +213,7 @@ export const AdminMediaLibraryModule: React.FC = () => {
         const formData = new FormData();
         formData.append('file', currentFile);
         formData.append('category', uploadCategory);
+        if (uploadTitle.trim()) formData.append('title', uploadTitle.trim());
         if (uploadFolderId) formData.append('folderId', uploadFolderId);
         formData.append('visibility', uploadVisibility);
         if (uploadCustomerId) formData.append('customerId', uploadCustomerId);
@@ -205,6 +239,9 @@ export const AdminMediaLibraryModule: React.FC = () => {
       showToast(`Successfully uploaded ${uploadFiles.length} file(s) to Google Drive!`);
       setShowUploadModal(false);
       setUploadFiles([]);
+      setUploadTitle('');
+      setCustomerSearchTerm('');
+      setUploadCustomerId('');
       setUploadDescription('');
       await loadData();
     } catch (err: any) {
@@ -777,6 +814,24 @@ export const AdminMediaLibraryModule: React.FC = () => {
                 )}
               </div>
 
+              {/* Customer-Facing Custom Title */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Customer-Facing Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="e.g. Master Woodcraft Production Milestone"
+                  className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-[#B99A68]"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Original WhatsApp filenames will remain private in diagnostics. Customers will only see this title.
+                </span>
+              </div>
+
               {/* Category & Folder */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -843,24 +898,106 @@ export const AdminMediaLibraryModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Target Customer (if specific) */}
+              {/* Target Customer (Searchable Selector Combobox) */}
               {uploadVisibility === 'specific' && (
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                    Assign to Specific Customer
-                  </label>
-                  <select
-                    value={uploadCustomerId}
-                    onChange={(e) => setUploadCustomerId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white outline-none"
-                  >
-                    <option value="">Select Patron Account...</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.email || c.phone})
-                      </option>
-                    ))}
-                  </select>
+                <div ref={customerComboboxRef} className="relative space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#B99A68]">
+                      Assign to Specific Patron *
+                    </label>
+                    {uploadCustomerId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadCustomerId('');
+                          setCustomerSearchTerm('');
+                        }}
+                        className="text-[10px] text-red-400 hover:underline flex items-center gap-0.5"
+                      >
+                        <X className="w-3 h-3" /> Clear Selection
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search Input Box */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-[#B99A68]" />
+                    <input
+                      type="text"
+                      value={customerSearchTerm}
+                      onChange={(e) => {
+                        setCustomerSearchTerm(e.target.value);
+                        setCustomerDropdownOpen(true);
+                      }}
+                      onFocus={() => setCustomerDropdownOpen(true)}
+                      placeholder="Search customer by name, phone or email..."
+                      className="w-full pl-9 pr-8 py-2.5 bg-slate-900 border border-slate-700 focus:border-[#B99A68] rounded-xl text-xs text-white placeholder-slate-500 outline-none"
+                    />
+                    {customerSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomerSearchTerm('')}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown Results List */}
+                  {customerDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#181d28] border border-[#B99A68]/40 rounded-xl shadow-2xl z-50 divide-y divide-white/5">
+                      {filteredUploadCustomers.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          No patron accounts found matching &quot;{customerSearchTerm}&quot;
+                        </div>
+                      ) : (
+                        filteredUploadCustomers.map((c) => {
+                          const isSelected = c.id === uploadCustomerId;
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                setUploadCustomerId(c.id);
+                                setCustomerSearchTerm(c.name || c.email);
+                                setCustomerDropdownOpen(false);
+                              }}
+                              className={`p-3 cursor-pointer transition-colors flex items-center justify-between gap-2 ${
+                                isSelected ? 'bg-[#B99A68]/20 border-l-2 border-[#B99A68]' : 'hover:bg-white/5'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-white truncate">{c.name}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#B99A68]/20 text-[#B99A68] border border-[#B99A68]/30 font-medium">
+                                    {c.passwordHash ? 'Registered App Patron' : 'Showroom Patron'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-0.5">
+                                  {c.phone && <span>📱 {c.phone}</span>}
+                                  {c.email && <span>✉️ {c.email}</span>}
+                                </div>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-[#B99A68] shrink-0" />}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selected Customer Card Pill */}
+                  {selectedUploadCustomer && (
+                    <div className="p-2.5 rounded-xl bg-[#B99A68]/15 border border-[#B99A68]/40 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <span className="text-[10px] text-[#B99A68] font-bold block">Assigned Customer Locked:</span>
+                        <span className="text-xs font-bold text-white block truncate">
+                          {selectedUploadCustomer.name} ({selectedUploadCustomer.phone || selectedUploadCustomer.email})
+                        </span>
+                      </div>
+                      <Badge variant="gold">Target Locked</Badge>
+                    </div>
+                  )}
                 </div>
               )}
 

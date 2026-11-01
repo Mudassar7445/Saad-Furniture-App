@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
+import { WORKSHOP_CATEGORIES } from './MobileWorkshopScreen';
 
 interface MobileHomeScreenProps {
   products: any[];
@@ -62,6 +63,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [selectedOrderIdx, setSelectedOrderIdx] = useState(0);
   const [workshopMediaList, setWorkshopMediaList] = useState<any[]>(homeWorkshopCache || []);
+  const [selectedWorkshopCat, setSelectedWorkshopCat] = useState('all');
   const [loadingWorkshop, setLoadingWorkshop] = useState(false);
   const [activeVideoModal, setActiveVideoModal] = useState<any | null>(null);
   const [videoPlaybackError, setVideoPlaybackError] = useState(false);
@@ -431,6 +433,27 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
           )}
         </div>
 
+        {/* Category Filter Pills */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-4 pb-1">
+          {WORKSHOP_CATEGORIES.slice(0, 8).map((cat) => {
+            const isSelected = selectedWorkshopCat === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedWorkshopCat(cat.id)}
+                className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
+                    : 'bg-white border border-[#EAE2D6] text-[#89847C] hover:text-[#262421]'
+                }`}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Featured Video Card or Empty State */}
         <div className="px-4">
           {workshopMediaList.length === 0 ? (
@@ -443,13 +466,25 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
             </div>
           ) : (
             (() => {
-              const feat = workshopMediaList.find((m) => m.isFeatured && m.mediaType === 'video') ||
-                workshopMediaList.find((m) => m.mediaType === 'video') ||
+              const filteredWorkshopItems = workshopMediaList.filter((m) => {
+                if (selectedWorkshopCat === 'all') return true;
+                return m.category === selectedWorkshopCat;
+              });
+
+              const feat =
+                filteredWorkshopItems.find((m) => m.isFeatured && m.mediaType === 'video') ||
+                filteredWorkshopItems.find((m) => m.mediaType === 'video') ||
+                filteredWorkshopItems[0] ||
                 workshopMediaList[0];
+
               if (!feat) return null;
               return (
                 <div
-                  onClick={() => setActiveVideoModal(feat)}
+                  onClick={() => {
+                    setVideoPlaybackError(false);
+                    setVideoIsBuffering(true);
+                    setActiveVideoModal(feat);
+                  }}
                   className="group relative rounded-2xl overflow-hidden aspect-video bg-black border border-[#EAE2D6] shadow-md cursor-pointer active:scale-[0.99] transition-transform"
                 >
                   <img
@@ -459,10 +494,10 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                     decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3.5">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex flex-col justify-between p-3.5">
                     <div className="self-end">
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 uppercase tracking-wider shadow">
-                        Featured Atelier Tour
+                        {feat.isFeatured ? 'Featured Atelier Tour' : feat.category?.replace(/_/g, ' ')}
                       </span>
                     </div>
 
@@ -487,43 +522,104 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
           )}
         </div>
 
-        {/* Horizontal Workshop Photo Gallery */}
-        {workshopMediaList.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1 snap-x">
-            {workshopMediaList.slice(1, 8).map((photo) => (
-              <div
-                key={photo.id}
-                onClick={() => setActiveVideoModal(photo)}
-                className="flex-shrink-0 w-36 snap-start rounded-xl overflow-hidden bg-white border border-[#EAE2D6] shadow-sm cursor-pointer group active:scale-95 transition-transform"
-              >
-                <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
-                  <img
-                    src={photo.thumbnailUrl || (photo.mediaType === 'photo' ? photo.url : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80')}
-                    alt={photo.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {photo.mediaType === 'video' && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
-                        <Play className="w-3 h-3 fill-current ml-0.5" />
+        {/* Additional Workshop Videos (if present) */}
+        {(() => {
+          const filteredWorkshopItems = workshopMediaList.filter((m) => {
+            if (selectedWorkshopCat === 'all') return true;
+            return m.category === selectedWorkshopCat;
+          });
+          const feat =
+            filteredWorkshopItems.find((m) => m.isFeatured && m.mediaType === 'video') ||
+            filteredWorkshopItems.find((m) => m.mediaType === 'video') ||
+            filteredWorkshopItems[0];
+          const otherVideos = filteredWorkshopItems.filter(
+            (m) => m.mediaType === 'video' && m.id !== feat?.id
+          );
+          if (otherVideos.length === 0) return null;
+          return (
+            <div className="space-y-1.5 px-4 pt-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#B99A68] block">
+                Additional Production Videos
+              </span>
+              <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 snap-x">
+                {otherVideos.map((vid) => (
+                  <div
+                    key={vid.id}
+                    onClick={() => {
+                      setVideoPlaybackError(false);
+                      setVideoIsBuffering(true);
+                      setActiveVideoModal(vid);
+                    }}
+                    className="flex-shrink-0 w-40 snap-start rounded-xl overflow-hidden bg-white border border-[#EAE2D6] shadow-sm cursor-pointer group active:scale-95 transition-transform"
+                  >
+                    <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
+                      <img
+                        src={vid.thumbnailUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80'}
+                        alt={vid.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-                <div className="p-2 space-y-0.5">
-                  <span className="text-[9px] uppercase tracking-wider text-[#B99A68] font-bold block truncate">
-                    {photo.category.replace('_', ' ')}
-                  </span>
-                  <h5 className="text-[11px] font-bold text-[#262421] line-clamp-1">
-                    {photo.title}
-                  </h5>
-                </div>
+                    <div className="p-2 space-y-0.5">
+                      <span className="text-[9px] uppercase tracking-wider text-[#B99A68] font-bold block truncate">
+                        {vid.category?.replace(/_/g, ' ')}
+                      </span>
+                      <h5 className="text-[11px] font-bold text-[#262421] line-clamp-1">
+                        {vid.title}
+                      </h5>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
+
+        {/* Workshop Photo Gallery */}
+        {(() => {
+          const photos = workshopMediaList.filter((m) => m.mediaType === 'photo');
+          if (photos.length === 0) return null;
+          return (
+            <div className="space-y-1.5 px-4 pt-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#89847C] block">
+                Workshop Photographic Gallery
+              </span>
+              <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 snap-x">
+                {photos.slice(0, 8).map((photo) => (
+                  <div
+                    key={photo.id}
+                    onClick={() => setActiveVideoModal(photo)}
+                    className="flex-shrink-0 w-36 snap-start rounded-xl overflow-hidden bg-white border border-[#EAE2D6] shadow-sm cursor-pointer group active:scale-95 transition-transform"
+                  >
+                    <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
+                      <img
+                        src={photo.thumbnailUrl || photo.url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80'}
+                        alt={photo.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="p-2 space-y-0.5">
+                      <span className="text-[9px] uppercase tracking-wider text-[#B99A68] font-bold block truncate">
+                        {photo.category?.replace(/_/g, ' ')}
+                      </span>
+                      <h5 className="text-[11px] font-bold text-[#262421] line-clamp-1">
+                        {photo.title}
+                      </h5>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 4. LATEST CATALOG PIECES & NEW ARRIVALS (HORIZONTAL CAROUSEL) */}
