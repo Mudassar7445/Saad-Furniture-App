@@ -67,6 +67,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleLogout = async () => {
     try {
+      try {
+        localStorage.removeItem('saad_patron_profile');
+      } catch {}
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
       setProfileDropdownOpen(false);

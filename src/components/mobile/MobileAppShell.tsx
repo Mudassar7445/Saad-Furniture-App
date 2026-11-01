@@ -89,6 +89,9 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
 
   const handleLogout = async () => {
     try {
+      try {
+        localStorage.removeItem('saad_patron_profile');
+      } catch {}
       await fetch('/api/auth/logout', { method: 'POST' });
       onRefreshUser();
       setActiveTab('home');

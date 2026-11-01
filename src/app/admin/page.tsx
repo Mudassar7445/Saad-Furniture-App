@@ -39,6 +39,7 @@ import {
   Store,
   Folder,
   Film,
+  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -49,6 +50,7 @@ import { AdminMediaLibraryModule } from '@/components/admin/AdminMediaLibraryMod
 import { CloudStorageSettingsModule } from '@/components/admin/CloudStorageSettingsModule';
 import { AdminWorkshopModule } from '@/components/admin/AdminWorkshopModule';
 import { AdminPaymentSettingsModule } from '@/components/admin/AdminPaymentSettingsModule';
+import { AdminSaleCodesModule } from '@/components/admin/AdminSaleCodesModule';
 import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBuilderModal';
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
@@ -76,7 +78,7 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeModule, setActiveModule] = useState<
-    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage' | 'workshop' | 'payment_settings'
+    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage' | 'workshop' | 'payment_settings' | 'sale_codes'
   >('overview');
   const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'cloud_storage'>('general');
   const [loading, setLoading] = useState(true);
@@ -590,6 +592,7 @@ export default function SuperAdminDashboard() {
     { id: 'overview', label: 'Executive Overview', icon: Layers },
     { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
     { id: 'workshop', label: 'Workshop Media Manager', icon: Film },
+    { id: 'sale_codes', label: 'Sale Code Management', icon: Tag },
     { id: 'payment_settings', label: 'Payment & Bank Accounts', icon: CreditCard },
     { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
     { id: 'cloud_storage', label: 'Google Drive 5TB Storage', icon: HardDrive },
@@ -1762,6 +1765,11 @@ export default function SuperAdminDashboard() {
         {/* WORKSHOP SHOWCASE MANAGEMENT MODULE */}
         {activeModule === 'workshop' && (
           <AdminWorkshopModule />
+        )}
+
+        {/* SALE CODE & COUPON MANAGEMENT MODULE */}
+        {activeModule === 'sale_codes' && (
+          <AdminSaleCodesModule />
         )}
 
         {/* ADVANCED PAYMENT & BANK ACCOUNTS SETTINGS MODULE */}

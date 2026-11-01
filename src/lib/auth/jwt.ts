@@ -24,7 +24,7 @@ export async function signToken(user: TokenUser): Promise<string> {
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('30d')
     .sign(SECRET_KEY);
 }
 

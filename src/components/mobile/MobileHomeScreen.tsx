@@ -68,6 +68,19 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   const [activeVideoModal, setActiveVideoModal] = useState<any | null>(null);
   const [videoPlaybackError, setVideoPlaybackError] = useState(false);
   const [videoIsBuffering, setVideoIsBuffering] = useState(true);
+  const [activePromo, setActivePromo] = useState<any | null>(null);
+
+  // Fetch active promotional code dynamically configured by Admin
+  useEffect(() => {
+    fetch('/api/coupons?public=true')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.coupons && data.coupons.length > 0) {
+          setActivePromo(data.coupons[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch active customer orders
   useEffect(() => {
@@ -323,27 +336,32 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. PROMO CODE MINI CARD */}
-      <div className="px-4">
-        <div className="bg-[#FFFFFF] border border-[#EAE2D6] rounded-2xl p-3 flex items-center justify-between mobile-card-shadow">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#EAE2D6]/50 flex items-center justify-center text-[#B99A68]">
-              <Sparkles className="w-4 h-4" />
+      {/* 2. DYNAMIC PROMO CODE CARD (Configured by Admin) */}
+      {activePromo && (
+        <div className="px-4">
+          <div className="bg-[#FFFFFF] border border-[#EAE2D6] rounded-2xl p-3 flex items-center justify-between mobile-card-shadow">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#EAE2D6]/50 flex items-center justify-center text-[#B99A68]">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] text-[#89847C] block font-semibold uppercase tracking-wider">
+                  Patron Promotional Offer
+                </span>
+                <span className="text-xs font-bold text-[#262421]">
+                  Use Code <strong className="text-[#B99A68] underline">{activePromo.code}</strong> for{' '}
+                  {activePromo.discountType === 'percentage'
+                    ? `${activePromo.discountValue}% Off`
+                    : `$${activePromo.discountValue} Off`}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-[#89847C] block font-semibold uppercase tracking-wider">
-                Patron Welcome Gift
-              </span>
-              <span className="text-xs font-bold text-[#262421]">
-                Use Code <strong className="text-[#B99A68] underline">SAAD10</strong> for 10% Off
-              </span>
-            </div>
+            <span className="text-[10px] px-2 py-1 rounded-lg bg-[#F7F5F0] text-[#262421] font-bold border border-[#EAE2D6]">
+              Active
+            </span>
           </div>
-          <span className="text-[10px] px-2 py-1 rounded-lg bg-[#F7F5F0] text-[#262421] font-bold border border-[#EAE2D6]">
-            Active
-          </span>
         </div>
-      </div>
+      )}
 
       {/* 2B. DIGITAL CATALOGUES & PRICE LISTS PILL */}
       {onOpenDocuments && (
@@ -652,6 +670,8 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   <img
                     src={getPrimaryImage(prod)}
                     alt={prod.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
@@ -726,6 +746,8 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   <img
                     src={getPrimaryImage(prod)}
                     alt={prod.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';

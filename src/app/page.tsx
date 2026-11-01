@@ -30,6 +30,7 @@ import { ProductDetailModal } from '@/components/ecommerce/ProductDetailModal';
 import { CheckoutModal } from '@/components/ecommerce/CheckoutModal';
 import { MobileAppShell } from '@/components/mobile/MobileAppShell';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
+import { PwaInstallBanner } from '@/components/pwa/PwaInstallBanner';
 
 // In-memory catalog cache to eliminate network delay on repeated views
 let cachedProductsList: any[] | null = null;
@@ -53,9 +54,17 @@ export default function ShowroomHomePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // State: Auth
+  // State: Auth (Instant 0ms frame-1 UI hydration via cached patron profile)
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('saad_patron_profile');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return null;
+  });
 
   // State: Products & E-Commerce (Instant cached initial state)
   const [products, setProducts] = useState<any[]>(cachedProductsList || []);
@@ -88,6 +97,19 @@ export default function ShowroomHomePage() {
   const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(new Set());
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activePromo, setActivePromo] = useState<any | null>(null);
+
+  // Fetch active promotional sale code dynamically
+  useEffect(() => {
+    fetch('/api/coupons?public=true')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.coupons && data.coupons.length > 0) {
+          setActivePromo(data.coupons[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // State: Quick Tracking
   const [quickTrackNumber, setQuickTrackNumber] = useState('');
@@ -95,18 +117,31 @@ export default function ShowroomHomePage() {
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
 
-  // 1. Fetch current session user
+  // 1. Fetch current session user with silent snapshot sync
   const fetchUser = async () => {
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
         const data = await res.json();
-        setCurrentUser(data.user || null);
-      } else {
+        if (data.user) {
+          setCurrentUser(data.user);
+          try {
+            localStorage.setItem('saad_patron_profile', JSON.stringify(data.user));
+          } catch {}
+        } else {
+          setCurrentUser(null);
+          try {
+            localStorage.removeItem('saad_patron_profile');
+          } catch {}
+        }
+      } else if (res.status === 401 || res.status === 403) {
         setCurrentUser(null);
+        try {
+          localStorage.removeItem('saad_patron_profile');
+        } catch {}
       }
     } catch {
-      setCurrentUser(null);
+      // Retain existing local snapshot on transient network drops
     }
   };
 
@@ -429,8 +464,16 @@ export default function ShowroomHomePage() {
         <div className="bg-gradient-to-r from-[#181c26] via-[#241f17] to-[#181c26] border-b border-[#c5a880]/20 py-2 px-4 text-center text-xs text-[#e5caa2] font-medium flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-[#c5a880] shrink-0" />
           <span>
-            Bespoke Royal Collection: Complimentary White-Glove Placement on Orders Over $3,000 | Use Code{' '}
-            <strong className="text-white underline tracking-wider font-bold">SAAD10</strong> for 10% Off
+            Bespoke Royal Collection: Handcrafted Luxury Furniture with White-Glove Placement
+            {activePromo && (
+              <>
+                {' '}| Exclusive Promo: Use Code{' '}
+                <strong className="text-white underline tracking-wider font-bold">{activePromo.code}</strong> for{' '}
+                {activePromo.discountType === 'percentage'
+                  ? `${activePromo.discountValue}% Off`
+                  : `$${activePromo.discountValue} Off`}
+              </>
+            )}
           </span>
         </div>
 
@@ -936,6 +979,9 @@ export default function ShowroomHomePage() {
         }}
       />
       </div>
+
+      {/* PWA Home Screen Installation Prompt */}
+      <PwaInstallBanner />
     </>
   );
 }

@@ -67,6 +67,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       setSuccessMessage('Signed in successfully! Welcome back.');
+      try {
+        localStorage.setItem('saad_patron_profile', JSON.stringify(data.user));
+      } catch {}
 
       setTimeout(() => {
         onClose();
@@ -123,6 +126,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       setSuccessMessage(data.message || 'Account ready! Welcome to Saad Furniture.');
+      try {
+        localStorage.setItem('saad_patron_profile', JSON.stringify(data.user));
+      } catch {}
 
       setTimeout(() => {
         onClose();

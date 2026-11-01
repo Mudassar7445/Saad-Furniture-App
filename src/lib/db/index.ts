@@ -37,6 +37,7 @@ export const client = createClient({
 export const db = drizzle(client, { schema });
 
 let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 /**
  * Initializes all database tables for Saad Furniture ecosystem.
@@ -44,7 +45,19 @@ let isInitialized = false;
  */
 export async function initializeDatabase() {
   if (isInitialized) return;
-  try {
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    // Ultra-fast path: If tables already exist in Turso Cloud, skip heavy multi-query DDL
+    try {
+      const fastCheck = await client.execute('SELECT 1 FROM users LIMIT 1').catch(() => null);
+      if (fastCheck) {
+        isInitialized = true;
+        return;
+      }
+    } catch {}
+
+    try {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -1090,4 +1103,7 @@ export async function initializeDatabase() {
   } catch (err) {
     console.error('Database table initialization note:', err);
   }
+  })();
+
+  return initPromise;
 }
