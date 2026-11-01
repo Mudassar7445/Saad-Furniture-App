@@ -158,39 +158,70 @@ export async function POST(request: Request) {
       else if (mime.includes('presentation') || mime.includes('powerpoint')) mediaType = 'presentation';
 
       // 1. Upload to Google Drive 5TB Storage
-      const driveUpload = await googleDriveService.uploadBuffer(buffer, file.name, mime, folderId || undefined);
+      let driveUpload: any = null;
+      try {
+        driveUpload = await googleDriveService.uploadBuffer(buffer, file.name, mime, folderId || undefined);
+      } catch (uploadErr: any) {
+        console.error('Google Drive storage upload error:', uploadErr);
+        throw new Error('Google Drive upload failed: ' + (uploadErr?.message || 'Storage error'));
+      }
 
       const fileId = `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-      // 2. Save metadata in Turso
-      await db.insert(mediaFiles).values({
-        id: fileId,
-        folderId,
-        orderId,
-        customerId,
-        productId,
-        productCategory: null,
-        googleDriveFileId: driveUpload.id,
-        fileName: file.name,
-        originalName: file.name,
-        mimeType: mime,
-        fileSize: buffer.length,
-        mediaType,
-        category,
-        title: title.trim(),
-        description,
-        stage: 'final_inspection',
-        thumbnailUrl: driveUpload.thumbnailLink || driveUpload.webViewLink,
-        webViewLink: driveUpload.webViewLink,
-        webContentLink: driveUpload.webContentLink,
-        visibility,
-        isPublished,
-        downloadAllowed,
-        isPublic: visibility === 'public' ? 1 : 0,
-        uploadedBy: sessionUser.name,
-        uploadedAt: now,
-        updatedAt: now,
-      });
+      // 2. Save metadata in Turso with duplicate-check and orphan cleanup
+      try {
+        const mediaRecord = {
+          id: fileId,
+          folderId,
+          orderId,
+          customerId,
+          productId,
+          productCategory: null,
+          googleDriveFileId: driveUpload.id,
+          fileName: file.name,
+          originalName: file.name,
+          mimeType: mime,
+          fileSize: buffer.length,
+          mediaType,
+          category,
+          title: title.trim(),
+          description,
+          stage: 'final_inspection',
+          thumbnailUrl: driveUpload.thumbnailLink || driveUpload.webViewLink,
+          webViewLink: driveUpload.webViewLink,
+          webContentLink: driveUpload.webContentLink,
+          visibility,
+          isPublished,
+          downloadAllowed,
+          isPublic: visibility === 'public' ? 1 : 0,
+          uploadedBy: sessionUser.name,
+          uploadedAt: now,
+          updatedAt: now,
+        };
+
+        const existing = await db
+          .select()
+          .from(mediaFiles)
+          .where(eq(mediaFiles.googleDriveFileId, driveUpload.id))
+          .limit(1);
+
+        if (existing.length > 0) {
+          await db
+            .update(mediaFiles)
+            .set(mediaRecord)
+            .where(eq(mediaFiles.id, existing[0].id));
+        } else {
+          await db.insert(mediaFiles).values(mediaRecord);
+        }
+      } catch (dbErr: any) {
+        console.error('Database insert into media_files failed:', dbErr);
+        // Clean up orphaned Drive file
+        if (driveUpload?.id) {
+          console.warn(`Cleaning up orphaned Drive file: ${driveUpload.id}`);
+          await googleDriveService.deleteFile(driveUpload.id).catch(console.error);
+        }
+        throw new Error('Failed to save file metadata in database.');
+      }
 
       // 3. Log Upload
       try {

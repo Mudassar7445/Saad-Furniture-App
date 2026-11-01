@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { mediaFiles } from '@/lib/db/schema';
+import { getValidAccessToken, isDriveConnected } from '@/lib/storage/google-drive';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
@@ -42,6 +43,49 @@ export async function GET(
     });
   }
 
+  const rangeHeader = request.headers.get('range');
+
+  // Stream directly from connected Google Drive with authorized server-side bearer token
+  if (media.googleDriveFileId && !media.googleDriveFileId.startsWith('local_')) {
+    const connected = await isDriveConnected();
+    if (connected) {
+      try {
+        const accessToken = await getValidAccessToken();
+        const fetchHeaders: Record<string, string> = {
+          Authorization: `Bearer ${accessToken}`,
+        };
+        if (rangeHeader) {
+          fetchHeaders['Range'] = rangeHeader;
+        }
+
+        const driveRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${media.googleDriveFileId}?alt=media`,
+          { headers: fetchHeaders }
+        );
+
+        if (driveRes.ok || driveRes.status === 206) {
+          const responseHeaders = new Headers();
+          responseHeaders.set('Content-Type', media.mimeType || 'video/mp4');
+          responseHeaders.set('Accept-Ranges', 'bytes');
+          responseHeaders.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=43200');
+
+          const contentRange = driveRes.headers.get('content-range');
+          if (contentRange) responseHeaders.set('Content-Range', contentRange);
+
+          const contentLength = driveRes.headers.get('content-length');
+          if (contentLength) responseHeaders.set('Content-Length', contentLength);
+
+          return new NextResponse(driveRes.body, {
+            status: driveRes.status,
+            headers: responseHeaders,
+          });
+        }
+      } catch (driveErr) {
+        console.warn('Direct Google Drive stream warning, falling back to public URL:', driveErr);
+      }
+    }
+  }
+
   // If remote URL (e.g. video sample or Google Drive stream)
   const remoteUrl = media.webContentLink || media.webViewLink;
   if (!remoteUrl) {
@@ -49,7 +93,6 @@ export async function GET(
   }
 
   try {
-    const rangeHeader = request.headers.get('range');
     const fetchHeaders: HeadersInit = {};
     if (rangeHeader) {
       fetchHeaders['Range'] = rangeHeader;

@@ -174,27 +174,56 @@ export async function initializeDatabase() {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS media_files (
         id TEXT PRIMARY KEY,
-        order_id TEXT NOT NULL,
-        customer_id TEXT NOT NULL,
+        folder_id TEXT,
+        order_id TEXT,
+        customer_id TEXT,
+        product_id TEXT,
+        product_category TEXT,
         google_drive_file_id TEXT NOT NULL,
         file_name TEXT NOT NULL,
+        original_name TEXT,
         mime_type TEXT NOT NULL,
         file_size INTEGER DEFAULT 0,
-        media_type TEXT NOT NULL,
-        title TEXT NOT NULL,
+        media_type TEXT NOT NULL DEFAULT 'photo',
+        category TEXT NOT NULL DEFAULT 'general',
+        title TEXT DEFAULT '',
         description TEXT,
-        stage TEXT NOT NULL DEFAULT 'frame_preparation',
+        stage TEXT DEFAULT 'final_inspection',
         thumbnail_url TEXT,
         video_duration REAL,
+        page_count INTEGER,
         web_view_link TEXT,
         web_content_link TEXT,
-        uploaded_by TEXT NOT NULL,
+        visibility TEXT NOT NULL DEFAULT 'public',
+        is_published INTEGER NOT NULL DEFAULT 1,
+        download_allowed INTEGER NOT NULL DEFAULT 1,
+        is_public INTEGER NOT NULL DEFAULT 1,
+        uploaded_by TEXT DEFAULT 'system',
         uploaded_at TEXT NOT NULL,
-        is_public INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (order_id) REFERENCES orders(id),
-        FOREIGN KEY (customer_id) REFERENCES users(id)
+        updated_at TEXT DEFAULT '',
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
+
+    // Safe column migrations for media_files
+    const mediaAlters = [
+      "ALTER TABLE media_files ADD COLUMN folder_id TEXT",
+      "ALTER TABLE media_files ADD COLUMN product_id TEXT",
+      "ALTER TABLE media_files ADD COLUMN product_category TEXT",
+      "ALTER TABLE media_files ADD COLUMN original_name TEXT",
+      "ALTER TABLE media_files ADD COLUMN category TEXT DEFAULT 'general'",
+      "ALTER TABLE media_files ADD COLUMN visibility TEXT DEFAULT 'public'",
+      "ALTER TABLE media_files ADD COLUMN is_published INTEGER DEFAULT 1",
+      "ALTER TABLE media_files ADD COLUMN download_allowed INTEGER DEFAULT 1",
+      "ALTER TABLE media_files ADD COLUMN page_count INTEGER",
+      "ALTER TABLE media_files ADD COLUMN updated_at TEXT"
+    ];
+    for (const alt of mediaAlters) {
+      try {
+        await client.execute(alt);
+      } catch {}
+    }
 
     try {
       await client.execute(`ALTER TABLE payments ADD COLUMN received_by TEXT DEFAULT 'Saad Finance Bureau';`);
