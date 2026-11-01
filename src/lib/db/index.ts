@@ -52,6 +52,24 @@ export async function initializeDatabase() {
     try {
       const fastCheck = await client.execute('SELECT 1 FROM users LIMIT 1').catch(() => null);
       if (fastCheck) {
+        // Ensure user_app_lock table exists
+        await client.execute(`
+          CREATE TABLE IF NOT EXISTS user_app_lock (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL UNIQUE,
+            is_enabled INTEGER NOT NULL DEFAULT 0,
+            pin_hash TEXT,
+            pin_salt TEXT,
+            pin_length INTEGER NOT NULL DEFAULT 4,
+            biometric_enabled INTEGER NOT NULL DEFAULT 0,
+            biometric_credential_id TEXT,
+            auto_lock_minutes REAL NOT NULL DEFAULT 1,
+            failed_attempts INTEGER NOT NULL DEFAULT 0,
+            locked_until TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+        `).catch(() => null);
         isInitialized = true;
         return;
       }
@@ -892,6 +910,25 @@ export async function initializeDatabase() {
         settings_json TEXT DEFAULT '{}',
         updated_at TEXT NOT NULL,
         updated_by TEXT DEFAULT 'super_admin'
+      );
+    `);
+
+    // --- 39. USER APP LOCK TABLE ---
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS user_app_lock (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        is_enabled INTEGER NOT NULL DEFAULT 0,
+        pin_hash TEXT,
+        pin_salt TEXT,
+        pin_length INTEGER NOT NULL DEFAULT 4,
+        biometric_enabled INTEGER NOT NULL DEFAULT 0,
+        biometric_credential_id TEXT,
+        auto_lock_minutes REAL NOT NULL DEFAULT 1,
+        failed_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       );
     `);
 

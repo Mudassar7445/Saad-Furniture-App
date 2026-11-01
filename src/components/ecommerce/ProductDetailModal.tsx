@@ -96,36 +96,61 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
 
+  // Touch & Drag Gesture state for smooth sliding
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const isHorizontalGesture = useRef<boolean | null>(null);
 
   useEffect(() => {
     setActiveImageIdx(0);
+    setDragOffset(0);
+    setIsDragging(false);
   }, [product?.id]);
-
-  const activeImage = imageList[activeImageIdx] || imageList[0];
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    isHorizontalGesture.current = null;
+    setIsDragging(true);
+    setDragOffset(0);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const diffX = touchStartX.current - endX;
-    const diffY = touchStartY.current !== null ? Math.abs(touchStartY.current - endY) : 0;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - touchStartX.current;
+    const diffY = currentY - (touchStartY.current ?? currentY);
 
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
-      if (diffX > 0 && activeImageIdx < imageList.length - 1) {
+    if (isHorizontalGesture.current === null) {
+      if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
+        isHorizontalGesture.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+    }
+
+    if (isHorizontalGesture.current) {
+      const isAtStart = activeImageIdx === 0 && diffX > 0;
+      const isAtEnd = activeImageIdx === imageList.length - 1 && diffX < 0;
+      setDragOffset(isAtStart || isAtEnd ? diffX * 0.3 : diffX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current !== null && isHorizontalGesture.current) {
+      const threshold = 40;
+      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
         setActiveImageIdx((prev) => prev + 1);
-      } else if (diffX < 0 && activeImageIdx > 0) {
+      } else if (dragOffset > threshold && activeImageIdx > 0) {
         setActiveImageIdx((prev) => prev - 1);
       }
     }
     touchStartX.current = null;
     touchStartY.current = null;
+    isHorizontalGesture.current = null;
+    setDragOffset(0);
+    setIsDragging(false);
   };
 
   const effectivePrice =
@@ -168,15 +193,32 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         <div className="space-y-3">
           <div
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none touch-pan-y"
+            onTouchCancel={handleTouchEnd}
+            className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none"
+            style={{ touchAction: 'pan-y' }}
           >
-            <img
-              src={activeImage}
-              alt={product.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none select-none"
-              draggable={false}
-            />
+            {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
+            <div
+              className="w-full h-full flex"
+              style={{
+                transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
+                transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1)',
+                willChange: 'transform',
+              }}
+            >
+              {imageList.map((imgUrl, idx) => (
+                <div key={idx} className="min-w-full w-full h-full flex-shrink-0 relative">
+                  <img
+                    src={imgUrl}
+                    alt={`${product.title} - ${idx + 1}`}
+                    className="w-full h-full object-cover select-none pointer-events-none"
+                    draggable={false}
+                  />
+                </div>
+              ))}
+            </div>
             {product.discountPrice && (
               <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg">
                 Save ${(product.price - product.discountPrice).toLocaleString()}

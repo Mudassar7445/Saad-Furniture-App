@@ -54,6 +54,7 @@ import { AdminSaleCodesModule } from '@/components/admin/AdminSaleCodesModule';
 import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBuilderModal';
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
+import { PremiumSettingsView } from '@/components/settings/PremiumSettingsView';
 
 export const FURNITURE_PRODUCTION_STAGES = [
   { id: 'order_placed', label: '1. Order Placed', pct: 6 },
@@ -80,7 +81,7 @@ export default function SuperAdminDashboard() {
   const [activeModule, setActiveModule] = useState<
     'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage' | 'workshop' | 'payment_settings' | 'sale_codes'
   >('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'cloud_storage'>('general');
+  const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'cloud_storage' | 'security_lock'>('general');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -1821,9 +1822,27 @@ export default function SuperAdminDashboard() {
                 <HardDrive className="w-3.5 h-3.5" />
                 <span>Cloud Storage (Google Drive 5TB)</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('security_lock')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  settingsSubTab === 'security_lock'
+                    ? 'bg-[#c5a880] text-black shadow-md'
+                    : 'bg-[#141822] text-slate-300 hover:text-white border border-white/5'
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Security & App Lock 🔒</span>
+              </button>
             </div>
 
-            {settingsSubTab === 'cloud_storage' ? (
+            {settingsSubTab === 'security_lock' ? (
+              <PremiumSettingsView
+                currentUser={currentUser}
+                onLogout={handleLogout}
+                theme="dark"
+              />
+            ) : settingsSubTab === 'cloud_storage' ? (
               <CloudStorageSettingsModule />
             ) : (
             <form onSubmit={handleSaveSettings} className="space-y-6">

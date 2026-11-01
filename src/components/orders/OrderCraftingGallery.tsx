@@ -1145,3 +1145,4 @@ export const OrderCraftingGallery: React.FC<OrderCraftingGalleryProps> = ({
     </div>
   );
 };
+

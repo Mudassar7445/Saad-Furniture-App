@@ -100,68 +100,71 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
-  // Swipeable Carousel State & Refs
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isSwiping = useRef(false);
+  // High-performance Touch & Gesture Drag State
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const isHorizontalMove = useRef<boolean | null>(null);
 
   // Reset to first image when viewing a new product
   useEffect(() => {
     setActiveImageIdx(0);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = 0;
-    }
+    setDragOffset(0);
+    setIsDragging(false);
   }, [product?.id]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    isHorizontalMove.current = null;
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startX.current === null) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - startX.current;
+    const deltaY = currentY - (startY.current ?? currentY);
+
+    // Lock onto gesture direction after 6px of motion
+    if (isHorizontalMove.current === null) {
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        isHorizontalMove.current = Math.abs(deltaX) > Math.abs(deltaY);
+      }
+    }
+
+    if (isHorizontalMove.current) {
+      // Resistance at boundaries
+      const isAtStart = activeImageIdx === 0 && deltaX > 0;
+      const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
+      const resistedDelta = isAtStart || isAtEnd ? deltaX * 0.3 : deltaX;
+      setDragOffset(resistedDelta);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (startX.current !== null && isHorizontalMove.current) {
+      const threshold = 40; // minimum pixels to trigger slide
+      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
+        setActiveImageIdx((prev) => prev + 1);
+      } else if (dragOffset > threshold && activeImageIdx > 0) {
+        setActiveImageIdx((prev) => prev - 1);
+      }
+    }
+    startX.current = null;
+    startY.current = null;
+    isHorizontalMove.current = null;
+    setDragOffset(0);
+    setIsDragging(false);
+  };
 
   const scrollToImage = (idx: number) => {
     const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
     setActiveImageIdx(targetIdx);
-    if (scrollContainerRef.current) {
-      const containerWidth = scrollContainerRef.current.clientWidth;
-      scrollContainerRef.current.scrollTo({
-        left: targetIdx * containerWidth,
-        behavior: 'smooth',
-      });
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const width = container.clientWidth;
-    if (width > 0) {
-      const newIdx = Math.round(container.scrollLeft / width);
-      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
-        setActiveImageIdx(newIdx);
-      }
-    }
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    isSwiping.current = true;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isSwiping.current || touchStartX.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const diffX = touchStartX.current - endX;
-    const diffY = touchStartY.current !== null ? Math.abs(touchStartY.current - endY) : 0;
-
-    // Minimum 35px horizontal swipe distance and horizontal direction dominance
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
-      if (diffX > 0 && activeImageIdx < imageList.length - 1) {
-        scrollToImage(activeImageIdx + 1);
-      } else if (diffX < 0 && activeImageIdx > 0) {
-        scrollToImage(activeImageIdx - 1);
-      }
-    }
-
-    touchStartX.current = null;
-    touchStartY.current = null;
-    isSwiping.current = false;
+    setDragOffset(0);
   };
 
   const effectivePrice = product.discountPrice || product.price;
@@ -219,23 +222,27 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
       {/* Main Content */}
       <div className="flex-1 pb-28 space-y-4">
         {/* Full-bleed Swipeable Gallery */}
-        <div className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none">
-          {/* Native Horizontal Scroll Container with Touch & Snap Support */}
+        <div
+          className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none"
+          style={{ touchAction: 'pan-y' }}
+        >
+          {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
           <div
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth touch-pan-x"
+            onTouchCancel={handleTouchEnd}
+            className="w-full h-full flex"
             style={{
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
+              transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
+              transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1)',
+              willChange: 'transform',
             }}
           >
             {imageList.map((imgUrl, idx) => (
               <div
                 key={idx}
-                className="min-w-full w-full h-full flex-shrink-0 snap-center relative bg-[#F7F5F0]"
+                className="min-w-full w-full h-full flex-shrink-0 relative bg-[#F7F5F0]"
               >
                 <img
                   src={imgUrl}
@@ -261,7 +268,7 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
                     e.stopPropagation();
                     scrollToImage(activeImageIdx - 1);
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center transition-all z-20 shadow-xl active:scale-90"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -275,7 +282,7 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
                     e.stopPropagation();
                     scrollToImage(activeImageIdx + 1);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center transition-all z-20 shadow-xl active:scale-90"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -286,14 +293,14 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
 
           {/* Counter Badge */}
           {imageList.length > 1 && (
-            <div className="absolute top-3.5 right-3.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full z-10 shadow-sm pointer-events-none tracking-wider">
+            <div className="absolute top-3.5 right-3.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full z-20 shadow-md pointer-events-none tracking-wider">
               {activeImageIdx + 1} / {imageList.length}
             </div>
           )}
 
           {/* Dots Indicator */}
           {imageList.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center items-center gap-1.5 z-10 pointer-events-auto">
+            <div className="absolute bottom-3.5 left-0 right-0 flex justify-center items-center gap-1.5 z-20 pointer-events-auto">
               {imageList.map((_, idx) => (
                 <button
                   type="button"
@@ -302,8 +309,10 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
                     e.stopPropagation();
                     scrollToImage(idx);
                   }}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    activeImageIdx === idx ? 'w-5 bg-[#262421]' : 'w-1.5 bg-[#89847C]/40 hover:bg-[#89847C]'
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    activeImageIdx === idx
+                      ? 'w-6 bg-[#262421] shadow-sm'
+                      : 'w-2 bg-stone-400/60 hover:bg-stone-600'
                   }`}
                   aria-label={`Go to slide ${idx + 1}`}
                 />

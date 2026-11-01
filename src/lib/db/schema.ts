@@ -646,6 +646,23 @@ export const paymentGatewaysConfig = sqliteTable('payment_gateways_config', {
   updatedBy: text('updated_by').default('super_admin'),
 });
 
+// 37. User App Lock Settings Table (PIN & Biometric Security)
+export const userAppLock = sqliteTable('user_app_lock', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().unique().references(() => users.id),
+  isEnabled: integer('is_enabled').notNull().default(0),
+  pinHash: text('pin_hash'),
+  pinSalt: text('pin_salt'),
+  pinLength: integer('pin_length').notNull().default(4),
+  biometricEnabled: integer('biometric_enabled').notNull().default(0),
+  biometricCredentialId: text('biometric_credential_id'),
+  autoLockMinutes: real('auto_lock_minutes').notNull().default(1),
+  failedAttempts: integer('failed_attempts').notNull().default(0),
+  lockedUntil: text('locked_until'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type MediaFile = typeof mediaFiles.$inferSelect;

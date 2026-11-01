@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Film,
   Play,
@@ -21,6 +21,13 @@ import {
   Star,
   Check,
   X,
+  Repeat,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  CheckSquare,
+  Square,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -34,13 +41,34 @@ export const AdminWorkshopModule: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'video' | 'photo'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 9;
+
+  // Bulk Selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
-  // Form State
+  // Dedicated Replace Media Modal
+  const [replacingItem, setReplacingItem] = useState<any | null>(null);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const [replaceProgress, setReplaceProgress] = useState('');
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+
+  // Dedicated Delete Confirmation Modal
+  const [deletingItem, setDeletingItem] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Form State for Create / Edit
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('video');
@@ -59,6 +87,12 @@ export const AdminWorkshopModule: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setFeedbackToast({ type, message });
+    setTimeout(() => setFeedbackToast(null), 3500);
+  };
 
   const fetchMedia = async () => {
     try {
@@ -117,6 +151,7 @@ export const AdminWorkshopModule: React.FC = () => {
     setShowUploadModal(true);
   };
 
+  // Upload or Batch Upload during Create
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     if (files.length === 0) return;
@@ -125,9 +160,10 @@ export const AdminWorkshopModule: React.FC = () => {
       setUploading(true);
       setErrorMsg(null);
 
-      const targetCategory = category === 'custom' && customCategory.trim()
-        ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
-        : category;
+      const targetCategory =
+        category === 'custom' && customCategory.trim()
+          ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
+          : category;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -137,12 +173,12 @@ export const AdminWorkshopModule: React.FC = () => {
         const detectedType = isVideo ? 'video' : 'photo';
         setMediaType(detectedType);
 
-        // Sanitize or use custom title
         let uploadTitle = title.trim();
         if (!uploadTitle || uploadTitle.toLowerCase().includes('whatsapp')) {
-          uploadTitle = files.length > 1
-            ? `${targetCategory.replace(/_/g, ' ')} Showcase ${i + 1}`
-            : 'Bespoke Atelier Production Milestone';
+          uploadTitle =
+            files.length > 1
+              ? `${targetCategory.replace(/_/g, ' ')} Showcase ${i + 1}`
+              : 'Bespoke Atelier Production Milestone';
         }
 
         const formData = new FormData();
@@ -155,7 +191,6 @@ export const AdminWorkshopModule: React.FC = () => {
         formData.append('displayOrder', displayOrder);
         if (videoDuration) formData.append('videoDuration', videoDuration);
 
-        // Auto-extract thumbnail from video if not manually selected
         if (thumbnailFile) {
           formData.append('thumbnail', thumbnailFile);
         } else if (isVideo) {
@@ -195,14 +230,16 @@ export const AdminWorkshopModule: React.FC = () => {
     }
   };
 
+  // Submit Edit or Create form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalCategory = category === 'custom' && customCategory.trim()
-      ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
-      : category;
+    const finalCategory =
+      category === 'custom' && customCategory.trim()
+        ? customCategory.trim().toLowerCase().replace(/\s+/g, '_')
+        : category;
 
     if (!title.trim() || title.toLowerCase().includes('whatsapp')) {
-      setErrorMsg('Please enter a descriptive customer-facing title. WhatsApp names cannot be displayed to customers.');
+      setErrorMsg('Please enter a descriptive customer-facing title.');
       return;
     }
     if (!url.trim()) {
@@ -243,6 +280,7 @@ export const AdminWorkshopModule: React.FC = () => {
       }
 
       setShowUploadModal(false);
+      showToast('success', editingItem ? 'Workshop media updated!' : 'Published to workshop gallery!');
       await fetchMedia();
     } catch (err: any) {
       setErrorMsg(err.message || 'Save failed');
@@ -251,21 +289,105 @@ export const AdminWorkshopModule: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, itemTitle: string) => {
-    if (!confirm(`Are you sure you want to permanently delete workshop media "${itemTitle}"?`)) {
-      return;
-    }
+  // Dedicated Replace Media Handler
+  const openReplaceModal = (item: any) => {
+    setReplacingItem(item);
+    setReplaceFile(null);
+    setReplaceProgress('');
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!replacingItem || !replaceFile) return;
 
     try {
-      const res = await fetch(`/api/workshop/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        await fetchMedia();
+      setReplacing(true);
+      setReplaceProgress(`Uploading new replacement file to Google Drive...`);
+
+      const isVideo = replaceFile.type.startsWith('video/') || replaceFile.name.endsWith('.mp4');
+      const detectedType = isVideo ? 'video' : 'photo';
+
+      const formData = new FormData();
+      formData.append('file', replaceFile);
+      formData.append('category', replacingItem.category);
+      formData.append('title', replacingItem.title);
+      formData.append('description', replacingItem.description || '');
+      formData.append('mediaType', detectedType);
+
+      // Auto-extract thumbnail if replacement is video
+      if (isVideo) {
+        try {
+          setReplaceProgress('Capturing WebP thumbnail from replacement video...');
+          const thumb = await captureVideoThumbnail(replaceFile);
+          if (thumb) formData.append('thumbnail', thumb);
+        } catch {}
       }
-    } catch (e) {
-      console.error('Delete error:', e);
+
+      // Upload new file
+      const uploadRes = await fetch('/api/workshop/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.error || 'Replacement file upload failed');
+      }
+
+      const newMedia = uploadData.media;
+
+      // Update existing record with new media URL and Drive ID
+      setReplaceProgress('Updating workshop showcase record...');
+      const updateRes = await fetch(`/api/workshop/${replacingItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: newMedia.url || newMedia.streamUrl,
+          thumbnailUrl: newMedia.thumbnailUrl || (detectedType === 'photo' ? newMedia.url : null),
+          googleDriveFileId: newMedia.googleDriveFileId,
+          mediaType: detectedType,
+          videoDuration: detectedType === 'video' ? 60 : null,
+        }),
+      });
+
+      if (!updateRes.ok) {
+        throw new Error('Failed to update showcase record');
+      }
+
+      setReplacingItem(null);
+      setReplaceFile(null);
+      showToast('success', `Media for "${replacingItem.title}" replaced successfully!`);
+      await fetchMedia();
+    } catch (err: any) {
+      showToast('error', err.message || 'Media replacement failed');
+    } finally {
+      setReplacing(false);
+      setReplaceProgress('');
     }
   };
 
+  // Dedicated Safe Delete Handlers
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/workshop/${deletingItem.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('success', `Workshop media "${deletingItem.title}" deleted.`);
+        setDeletingItem(null);
+        await fetchMedia();
+      } else {
+        const d = await res.json();
+        showToast('error', d.error || 'Failed to delete');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Error deleting media');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Toggle Publish & Featured
   const handleTogglePublish = async (item: any) => {
     try {
       const res = await fetch(`/api/workshop/${item.id}`, {
@@ -296,9 +418,83 @@ export const AdminWorkshopModule: React.FC = () => {
     }
   };
 
+  // Bulk Operations
+  const toggleSelectId = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredList.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredList.map((m) => m.id));
+    }
+  };
+
+  const handleBulkPublish = async (publish: boolean) => {
+    if (selectedIds.length === 0) return;
+    try {
+      setBulkActionLoading(true);
+      const res = await fetch('/api/workshop/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: publish ? 'publish' : 'unpublish',
+          ids: selectedIds,
+        }),
+      });
+
+      if (res.ok) {
+        showToast(
+          'success',
+          `Successfully ${publish ? 'published' : 'unpublished'} ${selectedIds.length} items.`
+        );
+        setSelectedIds([]);
+        await fetchMedia();
+      }
+    } catch (err) {
+      showToast('error', 'Bulk status update failed.');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      setBulkActionLoading(true);
+      const res = await fetch('/api/workshop/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          ids: selectedIds,
+        }),
+      });
+
+      if (res.ok) {
+        showToast('success', `Deleted ${selectedIds.length} workshop media item(s).`);
+        setSelectedIds([]);
+        setShowBulkDeleteModal(false);
+        await fetchMedia();
+      }
+    } catch (err) {
+      showToast('error', 'Bulk deletion failed.');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // Filtered List
   const filteredList = mediaList.filter((item) => {
     if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
     if (typeFilter !== 'all' && item.mediaType !== typeFilter) return false;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'published' && !item.isPublished) return false;
+      if (statusFilter === 'draft' && item.isPublished) return false;
+    }
     if (search.trim()) {
       const term = search.toLowerCase();
       const matchTitle = item.title?.toLowerCase().includes(term);
@@ -309,20 +505,42 @@ export const AdminWorkshopModule: React.FC = () => {
     return true;
   });
 
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
+  const paginatedList = filteredList.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const totalVideos = mediaList.filter((m) => m.mediaType === 'video').length;
   const totalPhotos = mediaList.filter((m) => m.mediaType === 'photo').length;
   const featuredItem = mediaList.find((m) => m.isFeatured);
 
   return (
     <div className="space-y-6">
+      {/* Toast Notice */}
+      {feedbackToast && (
+        <div
+          className={`fixed top-4 right-4 left-4 z-50 p-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs border animate-in fade-in duration-300 max-w-md mx-auto ${
+            feedbackToast.type === 'success'
+              ? 'bg-[#262421] text-[#B99A68] border-[#B99A68]'
+              : 'bg-rose-950 text-rose-200 border-rose-500/50'
+          }`}
+        >
+          {feedbackToast.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 text-[#B99A68] shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          )}
+          <span className="font-medium">{feedbackToast.message}</span>
+        </div>
+      )}
+
       {/* 1. Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-            <Film className="w-5 h-5 text-[#B99A68]" /> Workshop Media Manager
+            <Film className="w-5 h-5 text-[#B99A68]" /> Workshop Media Management
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Curate manufacturing videos, hardwood joinery photos, polishing tours, and home page showcases
+            Complete management, replacement & safe deletion of workshop videos and photographs
           </p>
         </div>
 
@@ -346,7 +564,7 @@ export const AdminWorkshopModule: React.FC = () => {
           <span className="text-xl font-bold font-mono text-sky-400 mt-0.5 block">{totalPhotos}</span>
         </div>
         <div className="p-3.5 bg-black/40 border border-white/5 rounded-2xl">
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Featured Video</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Featured Showcase</span>
           <span className="text-xs font-bold text-amber-300 mt-1 block truncate">
             {featuredItem?.title || 'None Set'}
           </span>
@@ -361,17 +579,24 @@ export const AdminWorkshopModule: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search by title, description or category..."
               className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Type Filter */}
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
             className="p-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
           >
             <option value="all">All Media Types</option>
@@ -379,9 +604,13 @@ export const AdminWorkshopModule: React.FC = () => {
             <option value="photo">Photos Only</option>
           </select>
 
+          {/* Category Filter */}
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
             className="p-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
           >
             {WORKSHOP_CATEGORIES.map((c) => (
@@ -390,10 +619,91 @@ export const AdminWorkshopModule: React.FC = () => {
               </option>
             ))}
           </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+            className="p-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+          >
+            <option value="all">All Statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft / Unpublished</option>
+          </select>
         </div>
       </div>
 
-      {/* 4. Workshop Media Grid */}
+      {/* 4. Bulk Action Toolbar (When items are selected) */}
+      {selectedIds.length > 0 && (
+        <div className="p-3 bg-[#B99A68]/15 border border-[#B99A68]/40 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs shadow-xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-white font-bold">
+            <CheckSquare className="w-4 h-4 text-[#B99A68]" />
+            <span>{selectedIds.length} item(s) selected</span>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-[10px] text-[#B99A68] hover:underline font-normal ml-2"
+            >
+              Deselect All
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkActionLoading}
+              onClick={() => handleBulkPublish(true)}
+              className="h-7 text-[11px] px-2.5 font-bold border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+            >
+              Bulk Publish
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkActionLoading}
+              onClick={() => handleBulkPublish(false)}
+              className="h-7 text-[11px] px-2.5 font-bold border-slate-500/40 text-slate-300 hover:bg-slate-500/10"
+            >
+              Bulk Unpublish
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkActionLoading}
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="h-7 text-[11px] px-2.5 font-bold border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Bulk Delete ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Select All Checkbox Row */}
+      {filteredList.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={selectedIds.length === filteredList.length && filteredList.length > 0}
+              onChange={handleSelectAll}
+              className="w-4 h-4 accent-[#B99A68] rounded"
+            />
+            <span className="font-semibold text-white">Select All ({filteredList.length})</span>
+          </label>
+
+          <span className="font-mono text-[11px]">
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredList.length)} of {filteredList.length}
+          </span>
+        </div>
+      )}
+
+      {/* 6. Workshop Media Grid */}
       {loading ? (
         <div className="py-12 text-center text-slate-400 text-xs">Loading workshop archives...</div>
       ) : filteredList.length === 0 ? (
@@ -409,13 +719,20 @@ export const AdminWorkshopModule: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredList.map((item) => {
+          {paginatedList.map((item) => {
             const isVideo = item.mediaType === 'video';
+            const isSelected = selectedIds.includes(item.id);
+
             return (
               <div
                 key={item.id}
-                className="bg-[#141822] border border-white/10 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between group hover:border-[#B99A68]/50 transition-all"
+                className={`bg-[#141822] border rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between group transition-all relative ${
+                  isSelected
+                    ? 'border-[#B99A68] ring-1 ring-[#B99A68]/50'
+                    : 'border-white/10 hover:border-[#B99A68]/40'
+                }`}
               >
+                {/* Visual Header */}
                 <div className="relative aspect-video bg-black overflow-hidden">
                   <img
                     src={getSafeThumbnailUrl(item)}
@@ -424,6 +741,7 @@ export const AdminWorkshopModule: React.FC = () => {
                     decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
+
                   {isVideo && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <div
@@ -435,24 +753,35 @@ export const AdminWorkshopModule: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="absolute top-2 left-2 flex gap-1">
+                  {/* Top-Left Selection Checkbox & Badges */}
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectId(item.id)}
+                      className="w-4 h-4 accent-[#B99A68] rounded shadow-md cursor-pointer"
+                    />
+
                     {item.isFeatured ? (
                       <span className="px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 shadow">
                         <Star className="w-2.5 h-2.5 fill-current" /> Featured
                       </span>
                     ) : null}
+
                     <Badge variant={item.isPublished ? 'green' : 'neutral'}>
                       {item.isPublished ? 'Published' : 'Draft'}
                     </Badge>
                   </div>
 
-                  <div className="absolute top-2 right-2 flex gap-1">
+                  {/* Top-Right Category */}
+                  <div className="absolute top-2.5 right-2.5">
                     <Badge variant="gold">
                       {WORKSHOP_CATEGORIES.find((c) => c.id === item.category)?.label || item.category}
                     </Badge>
                   </div>
                 </div>
 
+                {/* Content Body */}
                 <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-serif font-bold text-white text-sm line-clamp-1">{item.title}</h3>
@@ -463,8 +792,10 @@ export const AdminWorkshopModule: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
+                  {/* Action Toolbar */}
+                  <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs gap-1">
+                    {/* Status Toggles */}
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleToggleFeatured(item)}
@@ -473,7 +804,7 @@ export const AdminWorkshopModule: React.FC = () => {
                             ? 'bg-[#B99A68]/20 border-[#B99A68] text-[#B99A68]'
                             : 'bg-slate-900 border-white/10 text-slate-400 hover:text-white'
                         }`}
-                        title="Toggle Home Page Featured"
+                        title="Toggle Featured Showcase"
                       >
                         <Star className={`w-3 h-3 ${item.isFeatured ? 'fill-current' : ''}`} />
                       </button>
@@ -491,31 +822,45 @@ export const AdminWorkshopModule: React.FC = () => {
                       </button>
                     </div>
 
+                    {/* Manage Buttons: Preview, Replace, Edit, Delete */}
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => setPreviewItem(item)}
                         className="h-7 w-7 p-0"
-                        title="Preview"
+                        title="Preview Media"
                       >
                         <Eye className="w-3.5 h-3.5 text-slate-300" />
                       </Button>
+
+                      {/* Replace Media Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openReplaceModal(item)}
+                        className="h-7 w-7 p-0 text-[#B99A68] hover:bg-[#B99A68]/15"
+                        title="Replace Media File"
+                      >
+                        <Repeat className="w-3.5 h-3.5" />
+                      </Button>
+
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => openEditModal(item)}
-                        className="h-7 w-7 p-0"
+                        className="h-7 w-7 p-0 text-slate-300"
                         title="Edit Details"
                       >
-                        <Edit className="w-3.5 h-3.5 text-slate-300" />
+                        <Edit className="w-3.5 h-3.5" />
                       </Button>
+
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleDelete(item.id, item.title)}
-                        className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
-                        title="Delete"
+                        onClick={() => setDeletingItem(item)}
+                        className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300"
+                        title="Delete Media"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -528,7 +873,228 @@ export const AdminWorkshopModule: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Create / Edit Workshop Media Modal */}
+      {/* 7. Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-slate-400">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="h-8 text-xs font-bold"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+          </Button>
+
+          <span className="font-mono">
+            Page <strong className="text-white">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
+          </span>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            className="h-8 text-xs font-bold"
+          >
+            Next <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL 1: REPLACE MEDIA DIALOG */}
+      {/* ========================================== */}
+      {replacingItem && (
+        <Modal
+          isOpen={Boolean(replacingItem)}
+          onClose={() => {
+            if (!replacing) setReplacingItem(null);
+          }}
+          title={`Replace Media: "${replacingItem.title}"`}
+          subtitle="Upload a new video or photo to update this showcase without duplicate records"
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-white">
+            <div className="p-3 bg-black/40 rounded-xl border border-white/10 flex items-center gap-3">
+              <img
+                src={getSafeThumbnailUrl(replacingItem)}
+                alt={replacingItem.title}
+                className="w-14 h-14 rounded-lg object-cover shrink-0 border border-white/10"
+              />
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold text-[#B99A68] block">Current Media</span>
+                <span className="font-bold text-white block truncate">{replacingItem.title}</span>
+                <span className="text-[10px] text-slate-400 block capitalize">
+                  {replacingItem.mediaType} • {replacingItem.category.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1.5">
+                Select New Replacement File *
+              </label>
+
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="video/mp4,video/webm,image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setReplaceFile(f);
+                }}
+                className="hidden"
+              />
+
+              <div
+                onClick={() => replaceInputRef.current?.click()}
+                className="p-5 border-2 border-dashed border-[#B99A68]/40 hover:border-[#B99A68] rounded-xl bg-black/30 hover:bg-black/50 text-center cursor-pointer transition-all space-y-1.5"
+              >
+                <UploadCloud className="w-6 h-6 mx-auto text-[#B99A68]" />
+                <span className="font-bold text-white block">
+                  {replaceFile ? replaceFile.name : 'Click to select new replacement file'}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  {replaceFile
+                    ? `Size: ${(replaceFile.size / 1024 / 1024).toFixed(1)} MB`
+                    : 'MP4, WebM video or JPG, PNG photograph'}
+                </span>
+              </div>
+            </div>
+
+            {replacing && (
+              <div className="p-3 bg-slate-900 rounded-xl border border-[#B99A68]/40 space-y-2">
+                <div className="flex items-center gap-2 text-[#B99A68] font-bold">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{replaceProgress || 'Replacing media in Google Drive...'}</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-[#B99A68] h-1.5 rounded-full animate-pulse w-full" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <Button
+                variant="ghost"
+                disabled={replacing}
+                onClick={() => setReplacingItem(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                disabled={replacing || !replaceFile}
+                onClick={handleConfirmReplace}
+                className="font-bold"
+              >
+                {replacing ? 'Uploading...' : 'Confirm Replacement'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL 2: SAFE DELETE CONFIRMATION */}
+      {/* ========================================== */}
+      {deletingItem && (
+        <Modal
+          isOpen={Boolean(deletingItem)}
+          onClose={() => {
+            if (!deleting) setDeletingItem(null);
+          }}
+          title="Delete Workshop Media"
+          subtitle="Confirm permanent deletion from workshop showcase"
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-white">
+            <div className="p-3.5 bg-rose-950/40 border border-rose-500/40 rounded-2xl flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-rose-400 shrink-0" />
+              <div>
+                <span className="font-bold text-rose-200 block text-xs">Permanent Deletion Warning</span>
+                <span className="text-[11px] text-rose-300/80 block mt-0.5">
+                  Are you sure you want to delete <strong className="text-white">"{deletingItem.title}"</strong>?
+                  This will remove the media from the public Workshop gallery immediately.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-black/40 rounded-xl border border-white/10 text-[11px] text-slate-300 space-y-1">
+              <span className="font-semibold text-white block">Safe Google Drive Storage Guard:</span>
+              <p>
+                The system will automatically verify whether this file is referenced in another customer order or product catalogue before removing original Drive binaries.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <Button
+                variant="ghost"
+                disabled={deleting}
+                onClick={() => setDeletingItem(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+                className="border-rose-500/50 text-rose-400 hover:bg-rose-500/10 font-bold"
+              >
+                {deleting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL 3: BULK DELETE CONFIRMATION */}
+      {/* ========================================== */}
+      {showBulkDeleteModal && (
+        <Modal
+          isOpen={showBulkDeleteModal}
+          onClose={() => setShowBulkDeleteModal(false)}
+          title="Confirm Bulk Media Deletion"
+          subtitle={`Are you sure you want to permanently delete ${selectedIds.length} media items?`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-white">
+            <div className="p-3.5 bg-rose-950/40 border border-rose-500/40 rounded-2xl flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-rose-400 shrink-0" />
+              <div>
+                <span className="font-bold text-rose-200 block text-xs">Irreversible Action</span>
+                <span className="text-[11px] text-rose-300/80 block mt-0.5">
+                  You are about to delete <strong className="text-white">{selectedIds.length}</strong> workshop media records.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <Button
+                variant="ghost"
+                disabled={bulkActionLoading}
+                onClick={() => setShowBulkDeleteModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                disabled={bulkActionLoading}
+                onClick={handleBulkDeleteConfirm}
+                className="border-rose-500/50 text-rose-400 hover:bg-rose-500/10 font-bold"
+              >
+                {bulkActionLoading ? 'Deleting...' : `Delete ${selectedIds.length} Items`}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL 4: CREATE / EDIT WORKSHOP MEDIA */}
+      {/* ========================================== */}
       <Modal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
@@ -554,9 +1120,6 @@ export const AdminWorkshopModule: React.FC = () => {
               placeholder="e.g. Master Sofa Frame Manufacturing & Joinery"
               className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
             />
-            <span className="text-[10px] text-slate-500 mt-1 block">
-              Original filenames (e.g. WhatsApp Video...) will remain private in diagnostics. Customers will only see this title.
-            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -579,7 +1142,7 @@ export const AdminWorkshopModule: React.FC = () => {
                   type="text"
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
-                  placeholder="Type new category name (e.g. Resin Inlay)..."
+                  placeholder="Type new category name..."
                   className="w-full p-2 mt-2 bg-slate-950 border border-[#B99A68] rounded-xl text-white text-xs"
                 />
               )}
@@ -598,17 +1161,12 @@ export const AdminWorkshopModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Media File Upload or Direct URL */}
+          {/* Cloud Storage Attachment */}
           <div className="p-4 bg-black/40 border border-[#B99A68]/30 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#B99A68] uppercase tracking-wider flex items-center gap-1.5">
                 <UploadCloud className="w-4 h-4" /> Cloud Storage Attachment (Google Drive 5TB)
               </span>
-              {editingItem && (
-                <span className="text-[10px] text-amber-300">
-                  Select new file below to replace existing media
-                </span>
-              )}
             </div>
 
             {uploading && (
@@ -661,7 +1219,6 @@ export const AdminWorkshopModule: React.FC = () => {
                       }}
                       className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#B99A68] file:text-[#262421] cursor-pointer"
                     />
-                    <span className="text-[9px] text-slate-500 mt-0.5 block">Stored in WORKSHOP MEDIA/THUMBNAILS</span>
                   </div>
                   <div>
                     <label className="block text-slate-300 mb-1">Or Thumbnail Image URL</label>
@@ -724,7 +1281,7 @@ export const AdminWorkshopModule: React.FC = () => {
                 className="w-4 h-4 rounded text-[#B99A68] focus:ring-0 bg-slate-900 border-slate-700"
               />
               <label htmlFor="featMedia" className="text-xs text-slate-300 cursor-pointer">
-                Featured Video (Mobile Home Page)
+                Featured Video
               </label>
             </div>
 
@@ -763,7 +1320,9 @@ export const AdminWorkshopModule: React.FC = () => {
         </form>
       </Modal>
 
-      {/* 6. Preview Modal */}
+      {/* ========================================== */}
+      {/* MODAL 5: FULL PREVIEW */}
+      {/* ========================================== */}
       {previewItem && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4"
@@ -812,4 +1371,3 @@ export const AdminWorkshopModule: React.FC = () => {
     </div>
   );
 };
-

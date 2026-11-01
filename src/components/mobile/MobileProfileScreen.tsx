@@ -38,6 +38,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
+import { PremiumSettingsView } from '@/components/settings/PremiumSettingsView';
 
 interface MobileProfileScreenProps {
   currentUser: any | null;
@@ -61,6 +62,7 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
+  const [profileView, setProfileView] = useState<'profile' | 'settings'>('profile');
   const [activeSection, setActiveSection] = useState<
     'overview' | 'personal' | 'balance' | 'payments' | 'addresses' | 'support' | 'password'
   >('overview');
@@ -485,6 +487,43 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         </div>
       )}
 
+      {/* 2.5 TAB SWITCHER: PROFILE & BALANCE vs ADVANCED SETTINGS */}
+      <div className="flex bg-[#EAE2D6]/60 p-1 rounded-2xl border border-[#EAE2D6] shadow-sm">
+        <button
+          type="button"
+          onClick={() => setProfileView('profile')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            profileView === 'profile'
+              ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
+              : 'text-[#89847C] hover:text-[#262421]'
+          }`}
+        >
+          <User className="w-3.5 h-3.5" />
+          <span>Profile & Balance</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setProfileView('settings')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            profileView === 'settings'
+              ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
+              : 'text-[#89847C] hover:text-[#262421]'
+          }`}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span>Settings & App Lock 🔒</span>
+        </button>
+      </div>
+
+      {profileView === 'settings' ? (
+        <PremiumSettingsView
+          currentUser={currentUser}
+          onLogout={onLogout}
+          onProfileUpdated={fetchProfile}
+          theme="light"
+        />
+      ) : (
+        <>
       {/* 3. CUSTOMER BALANCE & FINANCIAL DETAILS CARD */}
       <div className="bg-white rounded-3xl border border-[#EAE2D6] p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
@@ -704,16 +743,16 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           </button>
         )}
 
-        {/* Section 6: Change Password */}
+        {/* Section 6: Change Password / Settings */}
         <button
-          onClick={() => setShowChangePassword(true)}
+          onClick={() => setProfileView('settings')}
           className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
         >
           <div className="flex items-center gap-3">
             <Lock className="w-4 h-4 text-[#B99A68]" />
             <div>
-              <span className="text-xs font-bold text-[#262421] block">Security & Password</span>
-              <span className="text-[10px] text-[#89847C] block">Update account access credentials</span>
+              <span className="text-xs font-bold text-[#262421] block">Security, PIN & App Lock</span>
+              <span className="text-[10px] text-[#89847C] block">Configure Biometrics, PIN & Password</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-[#89847C]" />
@@ -792,6 +831,8 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           <ChevronRight className="w-4 h-4 text-red-400" />
         </button>
       </div>
+      </>
+      )}
 
       {/* EDIT PROFILE MODAL */}
       {showEditProfile && (

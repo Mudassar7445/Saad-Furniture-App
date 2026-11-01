@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { AppLockProvider } from '@/components/auth/AppLockProvider';
 
 export const metadata: Metadata = {
   title: 'Saad Furniture – Premium Customer Order Tracking & Showroom Management',
@@ -44,7 +45,7 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/assets/branding/app-dp.png" />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased bg-[#0b0d11]">
-        {children}
+        <AppLockProvider>{children}</AppLockProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
