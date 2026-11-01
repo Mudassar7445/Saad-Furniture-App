@@ -260,14 +260,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             )}
             <button
               type="button"
-              onClick={() => onToggleWishlist(product.id)}
-              className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors z-20 ${
+              aria-label={isWishlisted ? 'Remove from favorites' : 'Save to favorites'}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleWishlist(product.id);
+              }}
+              className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all active:scale-90 z-20 shadow-md ${
                 isWishlisted
-                  ? 'bg-rose-500 text-white'
+                  ? 'bg-rose-500 text-white shadow-rose-500/40'
                   : 'bg-black/50 text-slate-300 hover:text-white hover:bg-black/80'
               }`}
             >
-              <Heart className="w-4 h-4 fill-current" />
+              <Heart className={`w-4 h-4 transition-transform ${isWishlisted ? 'fill-current scale-110' : ''}`} />
             </button>
 
             {/* Left/Right Navigation Chevrons */}

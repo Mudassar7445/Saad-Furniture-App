@@ -1146,6 +1146,24 @@ export async function initializeDatabase() {
       console.warn('Workshop media seed note:', wsErr);
     }
 
+    // Clean up any historical duplicate wishlists safely
+    try {
+      await client.execute(`
+        DELETE FROM wishlists WHERE id NOT IN (
+          SELECT min(id) FROM wishlists GROUP BY user_id, product_id
+        );
+      `);
+      // Performance indexes for sub-millisecond lookups on low-end mobile devices & high-concurrency
+      await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_wishlists_user_product ON wishlists(user_id, product_id);`);
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_wishlists_user ON wishlists(user_id);`);
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_wishlists_product ON wishlists(product_id);`);
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);`);
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);`);
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_media_drive_id ON media_files(google_drive_file_id);`);
+    } catch (idxErr) {
+      console.warn('Index initialization note:', idxErr);
+    }
+
     isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);

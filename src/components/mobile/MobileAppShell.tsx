@@ -110,7 +110,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         unreadInboxCount={unreadNotificationsCount}
         onOpenCart={() => setCartSheetOpen(true)}
         onSearchClick={() => handleOpenShop('All')}
-        onOpenWishlist={() => handleOpenShop('All')}
+        onOpenWishlist={() => handleOpenShop('Saved (💖)')}
         onOpenProfile={() => setActiveTab('profile')}
         onOpenWorkshop={() => setActiveTab('workshop')}
         onOpenInbox={() => setActiveTab('notifications')}
@@ -200,7 +200,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             onOpenAuth={() => handleOpenAuth('profile')}
             onLogout={handleLogout}
             onNavigateToOrders={() => setActiveTab('orders')}
-            onNavigateToWishlist={() => handleOpenShop('All')}
+            onNavigateToWishlist={() => handleOpenShop('Saved (💖)')}
             onNavigateToDocuments={() => setActiveTab('documents')}
           />
         )}

@@ -1,21 +1,38 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
-import { products, auditLogs } from '@/lib/db/schema';
+import { products, auditLogs, wishlists } from '@/lib/db/schema';
 import { seedDatabase } from '@/lib/db/seed';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // 60s ISR / Edge cache
 
+// High-speed in-memory server cache (45s TTL) for fast catalog loading on 4G and low-end mobile devices
+interface ProductsCacheEntry {
+  data: any;
+  cachedAt: number;
+}
+const productsCache = new Map<string, ProductsCacheEntry>();
+const CACHE_TTL_MS = 45 * 1000;
+
 export async function GET(request: Request) {
   try {
-    await initializeDatabase();
-
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = searchParams.has('limit') ? Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10))) : 0;
+
+    const cacheKey = `${category || 'all'}_${page}_${limit}`;
+    const cached = productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
+      const headers = new Headers();
+      headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      headers.set('X-Catalog-Cache', 'HIT');
+      return NextResponse.json(cached.data, { headers });
+    }
+
+    await initializeDatabase();
 
     let query = db
       .select({
@@ -52,18 +69,42 @@ export async function GET(request: Request) {
     const total = allProducts.length;
     const paginatedProducts = limit > 0 ? allProducts.slice((page - 1) * limit, page * limit) : allProducts;
 
+    // Attach real live like counts aggregated from wishlists table
+    let likeCountsMap = new Map<string, number>();
+    try {
+      const counts = await db
+        .select({
+          productId: wishlists.productId,
+          count: sql<number>`count(*)`.as('count'),
+        })
+        .from(wishlists)
+        .groupBy(wishlists.productId);
+      counts.forEach((c) => likeCountsMap.set(c.productId, Number(c.count) || 0));
+    } catch {}
+
+    const productsWithLikes = paginatedProducts.map((p) => ({
+      ...p,
+      likeCount: likeCountsMap.get(p.id) || 0,
+    }));
+
+    const responseData = {
+      products: productsWithLikes,
+      total,
+      page,
+      limit: limit || total,
+    };
+
+    // Store in memory cache
+    productsCache.set(cacheKey, {
+      data: responseData,
+      cachedAt: Date.now(),
+    });
+
     const headers = new Headers();
     headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    headers.set('X-Catalog-Cache', 'MISS');
 
-    return NextResponse.json(
-      {
-        products: paginatedProducts,
-        total,
-        page,
-        limit: limit || total,
-      },
-      { headers }
-    );
+    return NextResponse.json(responseData, { headers });
   } catch (err: any) {
     console.error('Products fetch error:', err);
     return NextResponse.json(
@@ -151,6 +192,7 @@ export async function POST(request: Request) {
       createdAt: now,
     });
 
+    productsCache.clear();
     return NextResponse.json({ success: true, productId, sku });
   } catch (error) {
     console.error('Create product error:', error);

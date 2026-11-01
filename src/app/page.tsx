@@ -94,7 +94,18 @@ export default function ShowroomHomePage() {
     totalCount: 0,
   });
 
-  const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(new Set());
+  // Instant 0ms hydration of favorites from local snapshot
+  const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('saad_wishlist_ids');
+        if (saved) return new Set(JSON.parse(saved));
+      } catch {}
+    }
+    return new Set();
+  });
+  const pendingWishlistToggles = React.useRef<Set<string>>(new Set());
+
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activePromo, setActivePromo] = useState<any | null>(null);
@@ -127,6 +138,29 @@ export default function ShowroomHomePage() {
           setCurrentUser(data.user);
           try {
             localStorage.setItem('saad_patron_profile', JSON.stringify(data.user));
+          } catch {}
+          // Sync any guest-selected wishlist items to patron's database record upon sign-in
+          try {
+            const guestWish = localStorage.getItem('saad_wishlist_ids');
+            if (guestWish) {
+              const ids: string[] = JSON.parse(guestWish);
+              if (ids.length > 0) {
+                fetch('/api/wishlist', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'sync_guest', productIds: ids }),
+                })
+                  .then((r) => (r.ok ? r.json() : null))
+                  .then((syncData) => {
+                    if (syncData?.productIds) {
+                      const merged = new Set<string>(syncData.productIds);
+                      setWishlistProductIds(merged);
+                      localStorage.setItem('saad_wishlist_ids', JSON.stringify([...merged]));
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }
           } catch {}
         } else {
           setCurrentUser(null);
@@ -190,14 +224,25 @@ export default function ShowroomHomePage() {
     }
   };
 
-  // 4. Fetch Wishlist
+  // 4. Fetch Wishlist & synchronize across devices
   const fetchWishlist = async () => {
     try {
       const res = await fetch('/api/wishlist');
       if (res.ok) {
         const data = await res.json();
-        const ids = new Set<string>((data.items || []).map((i: any) => i.productId));
-        setWishlistProductIds(ids);
+        const serverIds = new Set<string>((data.items || []).map((i: any) => i.productId));
+
+        let localIds: string[] = [];
+        try {
+          const saved = localStorage.getItem('saad_wishlist_ids');
+          if (saved) localIds = JSON.parse(saved);
+        } catch {}
+
+        const merged = new Set<string>([...serverIds, ...localIds]);
+        setWishlistProductIds(merged);
+        try {
+          localStorage.setItem('saad_wishlist_ids', JSON.stringify([...merged]));
+        } catch {}
       }
     } catch (e) {
       console.error(e);
@@ -301,12 +346,31 @@ export default function ShowroomHomePage() {
     triggerToast('Coupon removed.');
   };
 
-  // Wishlist Toggle
+  // Wishlist Toggle: 0ms Instant Optimistic Feedback, Offline Persistence & Cross-Device Sync
   const handleToggleWishlist = async (productId: string) => {
-    if (!currentUser) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!productId) return;
+    if (pendingWishlistToggles.current.has(productId)) return; // Prevent double-tap race conditions
+    pendingWishlistToggles.current.add(productId);
+
+    const willBeLiked = !wishlistProductIds.has(productId);
+
+    // 1. INSTANT OPTIMISTIC UI UPDATE (0ms delay across all phones & networks)
+    setWishlistProductIds((prev) => {
+      const next = new Set(prev);
+      if (willBeLiked) {
+        next.add(productId);
+        triggerToast('Saved to your favorites! 💖');
+      } else {
+        next.delete(productId);
+        triggerToast('Removed from favorites.');
+      }
+      try {
+        localStorage.setItem('saad_wishlist_ids', JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+
+    // 2. SERVER PERSISTENCE & CROSS-DEVICE SYNC
     try {
       const res = await fetch('/api/wishlist', {
         method: 'POST',
@@ -314,21 +378,31 @@ export default function ShowroomHomePage() {
         body: JSON.stringify({ productId }),
       });
       const data = await res.json();
-      if (res.ok) {
+
+      if (!res.ok && res.status !== 401) {
+        // Rollback optimistic update on actual server error
         setWishlistProductIds((prev) => {
-          const next = new Set(prev);
-          if (data.wishlisted) {
-            next.add(productId);
-            triggerToast('Added to your wishlist!');
-          } else {
-            next.delete(productId);
-            triggerToast('Removed from your wishlist.');
-          }
-          return next;
+          const rollback = new Set(prev);
+          if (willBeLiked) rollback.delete(productId);
+          else rollback.add(productId);
+          try {
+            localStorage.setItem('saad_wishlist_ids', JSON.stringify([...rollback]));
+          } catch {}
+          return rollback;
         });
+        triggerToast(data.error || 'Failed to update favorites.');
+      } else if (data.productIds && Array.isArray(data.productIds)) {
+        // Update with full synchronized server list
+        const synced = new Set<string>(data.productIds);
+        setWishlistProductIds(synced);
+        try {
+          localStorage.setItem('saad_wishlist_ids', JSON.stringify([...synced]));
+        } catch {}
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Retain optimistic state on transient network offline
+    } finally {
+      pendingWishlistToggles.current.delete(productId);
     }
   };
 
@@ -419,39 +493,42 @@ export default function ShowroomHomePage() {
   return (
     <>
       {/* 1. NATIVE MOBILE APP SHELL (Visible by default on mobile devices with zero flash) */}
-      <div className="block md:hidden min-h-screen bg-[#141210] text-[#F7F5F0]">
-        <MobileAppShell
-          currentUser={currentUser}
-          onRefreshUser={fetchUser}
-          products={products}
-          loadingProducts={loadingProducts}
-          cart={cart}
-          wishlistProductIds={wishlistProductIds}
-          onToggleWishlist={handleToggleWishlist}
-          onAddToCart={(p, opts) =>
-            handleAddToCart({
-              productId: p.id,
-              quantity: opts?.quantity || 1,
-              selectedColour: opts?.fabricColor,
-              selectedDesign: opts?.woodType,
-            })
-          }
-          onUpdateCartQty={handleUpdateCartQty}
-          onRemoveCartItem={handleRemoveCartItem}
-          appliedCoupon={appliedCoupon}
-          onApplyCoupon={async (code) => {
-            const err = await handleApplyCoupon(code);
-            return !err;
-          }}
-          onOrderSuccess={(order) => {
-            fetchCart();
-            fetchUser();
-          }}
-        />
-      </div>
+      {(!mounted || isMobile) && (
+        <div className="block md:hidden min-h-screen bg-[#141210] text-[#F7F5F0]">
+          <MobileAppShell
+            currentUser={currentUser}
+            onRefreshUser={fetchUser}
+            products={products}
+            loadingProducts={loadingProducts}
+            cart={cart}
+            wishlistProductIds={wishlistProductIds}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={(p, opts) =>
+              handleAddToCart({
+                productId: p.id,
+                quantity: opts?.quantity || 1,
+                selectedColour: opts?.fabricColor,
+                selectedDesign: opts?.woodType,
+              })
+            }
+            onUpdateCartQty={handleUpdateCartQty}
+            onRemoveCartItem={handleRemoveCartItem}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={async (code) => {
+              const err = await handleApplyCoupon(code);
+              return !err;
+            }}
+            onOrderSuccess={(order) => {
+              fetchCart();
+              fetchUser();
+            }}
+          />
+        </div>
+      )}
 
       {/* 2. LUXURY DESKTOP SHOWROOM (Visible on desktop monitors >= 768px) */}
-      <div className="hidden md:flex min-h-screen bg-[#0b0d11] text-slate-100 flex-col font-sans selection:bg-[#c5a880] selection:text-slate-950">
+      {(!mounted || !isMobile) && (
+        <div className="hidden md:flex min-h-screen bg-[#0b0d11] text-slate-100 flex-col font-sans selection:bg-[#c5a880] selection:text-slate-950">
         {/* Toast Alert */}
         {toastMessage && (
           <div className="fixed bottom-6 right-6 z-50 bg-[#141824] border border-[#c5a880]/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs animate-bounce">
@@ -691,14 +768,19 @@ export default function ShowroomHomePage() {
                     {/* Wishlist Button */}
                     <button
                       type="button"
-                      onClick={() => handleToggleWishlist(prod.id)}
-                      className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all ${
+                      aria-label={isWish ? 'Remove from favorites' : 'Save to favorites'}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleToggleWishlist(prod.id);
+                      }}
+                      className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all active:scale-90 z-20 shadow-md ${
                         isWish
-                          ? 'bg-rose-500 text-white'
+                          ? 'bg-rose-500 text-white shadow-rose-500/30'
                           : 'bg-black/50 text-slate-300 hover:text-white hover:bg-black/80'
                       }`}
                     >
-                      <Heart className="w-4 h-4 fill-current" />
+                      <Heart className={`w-4 h-4 transition-transform ${isWish ? 'fill-current scale-110' : ''}`} />
                     </button>
 
                     {/* Quick View Button overlay on hover */}
@@ -970,6 +1052,7 @@ export default function ShowroomHomePage() {
         }}
       />
       </div>
+      )}
 
       {/* PWA Home Screen Installation Prompt */}
       <PwaInstallBanner />

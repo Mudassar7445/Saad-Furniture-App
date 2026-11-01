@@ -38,6 +38,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
 
   const categories = [
     'All',
+    'Saved (💖)',
     'Sofas',
     'Double Beds',
     'Single Beds',
@@ -49,8 +50,12 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   ];
 
   const filtered = products.filter((p) => {
-    const matchCat =
-      selectedCategory === 'All' || p.category?.toLowerCase() === selectedCategory.toLowerCase();
+    let matchCat = true;
+    if (selectedCategory === 'Saved (💖)' || selectedCategory === 'Saved') {
+      matchCat = wishlistIds.has(p.id);
+    } else if (selectedCategory !== 'All') {
+      matchCat = p.category?.toLowerCase() === selectedCategory.toLowerCase();
+    }
     const matchSearch =
       !search.trim() ||
       p.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -69,14 +74,14 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   });
 
   const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
-    'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
-    'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
-    'Single Beds': 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80',
-    'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
-    'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80',
-    'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
-    'Room Chairs': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
-    'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+    'Sofas': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=70',
+    'Double Beds': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=400&q=70',
+    'Single Beds': 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=400&q=70',
+    'Wardrobes': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=400&q=70',
+    'Center Tables': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=400&q=70',
+    'Mattresses': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=400&q=70',
+    'Room Chairs': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=70',
+    'Custom Furniture': 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=400&q=70',
   };
 
   const getPrimaryImage = (p: any) => {
@@ -199,13 +204,22 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                   />
                   <button
                     type="button"
+                    aria-label={isWish ? 'Remove from favorites' : 'Save to favorites'}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       onToggleWishlist(prod.id);
                     }}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-sm text-[#262421]"
+                    className={`absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90 ${
+                      isWish
+                        ? 'bg-rose-500 text-white shadow-rose-500/30'
+                        : 'bg-white/95 text-[#262421] border border-[#EAE2D6] hover:bg-white'
+                    }`}
                   >
-                    <Heart className={`w-3.5 h-3.5 ${isWish ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    <Heart className={`w-4 h-4 transition-transform ${isWish ? 'fill-current scale-110' : ''}`} />
                   </button>
 
                   {prod.discountPrice && (

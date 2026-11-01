@@ -231,14 +231,19 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
 
         <button
           type="button"
-          onClick={() => onToggleWishlist(product.id)}
-          className={`p-2 rounded-full border shadow-sm transition-colors ${
+          aria-label={isWishlisted ? 'Remove from favorites' : 'Save to favorites'}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleWishlist(product.id);
+          }}
+          className={`p-2 rounded-full border shadow-sm transition-all active:scale-90 ${
             isWishlisted
-              ? 'bg-rose-500 text-white border-rose-500'
+              ? 'bg-rose-500 text-white border-rose-500 shadow-rose-500/30'
               : 'bg-[#FFFFFF] border-[#EAE2D6] text-[#262421]'
           }`}
         >
-          <Heart className="w-5 h-5 fill-current" />
+          <Heart className={`w-5 h-5 transition-transform ${isWishlisted ? 'fill-current scale-110' : ''}`} />
         </button>
       </div>
 
