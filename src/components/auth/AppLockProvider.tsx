@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Lock,
   ShieldCheck,
   Fingerprint,
   Delete,
@@ -11,12 +10,11 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
-  LogOut,
-  X,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { authenticateWithBiometric, isBiometricSupported } from '@/lib/auth/biometrics';
+import { authenticateWithBiometric } from '@/lib/auth/biometrics';
 
 interface AppLockContextType {
   isLocked: boolean;
@@ -26,6 +24,7 @@ interface AppLockContextType {
     enabled: boolean;
     pinLength: number;
     biometricEnabled: boolean;
+    biometricCredentialId: string | null;
     autoLockMinutes: number;
     hasPinConfigured: boolean;
     isLockedOut: boolean;
@@ -42,6 +41,7 @@ const AppLockContext = createContext<AppLockContextType>({
     enabled: false,
     pinLength: 4,
     biometricEnabled: false,
+    biometricCredentialId: null,
     autoLockMinutes: 1,
     hasPinConfigured: false,
     isLockedOut: false,
@@ -53,11 +53,13 @@ const AppLockContext = createContext<AppLockContextType>({
 export const useAppLock = () => useContext(AppLockContext);
 
 export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isClientReady, setIsClientReady] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [appLockConfig, setAppLockConfig] = useState({
     enabled: false,
     pinLength: 4,
     biometricEnabled: false,
+    biometricCredentialId: null as string | null,
     autoLockMinutes: 1,
     hasPinConfigured: false,
     isLockedOut: false,
@@ -65,9 +67,42 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const lastHiddenTimeRef = useRef<number | null>(null);
-  const isUnlockedThisSession = useRef<boolean>(false);
 
-  // Fetch lock config from API
+  // Synchronous Frame-0 check on client mount
+  useEffect(() => {
+    setIsClientReady(true);
+    let lockEnabledLocally = false;
+    let unlockedThisSession = false;
+    let localPinLength = 4;
+    let localBiometric = false;
+    let localCredId: string | null = null;
+    let localAutoLock = 1;
+
+    try {
+      lockEnabledLocally = localStorage.getItem('saad_app_lock_enabled') === 'true';
+      unlockedThisSession = sessionStorage.getItem('saad_app_unlocked') === 'true';
+      localPinLength = localStorage.getItem('saad_app_lock_pin_length') === '6' ? 6 : 4;
+      localBiometric = localStorage.getItem('saad_app_lock_biometric') === 'true';
+      localCredId = localStorage.getItem('saad_app_lock_cred_id');
+      const storedAutoLock = localStorage.getItem('saad_app_lock_autolock');
+      if (storedAutoLock !== null) localAutoLock = Number(storedAutoLock);
+    } catch {}
+
+    if (lockEnabledLocally && !unlockedThisSession) {
+      setIsLocked(true);
+      setAppLockConfig((prev) => ({
+        ...prev,
+        enabled: true,
+        pinLength: localPinLength,
+        biometricEnabled: localBiometric,
+        biometricCredentialId: localCredId,
+        autoLockMinutes: localAutoLock,
+        hasPinConfigured: true,
+      }));
+    }
+  }, []);
+
+  // Fetch lock config from API and sync to local storage
   const refreshAppLockConfig = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/app-lock');
@@ -75,9 +110,27 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const data = await res.json();
         setAppLockConfig(data);
 
-        // If enabled and user hasn't unlocked this session yet, lock immediately
-        if (data.enabled && data.hasPinConfigured && !isUnlockedThisSession.current) {
+        try {
+          localStorage.setItem('saad_app_lock_enabled', data.enabled ? 'true' : 'false');
+          localStorage.setItem('saad_app_lock_pin_length', String(data.pinLength || 4));
+          localStorage.setItem('saad_app_lock_biometric', data.biometricEnabled ? 'true' : 'false');
+          if (data.biometricCredentialId) {
+            localStorage.setItem('saad_app_lock_cred_id', data.biometricCredentialId);
+          }
+          if (data.autoLockMinutes !== undefined) {
+            localStorage.setItem('saad_app_lock_autolock', String(data.autoLockMinutes));
+          }
+        } catch {}
+
+        let unlockedThisSession = false;
+        try {
+          unlockedThisSession = sessionStorage.getItem('saad_app_unlocked') === 'true';
+        } catch {}
+
+        if (data.enabled && data.hasPinConfigured && !unlockedThisSession) {
           setIsLocked(true);
+        } else if (!data.enabled) {
+          setIsLocked(false);
         }
       }
     } catch (err) {
@@ -101,8 +154,10 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const elapsedMs = Date.now() - lastHiddenTimeRef.current;
           const autoLockMs = (appLockConfig.autoLockMinutes ?? 1) * 60 * 1000;
 
-          // If autoLockMinutes === 0 (immediate) or elapsed exceeds duration
           if (appLockConfig.autoLockMinutes === 0 || elapsedMs >= autoLockMs) {
+            try {
+              sessionStorage.removeItem('saad_app_unlocked');
+            } catch {}
             setIsLocked(true);
           }
           lastHiddenTimeRef.current = null;
@@ -116,16 +171,58 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const lockAppNow = useCallback(() => {
     if (appLockConfig.enabled && appLockConfig.hasPinConfigured) {
+      try {
+        sessionStorage.removeItem('saad_app_unlocked');
+      } catch {}
       setIsLocked(true);
     }
   }, [appLockConfig.enabled, appLockConfig.hasPinConfigured]);
 
   const unlockApp = useCallback(() => {
     setIsLocked(false);
-    isUnlockedThisSession.current = true;
+    try {
+      sessionStorage.setItem('saad_app_unlocked', 'true');
+    } catch {}
     lastHiddenTimeRef.current = null;
   }, []);
 
+  // 1. Initial Frame-0 Security Splash Gate:
+  // While client hydrates or checks status, children is NEVER rendered to eliminate content flash
+  if (!isClientReady) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-[#0b0d11] flex flex-col items-center justify-center text-center p-6 select-none">
+        <div className="w-16 h-16 rounded-3xl bg-[#1c1915] border border-[#B99A68]/40 shadow-2xl flex items-center justify-center text-[#B99A68] mb-4 animate-pulse">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <h1 className="font-serif font-bold text-lg text-white tracking-wider">Saad Furniture Atelier</h1>
+        <p className="text-[11px] text-[#B99A68] tracking-widest uppercase mt-1">Securing Private Atelier Session...</p>
+      </div>
+    );
+  }
+
+  // 2. Security Lock Active:
+  // Render ONLY the lock screen. Children is completely unmounted, preventing data fetching or DOM leaks
+  if (isLocked) {
+    return (
+      <AppLockContext.Provider
+        value={{
+          isLocked,
+          lockAppNow,
+          unlockApp,
+          appLockConfig,
+          refreshAppLockConfig,
+        }}
+      >
+        <AppLockScreen
+          config={appLockConfig}
+          onSuccess={unlockApp}
+          onRefreshConfig={refreshAppLockConfig}
+        />
+      </AppLockContext.Provider>
+    );
+  }
+
+  // 3. Authenticated: Mount and render application children
   return (
     <AppLockContext.Provider
       value={{
@@ -137,13 +234,6 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }}
     >
       {children}
-      {isLocked && appLockConfig.enabled && appLockConfig.hasPinConfigured && (
-        <AppLockScreen
-          config={appLockConfig}
-          onSuccess={unlockApp}
-          onRefreshConfig={refreshAppLockConfig}
-        />
-      )}
     </AppLockContext.Provider>
   );
 };
@@ -155,6 +245,7 @@ interface AppLockScreenProps {
   config: {
     pinLength: number;
     biometricEnabled: boolean;
+    biometricCredentialId?: string | null;
     isLockedOut: boolean;
     lockoutRemainingSeconds: number;
   };
@@ -197,11 +288,14 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
     return () => clearInterval(interval);
   }, [lockoutTimer, onRefreshConfig]);
 
-  // Attempt biometric on mount if enabled
+  // Biometric trigger handler (called directly by user gesture button or keypad)
   const triggerBiometricUnlock = useCallback(async () => {
     if (lockoutTimer > 0) return;
     try {
-      const result = await authenticateWithBiometric();
+      setVerifying(true);
+      setErrorMessage(null);
+
+      const result = await authenticateWithBiometric(config.biometricCredentialId || undefined);
       if (result.success) {
         onSuccess();
       } else if (result.error && !result.error.includes('cancel')) {
@@ -209,18 +303,10 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
       }
     } catch (err: any) {
       console.warn('Biometric unlock attempt note:', err);
+    } finally {
+      setVerifying(false);
     }
-  }, [lockoutTimer, onSuccess]);
-
-  useEffect(() => {
-    if (config.biometricEnabled && lockoutTimer === 0) {
-      // Auto prompt after slight mount delay
-      const timer = setTimeout(() => {
-        triggerBiometricUnlock();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [config.biometricEnabled, lockoutTimer, triggerBiometricUnlock]);
+  }, [lockoutTimer, onSuccess, config.biometricCredentialId]);
 
   // Handle PIN digit press
   const handleDigitPress = (digit: string) => {
@@ -263,7 +349,6 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
       if (res.ok && data.valid) {
         onSuccess();
       } else {
-        // Trigger shake animation
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 500);
 
@@ -316,14 +401,14 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#141822] text-white flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
-      {/* Background Ambience */}
+    <div className="fixed inset-0 z-[99999] bg-[#0b0d11] text-white flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
+      {/* Background Subtle Luxury Ambience */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-[#B99A68]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#B99A68]/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Header */}
-      <div className="text-center pt-8 relative z-10">
-        <div className="w-16 h-16 rounded-3xl bg-[#262421] border border-[#B99A68]/40 shadow-2xl mx-auto flex items-center justify-center p-3 text-[#B99A68] mb-3">
+      <div className="text-center pt-6 relative z-10">
+        <div className="w-16 h-16 rounded-3xl bg-[#1c1915] border border-[#B99A68]/40 shadow-2xl mx-auto flex items-center justify-center p-3 text-[#B99A68] mb-3">
           <ShieldCheck className="w-8 h-8" />
         </div>
         <h2 className="text-lg font-serif font-bold text-white tracking-wide">
@@ -334,8 +419,23 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
         </p>
       </div>
 
-      {/* Center: PIN Dots & Errors */}
+      {/* Center: PIN Dots & Quick Biometric Trigger */}
       <div className="my-auto text-center space-y-4 relative z-10">
+        {/* Direct Biometric Unlock Action Bar */}
+        {config.biometricEnabled && lockoutTimer === 0 && (
+          <button
+            type="button"
+            onClick={triggerBiometricUnlock}
+            disabled={verifying}
+            className="mx-auto py-2.5 px-5 rounded-2xl bg-[#B99A68]/15 border border-[#B99A68]/40 hover:bg-[#B99A68]/25 active:scale-95 transition-all flex items-center justify-center gap-2.5 text-[#B99A68] shadow-md group disabled:opacity-50"
+          >
+            <div className="w-7 h-7 rounded-full bg-[#B99A68]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Fingerprint className="w-4 h-4 text-[#B99A68]" />
+            </div>
+            <span className="font-semibold text-xs tracking-wide">Touch Sensor to Unlock</span>
+          </button>
+        )}
+
         {/* Lockout Notice */}
         {lockoutTimer > 0 ? (
           <div className="p-3 bg-amber-950/80 border border-amber-500/40 rounded-2xl max-w-xs mx-auto text-amber-200 text-xs space-y-1 shadow-lg">
@@ -403,7 +503,7 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
           {config.biometricEnabled ? (
             <button
               type="button"
-              disabled={lockoutTimer > 0}
+              disabled={lockoutTimer > 0 || verifying}
               onClick={triggerBiometricUnlock}
               className="w-full aspect-square rounded-full bg-[#B99A68]/15 hover:bg-[#B99A68]/30 active:scale-95 text-[#B99A68] flex items-center justify-center border border-[#B99A68]/40 transition-all shadow-sm disabled:opacity-40"
               title="Authenticate with Fingerprint / Face ID"
@@ -509,4 +609,3 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
     </div>
   );
 };
-

@@ -9,6 +9,17 @@
  * 3. Only verifies cryptographic assertion signature.
  */
 
+function base64UrlToBuffer(base64Url: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // Check if device hardware and browser genuinely support platform biometrics
 export async function isBiometricSupported(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
@@ -64,6 +75,7 @@ export async function registerDeviceBiometric(
       authenticatorSelection: {
         authenticatorAttachment: 'platform', // Hardware device sensor (Fingerprint / Face ID)
         userVerification: 'required',
+        residentKey: 'preferred',
         requireResidentKey: false,
       },
       timeout: 60000,
@@ -86,6 +98,12 @@ export async function registerDeviceBiometric(
     }
     const credentialId = window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
+    // Synchronously remember credential ID on this device for instant zero-roundtrip biometric unlock
+    try {
+      localStorage.setItem('saad_app_lock_cred_id', credentialId);
+      localStorage.setItem('saad_app_lock_biometric', 'true');
+    } catch {}
+
     return {
       success: true,
       credentialId,
@@ -105,8 +123,10 @@ export async function registerDeviceBiometric(
   }
 }
 
-// Authenticate via device platform biometric sensor
-export async function authenticateWithBiometric(): Promise<{ success: boolean; error?: string }> {
+// Authenticate via device platform biometric sensor (Fingerprint / Face ID)
+export async function authenticateWithBiometric(
+  credentialId?: string
+): Promise<{ success: boolean; error?: string }> {
   if (typeof window === 'undefined' || !window.PublicKeyCredential) {
     return {
       success: false,
@@ -115,6 +135,13 @@ export async function authenticateWithBiometric(): Promise<{ success: boolean; e
   }
 
   try {
+    let credId = credentialId;
+    if (!credId && typeof window !== 'undefined') {
+      try {
+        credId = localStorage.getItem('saad_app_lock_cred_id') || undefined;
+      } catch {}
+    }
+
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
 
@@ -124,6 +151,21 @@ export async function authenticateWithBiometric(): Promise<{ success: boolean; e
       userVerification: 'required', // Triggers Face ID / Touch ID / Android BiometricPrompt
       timeout: 60000,
     };
+
+    if (credId) {
+      try {
+        const credBuffer = base64UrlToBuffer(credId);
+        publicKeyOptions.allowCredentials = [
+          {
+            id: credBuffer as unknown as BufferSource,
+            type: 'public-key',
+            transports: ['internal'],
+          },
+        ];
+      } catch (bufErr) {
+        console.warn('Credential buffer conversion note:', bufErr);
+      }
+    }
 
     const assertion = await navigator.credentials.get({
       publicKey: publicKeyOptions,

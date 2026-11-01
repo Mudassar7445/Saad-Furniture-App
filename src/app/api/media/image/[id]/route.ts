@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, initializeDatabase } from '@/lib/db';
-import { mediaFiles } from '@/lib/db/schema';
+import { mediaFiles, workshopMedia } from '@/lib/db/schema';
 import { getValidAccessToken, isDriveConnected } from '@/lib/storage/google-drive';
 import { eq, or } from 'drizzle-orm';
 
@@ -14,8 +14,8 @@ interface CachedImage {
 
 // In-memory LRU-style image buffer cache for ultra-fast CDN/serverless delivery (<1ms)
 const imageMemoryCache = new Map<string, CachedImage>();
-const MAX_CACHE_SIZE = 120;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_CACHE_SIZE = 150;
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export async function GET(
   request: Request,
@@ -45,40 +45,6 @@ export async function GET(
       });
     }
 
-    await initializeDatabase();
-
-    // Look up by media id or google_drive_file_id
-    const [media] = await db
-      .select()
-      .from(mediaFiles)
-      .where(or(eq(mediaFiles.id, id), eq(mediaFiles.googleDriveFileId, id)))
-      .limit(1);
-
-    if (!media) {
-      return new NextResponse('Image not found', { status: 404 });
-    }
-
-    // 1. Data URL / Base64 binary
-    const dataCandidate = media.thumbnailUrl?.startsWith('data:')
-      ? media.thumbnailUrl
-      : media.webContentLink?.startsWith('data:')
-      ? media.webContentLink
-      : null;
-
-    if (dataCandidate) {
-      const [metaPart, base64Part] = dataCandidate.split(';base64,');
-      const mime = metaPart.replace('data:', '') || media.mimeType || 'image/jpeg';
-      const buffer = Buffer.from(base64Part, 'base64');
-
-      return new NextResponse(new Uint8Array(buffer), {
-        headers: {
-          'Content-Type': mime,
-          'Content-Length': buffer.length.toString(),
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      });
-    }
-
     // Helper to store into memory cache safely
     const cacheAndReturn = (buffer: Buffer, mime: string) => {
       if (imageMemoryCache.size >= MAX_CACHE_SIZE) {
@@ -101,67 +67,128 @@ export async function GET(
       });
     };
 
-    // 2. Google Drive File ID — Ultra-fast thumbnail vs High-res binary
-    if (media.googleDriveFileId && !media.googleDriveFileId.startsWith('local_')) {
-      try {
-        // FAST THUMBNAIL PATH: When ?full is not requested, fetch Google's optimized compressed thumbnail (sz=w800)
-        // This drops network payload from 15MB down to ~80KB, loading in <50ms instead of 4 seconds
-        if (!isFull) {
-          try {
-            const thumbUrl = `https://drive.google.com/thumbnail?id=${media.googleDriveFileId}&sz=w800`;
-            const thumbRes = await fetch(thumbUrl, { next: { revalidate: 86400 } });
-            if (thumbRes.ok) {
-              const arrayBuffer = await thumbRes.arrayBuffer();
-              const buffer = Buffer.from(arrayBuffer);
-              if (buffer.length > 500) {
-                return cacheAndReturn(buffer, thumbRes.headers.get('content-type') || 'image/jpeg');
-              }
-            }
-          } catch (thumbErr) {
-            console.warn('Fast Google Drive thumbnail fetch fallback:', thumbErr);
-          }
-        }
+    await initializeDatabase();
 
-        // FULL IMAGE PATH OR AUTHENTICATED DIRECT DOWNLOAD
+    // 1. Look up by media id or google_drive_file_id in mediaFiles
+    const [media] = await db
+      .select()
+      .from(mediaFiles)
+      .where(or(eq(mediaFiles.id, id), eq(mediaFiles.googleDriveFileId, id)))
+      .limit(1);
+
+    if (media) {
+      // Data URL / Base64 binary
+      const dataCandidate = media.thumbnailUrl?.startsWith('data:')
+        ? media.thumbnailUrl
+        : media.webContentLink?.startsWith('data:')
+        ? media.webContentLink
+        : null;
+
+      if (dataCandidate) {
+        const [metaPart, base64Part] = dataCandidate.split(';base64,');
+        const mime = metaPart.replace('data:', '') || media.mimeType || 'image/jpeg';
+        const buffer = Buffer.from(base64Part, 'base64');
+        return cacheAndReturn(buffer, mime);
+      }
+
+      // Google Drive file ID
+      if (media.googleDriveFileId && !media.googleDriveFileId.startsWith('local_')) {
         const driveConnected = await isDriveConnected();
         if (driveConnected) {
+          try {
+            const token = await getValidAccessToken();
+            const driveRes = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${media.googleDriveFileId}?alt=media`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (driveRes.ok) {
+              const arrayBuffer = await driveRes.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              return cacheAndReturn(buffer, driveRes.headers.get('content-type') || media.mimeType || 'image/jpeg');
+            }
+          } catch (e) {
+            console.warn('Media file drive fetch warning:', e);
+          }
+        }
+      }
+
+      const remoteUrl = media.thumbnailUrl || media.webContentLink || media.webViewLink;
+      if (remoteUrl && (remoteUrl.startsWith('http://') || remoteUrl.startsWith('https://'))) {
+        try {
+          const upstream = await fetch(remoteUrl);
+          if (upstream.ok) {
+            const upstreamBuffer = Buffer.from(await upstream.arrayBuffer());
+            const mime = upstream.headers.get('content-type') || media.mimeType || 'image/jpeg';
+            return cacheAndReturn(upstreamBuffer, mime);
+          }
+        } catch {
+          return NextResponse.redirect(remoteUrl, 307);
+        }
+      }
+    }
+
+    // 2. Look up in workshopMedia
+    const [wsMedia] = await db
+      .select()
+      .from(workshopMedia)
+      .where(or(eq(workshopMedia.id, id), eq(workshopMedia.googleDriveFileId, id)))
+      .limit(1);
+
+    if (wsMedia) {
+      if (wsMedia.thumbnailUrl && wsMedia.thumbnailUrl.startsWith('data:image/')) {
+        const [metaPart, base64Part] = wsMedia.thumbnailUrl.split(';base64,');
+        const mime = metaPart.replace('data:', '') || 'image/webp';
+        const buffer = Buffer.from(base64Part, 'base64');
+        return cacheAndReturn(buffer, mime);
+      }
+
+      // Check if workshop media has an extracted thumbnail drive ID
+      const thumbDriveMatch = wsMedia.thumbnailUrl?.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      const targetDriveId = thumbDriveMatch ? thumbDriveMatch[1] : wsMedia.googleDriveFileId;
+
+      if (targetDriveId && !targetDriveId.startsWith('local_')) {
+        const driveConnected = await isDriveConnected();
+        if (driveConnected) {
+          try {
+            const token = await getValidAccessToken();
+            const driveRes = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${targetDriveId}?alt=media`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (driveRes.ok) {
+              const arrayBuffer = await driveRes.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              return cacheAndReturn(buffer, driveRes.headers.get('content-type') || 'image/webp');
+            }
+          } catch (e) {
+            console.warn('Workshop drive image fetch warning:', e);
+          }
+        }
+      }
+    }
+
+    // 3. Direct Google Drive File ID (e.g. thumb_... Drive ID passed directly)
+    if (/^[a-zA-Z0-9_-]{20,}$/.test(id)) {
+      const driveConnected = await isDriveConnected();
+      if (driveConnected) {
+        try {
           const token = await getValidAccessToken();
           const driveRes = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${media.googleDriveFileId}?alt=media`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
+            `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-
           if (driveRes.ok) {
             const arrayBuffer = await driveRes.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
-            return cacheAndReturn(buffer, media.mimeType || 'image/jpeg');
+            return cacheAndReturn(buffer, driveRes.headers.get('content-type') || 'image/webp');
           }
+        } catch (e) {
+          console.warn('Direct Google Drive file ID fetch error:', e);
         }
-      } catch (driveErr) {
-        console.warn('Google Drive direct fetch error, falling back:', driveErr);
       }
     }
 
-    // 3. Remote URL Redirect or Proxy
-    const remoteUrl = media.thumbnailUrl || media.webContentLink || media.webViewLink;
-    if (remoteUrl && (remoteUrl.startsWith('http://') || remoteUrl.startsWith('https://'))) {
-      try {
-        const upstream = await fetch(remoteUrl);
-        if (upstream.ok) {
-          const upstreamBuffer = Buffer.from(await upstream.arrayBuffer());
-          const mime = upstream.headers.get('content-type') || media.mimeType || 'image/jpeg';
-          return cacheAndReturn(upstreamBuffer, mime);
-        }
-      } catch {
-        return NextResponse.redirect(remoteUrl, 307);
-      }
-    }
-
-    return new NextResponse('Media content unavailable', { status: 404 });
+    return new NextResponse('Image not found', { status: 404 });
   } catch (err: any) {
     console.error('Image proxy route error:', err);
     return new NextResponse('Internal server error', { status: 500 });

@@ -37,7 +37,7 @@ export async function captureVideoThumbnail(
   return new Promise((resolve) => {
     try {
       const video = document.createElement('video');
-      video.preload = 'metadata';
+      video.preload = 'auto';
       video.muted = true;
       video.playsInline = true;
 
@@ -54,13 +54,19 @@ export async function captureVideoThumbnail(
       const timer = setTimeout(() => {
         cleanup();
         resolve(null);
-      }, 4000); // 4 second safety timeout
+      }, 6000); // 6 second safety timeout
 
-      video.onloadeddata = () => {
-        // Seek to 1 second or 10% into video to avoid black introductory frames
-        const seekTime = Math.min(1.0, video.duration > 2 ? video.duration * 0.1 : 0.5);
+      let hasSeeked = false;
+      const doSeek = () => {
+        if (hasSeeked) return;
+        hasSeeked = true;
+        const dur = video.duration && !isNaN(video.duration) ? video.duration : 2;
+        const seekTime = Math.min(1.5, Math.max(0.5, dur * 0.15));
         video.currentTime = seekTime;
       };
+
+      video.onloadedmetadata = doSeek;
+      video.onloadeddata = doSeek;
 
       video.onseeked = () => {
         clearTimeout(timer);
@@ -90,7 +96,15 @@ export async function captureVideoThumbnail(
                 });
                 resolve(thumbFile);
               } else {
-                resolve(null);
+                // Fallback to JPEG if WebP encoding unsupported
+                canvas.toBlob((jpegBlob) => {
+                  if (jpegBlob) {
+                    const cleanName = videoFile.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+                    resolve(new File([jpegBlob], `thumb_${cleanName}.jpg`, { type: 'image/jpeg' }));
+                  } else {
+                    resolve(null);
+                  }
+                }, 'image/jpeg', 0.85);
               }
             },
             'image/webp',
@@ -107,6 +121,8 @@ export async function captureVideoThumbnail(
         cleanup();
         resolve(null);
       };
+
+      video.load();
     } catch {
       resolve(null);
     }
@@ -129,6 +145,14 @@ export function getSafeThumbnailUrl(
 ): string {
   const raw = item.thumbnailUrl?.trim();
 
+  // If raw points to a Google Drive web viewer or direct file link, transform to local authenticated image route
+  if (raw && raw.includes('drive.google.com')) {
+    const driveMatch = raw.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch) {
+      return `/api/media/image/${driveMatch[1]}`;
+    }
+  }
+
   // If already a valid safe image URL
   if (
     raw &&
@@ -139,15 +163,6 @@ export function getSafeThumbnailUrl(
     !raw.endsWith('.avi')
   ) {
     return raw;
-  }
-
-  // If has a Google Drive File ID, use fast Google CDN thumbnail
-  if (
-    item.googleDriveFileId &&
-    !item.googleDriveFileId.startsWith('local_') &&
-    !item.googleDriveFileId.startsWith('gdrive_vault_')
-  ) {
-    return `https://drive.google.com/thumbnail?id=${item.googleDriveFileId}&sz=w800`;
   }
 
   // Dedicated thumbnail route if item id is available

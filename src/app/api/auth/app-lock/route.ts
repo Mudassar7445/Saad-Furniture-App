@@ -51,6 +51,7 @@ export async function GET() {
       enabled: Boolean(record.isEnabled),
       pinLength: record.pinLength || 4,
       biometricEnabled: Boolean(record.biometricEnabled),
+      biometricCredentialId: record.biometricCredentialId || null,
       autoLockMinutes: record.autoLockMinutes ?? 1,
       hasPinConfigured: Boolean(record.pinHash),
       isLockedOut,

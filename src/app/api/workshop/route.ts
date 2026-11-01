@@ -52,8 +52,18 @@ export async function GET(request: Request) {
     const lightweightMedia = mediaList.map((item) => {
       const fallbackThumb = WORKSHOP_CATEGORY_THUMBNAILS[item.category] || WORKSHOP_CATEGORY_THUMBNAILS.workshop_tour;
       
-      // Ensure thumbnailUrl is strictly an image URL, never a video or stream route
+      // Ensure thumbnailUrl is strictly a clean image URL, never a web viewer page or video stream
       let safeThumbnail = item.thumbnailUrl?.trim();
+
+      // Transform Google Drive viewer URLs into local high-performance image route
+      if (safeThumbnail) {
+        const driveFileMatch = safeThumbnail.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+          safeThumbnail.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (driveFileMatch) {
+          safeThumbnail = `/api/media/image/${driveFileMatch[1]}`;
+        }
+      }
+
       if (!safeThumbnail || safeThumbnail.includes('/stream/') || safeThumbnail.endsWith('.mp4')) {
         safeThumbnail = item.mediaType === 'photo' && item.url && !item.url.includes('/stream/')
           ? item.url

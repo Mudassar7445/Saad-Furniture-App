@@ -98,13 +98,13 @@ export async function POST(req: NextRequest) {
           const thumbBuffer = Buffer.from(thumbArrayBuffer);
           const thumbResult = await uploadBufferToDrive({
             buffer: thumbBuffer,
-            filename: `thumb_${safeFilename}.jpg`,
-            mimeType: thumbnailFile.type || 'image/jpeg',
+            filename: `thumb_${safeFilename}.webp`,
+            mimeType: thumbnailFile.type || 'image/webp',
             pathSegments: ['SAAD FURNITURE', 'WORKSHOP MEDIA', 'THUMBNAILS'],
             description: `Thumbnail for ${title}`,
           });
           thumbnailDriveId = thumbResult.id;
-          finalThumbnailUrl = thumbResult.webViewLink || `https://drive.google.com/uc?id=${thumbResult.id}&export=download`;
+          finalThumbnailUrl = `/api/media/image/${thumbResult.id}`;
         } catch (thumbErr) {
           console.warn('Failed to upload thumbnail to Google Drive:', thumbErr);
         }
@@ -117,19 +117,15 @@ export async function POST(req: NextRequest) {
 
       if (thumbnailFile) {
         const thumbArrayBuffer = await thumbnailFile.arrayBuffer();
-        finalThumbnailUrl = `data:${thumbnailFile.type || 'image/jpeg'};base64,${Buffer.from(thumbArrayBuffer).toString('base64')}`;
+        finalThumbnailUrl = `data:${thumbnailFile.type || 'image/webp'};base64,${Buffer.from(thumbArrayBuffer).toString('base64')}`;
       }
     }
 
-    // Default thumbnail for photos is the image itself, for videos use Google CDN or fallback
+    // Default thumbnail for photos is the image itself, for videos use dedicated internal thumbnail endpoint
     if (mediaType === 'photo' && !finalThumbnailUrl) {
       finalThumbnailUrl = rawMediaUrl;
     } else if (mediaType === 'video' && !finalThumbnailUrl) {
-      if (driveFileId && !driveFileId.startsWith('local_')) {
-        finalThumbnailUrl = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w800`;
-      } else {
-        finalThumbnailUrl = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
-      }
+      finalThumbnailUrl = `/api/media/thumbnail/${workshopId}`;
     }
 
     // Stream URL route for smooth 206 Partial Content video delivery

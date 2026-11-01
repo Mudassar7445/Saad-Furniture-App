@@ -57,6 +57,7 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
   const [activeMediaItem, setActiveMediaItem] = useState<any | null>(null);
   const [videoPlaybackError, setVideoPlaybackError] = useState(false);
   const [videoIsBuffering, setVideoIsBuffering] = useState(true);
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const fetchMedia = async () => {
     const isCacheFresh = workshopScreenCache && Date.now() - workshopScreenCacheTime < 180000;
@@ -222,6 +223,7 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                 onClick={() => {
                   setVideoPlaybackError(false);
                   setVideoIsBuffering(true);
+                  setVideoDimensions(null);
                   setActiveMediaItem(item);
                 }}
                 className="bg-white rounded-2xl border border-[#EAE2D6] overflow-hidden shadow-sm flex flex-col justify-between cursor-pointer group active:scale-[0.98] transition-transform"
@@ -313,11 +315,19 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
 
           {/* Media Viewport */}
           <div
-            className="flex-1 flex items-center justify-center my-4"
+            className="flex-1 flex items-center justify-center my-4 w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {activeMediaItem.mediaType === 'video' ? (
-              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/10">
+              <div
+                className="bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/10 mx-auto transition-all duration-300"
+                style={{
+                  aspectRatio: videoDimensions ? `${videoDimensions.width} / ${videoDimensions.height}` : '16 / 9',
+                  maxHeight: '75vh',
+                  maxWidth: videoDimensions && videoDimensions.width < videoDimensions.height ? '340px' : '680px',
+                  width: '100%',
+                }}
+              >
                 {videoIsBuffering && !videoPlaybackError && (
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 pointer-events-none gap-2">
                     <div className="w-7 h-7 border-2 border-[#B99A68] border-t-transparent rounded-full animate-spin" />
@@ -344,6 +354,12 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                     autoPlay
                     playsInline
                     preload="metadata"
+                    onLoadedMetadata={(e) => {
+                      const { videoWidth, videoHeight } = e.currentTarget;
+                      if (videoWidth && videoHeight) {
+                        setVideoDimensions({ width: videoWidth, height: videoHeight });
+                      }
+                    }}
                     onWaiting={() => setVideoIsBuffering(true)}
                     onCanPlay={() => setVideoIsBuffering(false)}
                     onError={() => {

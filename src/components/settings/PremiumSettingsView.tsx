@@ -262,6 +262,10 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
         setNewPin('');
         setConfirmPin('');
         setLockEnabled(true);
+        try {
+          localStorage.setItem('saad_app_lock_enabled', 'true');
+          localStorage.setItem('saad_app_lock_pin_length', String(pinLength));
+        } catch {}
         await refreshAppLockConfig();
       } else {
         showToast('error', data.error || 'Failed to configure PIN');
@@ -314,6 +318,22 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
   const updateLockPreferences = async (fields: Record<string, any>) => {
     try {
       setUpdatingLock(true);
+      // Synchronously write to localStorage to prevent any frame-0 flash
+      try {
+        if (fields.isEnabled !== undefined) {
+          localStorage.setItem('saad_app_lock_enabled', fields.isEnabled ? 'true' : 'false');
+        }
+        if (fields.biometricEnabled !== undefined) {
+          localStorage.setItem('saad_app_lock_biometric', fields.biometricEnabled ? 'true' : 'false');
+        }
+        if (fields.biometricCredentialId !== undefined) {
+          localStorage.setItem('saad_app_lock_cred_id', fields.biometricCredentialId);
+        }
+        if (fields.autoLockMinutes !== undefined) {
+          localStorage.setItem('saad_app_lock_autolock', String(fields.autoLockMinutes));
+        }
+      } catch {}
+
       const res = await fetch('/api/auth/app-lock', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

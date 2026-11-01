@@ -56,6 +56,7 @@ export const AdminWorkshopModule: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
+  const [previewDimensions, setPreviewDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Dedicated Replace Media Modal
   const [replacingItem, setReplacingItem] = useState<any | null>(null);
@@ -487,6 +488,25 @@ export const AdminWorkshopModule: React.FC = () => {
     }
   };
 
+  const [repairingThumbnails, setRepairingThumbnails] = useState(false);
+  const handleRepairThumbnails = async () => {
+    try {
+      setRepairingThumbnails(true);
+      const res = await fetch('/api/workshop/repair-thumbnails', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('success', data.message || 'All workshop video thumbnails verified and repaired.');
+        await fetchMedia();
+      } else {
+        showToast('error', data.error || 'Failed to repair thumbnails.');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Error repairing thumbnails.');
+    } finally {
+      setRepairingThumbnails(false);
+    }
+  };
+
   // Filtered List
   const filteredList = mediaList.filter((item) => {
     if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
@@ -544,9 +564,22 @@ export const AdminWorkshopModule: React.FC = () => {
           </p>
         </div>
 
-        <Button variant="gold" size="sm" onClick={openCreateModal} className="font-bold">
-          <Plus className="w-4 h-4 mr-1.5" /> Add Workshop Media
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRepairThumbnails}
+            disabled={repairingThumbnails}
+            className="text-xs border-white/20 text-slate-300 hover:text-white"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${repairingThumbnails ? 'animate-spin' : ''}`} />
+            {repairingThumbnails ? 'Verifying...' : 'Repair Thumbnails'}
+          </Button>
+
+          <Button variant="gold" size="sm" onClick={openCreateModal} className="font-bold">
+            <Plus className="w-4 h-4 mr-1.5" /> Add Workshop Media
+          </Button>
+        </div>
       </div>
 
       {/* 2. Metrics Bar */}
@@ -745,7 +778,10 @@ export const AdminWorkshopModule: React.FC = () => {
                   {isVideo && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <div
-                        onClick={() => setPreviewItem(item)}
+                        onClick={() => {
+                          setPreviewDimensions(null);
+                          setPreviewItem(item);
+                        }}
                         className="w-10 h-10 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-lg hover:scale-110 cursor-pointer transition-transform"
                       >
                         <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -827,7 +863,10 @@ export const AdminWorkshopModule: React.FC = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setPreviewItem(item)}
+                        onClick={() => {
+                          setPreviewDimensions(null);
+                          setPreviewItem(item);
+                        }}
                         className="h-7 w-7 p-0"
                         title="Preview Media"
                       >
@@ -1344,15 +1383,29 @@ export const AdminWorkshopModule: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex-1 flex items-center justify-center my-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-1 flex items-center justify-center my-4 w-full" onClick={(e) => e.stopPropagation()}>
             {previewItem.mediaType === 'video' ? (
-              <div className="w-full max-w-2xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
+              <div
+                className="bg-black rounded-2xl overflow-hidden shadow-2xl mx-auto transition-all duration-300"
+                style={{
+                  aspectRatio: previewDimensions ? `${previewDimensions.width} / ${previewDimensions.height}` : '16 / 9',
+                  maxHeight: '75vh',
+                  maxWidth: previewDimensions && previewDimensions.width < previewDimensions.height ? '360px' : '720px',
+                  width: '100%',
+                }}
+              >
                 <video
                   src={previewItem.url}
                   controls
                   autoPlay
                   playsInline
                   preload="auto"
+                  onLoadedMetadata={(e) => {
+                    const { videoWidth, videoHeight } = e.currentTarget;
+                    if (videoWidth && videoHeight) {
+                      setPreviewDimensions({ width: videoWidth, height: videoHeight });
+                    }
+                  }}
                   className="w-full h-full object-contain"
                 />
               </div>
