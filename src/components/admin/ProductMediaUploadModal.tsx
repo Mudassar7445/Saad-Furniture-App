@@ -25,6 +25,7 @@ export const PRODUCT_CATEGORIES = [
   'Sofas',
   'Double Beds',
   'Single Beds',
+  'Dining Tables',
   'Wardrobes',
   'Center Tables',
   'Mattresses',

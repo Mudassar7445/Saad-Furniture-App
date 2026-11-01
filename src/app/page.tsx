@@ -440,12 +440,13 @@ export default function ShowroomHomePage() {
     }
   };
 
-  // 8 Specified Furniture Categories
+  // Specified Furniture Categories
   const categories = [
     'All',
     'Sofas',
     'Double Beds',
     'Single Beds',
+    'Dining Tables',
     'Wardrobes',
     'Center Tables',
     'Mattresses',

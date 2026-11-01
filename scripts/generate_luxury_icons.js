@@ -329,3 +329,4 @@ buildAllIcons().catch((err) => {
   console.error('Error generating icons:', err);
   process.exit(1);
 });
+

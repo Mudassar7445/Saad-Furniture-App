@@ -70,6 +70,75 @@ export async function initializeDatabase() {
             updated_at TEXT NOT NULL
           );
         `).catch(() => null);
+
+        // Ensure reliable notification outbox table exists
+        await client.execute(`
+          CREATE TABLE IF NOT EXISTS notification_events (
+            id TEXT PRIMARY KEY,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            url TEXT NOT NULL DEFAULT '/',
+            icon TEXT DEFAULT '/assets/branding/app-dp.png',
+            badge TEXT DEFAULT '/assets/branding/notification-icon.svg',
+            target_user_id TEXT NOT NULL DEFAULT 'all',
+            category TEXT NOT NULL DEFAULT 'announcements',
+            related_id TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            attempts INTEGER NOT NULL DEFAULT 0,
+            max_attempts INTEGER NOT NULL DEFAULT 3,
+            last_error TEXT,
+            sent_count INTEGER NOT NULL DEFAULT 0,
+            failed_count INTEGER NOT NULL DEFAULT 0,
+            scheduled_at TEXT NOT NULL,
+            completed_at TEXT,
+            created_at TEXT NOT NULL
+          );
+        `).catch(() => null);
+
+        // Ensure push_subscriptions table exists
+        await client.execute(`
+          CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            fcm_token TEXT,
+            subscription_json TEXT,
+            endpoint TEXT,
+            p256dh TEXT,
+            auth TEXT,
+            device_type TEXT NOT NULL DEFAULT 'android',
+            created_at TEXT NOT NULL
+          );
+        `).catch(() => null);
+
+        // Ensure notification_preferences columns exist
+        await client.execute(`
+          CREATE TABLE IF NOT EXISTS notification_preferences (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL UNIQUE,
+            email_notifications INTEGER NOT NULL DEFAULT 1,
+            sms_notifications INTEGER NOT NULL DEFAULT 1,
+            push_notifications INTEGER NOT NULL DEFAULT 1,
+            new_products INTEGER NOT NULL DEFAULT 1,
+            product_updates INTEGER NOT NULL DEFAULT 1,
+            workshop_updates INTEGER NOT NULL DEFAULT 1,
+            order_progress INTEGER NOT NULL DEFAULT 1,
+            announcements INTEGER NOT NULL DEFAULT 1,
+            marketing_opt_in INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL
+          );
+        `).catch(() => null);
+
+        const prefAlters = [
+          "ALTER TABLE notification_preferences ADD COLUMN new_products INTEGER NOT NULL DEFAULT 1",
+          "ALTER TABLE notification_preferences ADD COLUMN product_updates INTEGER NOT NULL DEFAULT 1",
+          "ALTER TABLE notification_preferences ADD COLUMN workshop_updates INTEGER NOT NULL DEFAULT 1",
+          "ALTER TABLE notification_preferences ADD COLUMN order_progress INTEGER NOT NULL DEFAULT 1",
+          "ALTER TABLE notification_preferences ADD COLUMN announcements INTEGER NOT NULL DEFAULT 1"
+        ];
+        for (const pa of prefAlters) {
+          try { await client.execute(pa); } catch {}
+        }
         isInitialized = true;
         return;
       }

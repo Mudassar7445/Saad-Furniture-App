@@ -112,6 +112,47 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
   const [notifPayments, setNotifPayments] = useState(true);
   const [testingPush, setTestingPush] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/notifications/preferences')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.preferences) {
+          setNotifOrderProgress(Boolean(d.preferences.notifOrders));
+          setNotifWorkshopVideos(Boolean(d.preferences.notifWorkshop));
+          setNotifNewProducts(Boolean(d.preferences.notifProducts));
+          setNotifPayments(Boolean(d.preferences.notifAnnouncements));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleTogglePreference = async (
+    type: 'orders' | 'workshop' | 'products' | 'announcements',
+    currentVal: boolean
+  ) => {
+    const newVal = !currentVal;
+    if (type === 'orders') setNotifOrderProgress(newVal);
+    if (type === 'workshop') setNotifWorkshopVideos(newVal);
+    if (type === 'products') setNotifNewProducts(newVal);
+    if (type === 'announcements') setNotifPayments(newVal);
+
+    try {
+      await fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notifOrders: type === 'orders' ? newVal : notifOrderProgress,
+          notifWorkshop: type === 'workshop' ? newVal : notifWorkshopVideos,
+          notifProducts: type === 'products' ? newVal : notifNewProducts,
+          notifAnnouncements: type === 'announcements' ? newVal : notifPayments,
+        }),
+      });
+      showToast('success', 'Notification preferences saved');
+    } catch {
+      showToast('error', 'Failed to update preferences');
+    }
+  };
+
   // --- Global Theme & Language Hooks ---
   const { theme: appTheme, setTheme: setAppTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -1055,13 +1096,14 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className={`text-xs font-bold ${textHeading} block`}>Order Progress Milestones</span>
-                <span className={`text-[10px] ${textMuted} block`}>Alerts when your piece moves between 11 stages</span>
+                <span className={`text-[10px] ${textMuted} block`}>Real-time updates as your bespoke furniture advances through production stages</span>
               </div>
               <input
                 type="checkbox"
+                aria-label="Toggle Order Progress Milestones notifications"
                 checked={notifOrderProgress}
-                onChange={() => setNotifOrderProgress(!notifOrderProgress)}
-                className="w-4 h-4 accent-[#B99A68]"
+                onChange={() => handleTogglePreference('orders', notifOrderProgress)}
+                className="w-4 h-4 accent-[#B99A68] cursor-pointer"
               />
             </div>
 
@@ -1069,13 +1111,14 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className={`text-xs font-bold ${textHeading} block`}>Workshop Crafting Videos</span>
-                <span className={`text-[10px] ${textMuted} block`}>Alerts when master carvers upload HD footage</span>
+                <span className={`text-[10px] ${textMuted} block`}>Alerts when master woodcarvers and artisans upload workshop footage</span>
               </div>
               <input
                 type="checkbox"
+                aria-label="Toggle Workshop Crafting Videos notifications"
                 checked={notifWorkshopVideos}
-                onChange={() => setNotifWorkshopVideos(!notifWorkshopVideos)}
-                className="w-4 h-4 accent-[#B99A68]"
+                onChange={() => handleTogglePreference('workshop', notifWorkshopVideos)}
+                className="w-4 h-4 accent-[#B99A68] cursor-pointer"
               />
             </div>
 
@@ -1083,27 +1126,29 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className={`text-xs font-bold ${textHeading} block`}>New Furniture Catalogues</span>
-                <span className={`text-[10px] ${textMuted} block`}>Exclusive architectural showcases</span>
+                <span className={`text-[10px] ${textMuted} block`}>Exclusive showcases and newly unveiled bespoke designs</span>
               </div>
               <input
                 type="checkbox"
+                aria-label="Toggle New Furniture Catalogues notifications"
                 checked={notifNewProducts}
-                onChange={() => setNotifNewProducts(!notifNewProducts)}
-                className="w-4 h-4 accent-[#B99A68]"
+                onChange={() => handleTogglePreference('products', notifNewProducts)}
+                className="w-4 h-4 accent-[#B99A68] cursor-pointer"
               />
             </div>
 
-            {/* Payments */}
+            {/* Announcements */}
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className={`text-xs font-bold ${textHeading} block`}>Verified Payment Receipts</span>
-                <span className={`text-[10px] ${textMuted} block`}>Instant confirmations of bank transfers and advances</span>
+                <span className={`text-xs font-bold ${textHeading} block`}>Showroom Announcements & Offers</span>
+                <span className={`text-[10px] ${textMuted} block`}>Important atelier updates, seasonal offers, and direct concierge notifications</span>
               </div>
               <input
                 type="checkbox"
+                aria-label="Toggle Showroom Announcements and Offers notifications"
                 checked={notifPayments}
-                onChange={() => setNotifPayments(!notifPayments)}
-                className="w-4 h-4 accent-[#B99A68]"
+                onChange={() => handleTogglePreference('announcements', notifPayments)}
+                className="w-4 h-4 accent-[#B99A68] cursor-pointer"
               />
             </div>
 

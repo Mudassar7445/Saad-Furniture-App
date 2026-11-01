@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
 import { products, mediaFiles, auditLogs } from '@/lib/db/schema';
 import { eq, or } from 'drizzle-orm';
+import { queueNotificationEvent } from '@/lib/services/webpush';
 
 export async function GET(
   request: Request,
@@ -87,6 +88,20 @@ export async function PUT(
     ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
     createdAt: new Date().toISOString(),
   });
+
+  if (body.title || body.price || body.discountPrice || body.featuredImage) {
+    queueNotificationEvent({
+      type: 'product_update',
+      title: '🏷️ Catalog Update: ' + (body.title || 'Collection Update'),
+      message: body.discountPrice
+        ? `Special promotional pricing now available for ${body.title || 'this piece'}.`
+        : `Details have been updated for ${body.title || 'this handcrafted piece'}.`,
+      category: 'products',
+      targetUserId: 'all',
+      url: `/?product=${id}`,
+      relatedId: id,
+    }).catch((err) => console.error('Failed to queue product update notification:', err));
+  }
 
   return NextResponse.json({ success: true, message: 'Product updated.' });
 }

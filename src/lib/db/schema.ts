@@ -277,8 +277,36 @@ export const notificationPreferences = sqliteTable('notification_preferences', {
   emailNotifications: integer('email_notifications').notNull().default(1),
   smsNotifications: integer('sms_notifications').notNull().default(1),
   pushNotifications: integer('push_notifications').notNull().default(1),
+  newProducts: integer('new_products').notNull().default(1),
+  productUpdates: integer('product_updates').notNull().default(1),
+  workshopUpdates: integer('workshop_updates').notNull().default(1),
+  orderProgress: integer('order_progress').notNull().default(1),
+  announcements: integer('announcements').notNull().default(1),
   marketingOptIn: integer('marketing_opt_in').notNull().default(1),
   updatedAt: text('updated_at').notNull(),
+});
+
+// 13B. Reliable Server-Side Push Notification Outbox & Events Table
+export const notificationEvents = sqliteTable('notification_events', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(), // 'new_product' | 'product_update' | 'workshop_update' | 'order_progress' | 'order_status' | 'announcement'
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  url: text('url').notNull().default('/'),
+  icon: text('icon').default('/assets/branding/app-dp.png'),
+  badge: text('badge').default('/assets/branding/notification-icon.svg'),
+  targetUserId: text('target_user_id').notNull().default('all'), // 'all' or specific user_id
+  category: text('category').notNull().default('announcements'), // 'products' | 'workshop' | 'orders' | 'announcements'
+  relatedId: text('related_id'),
+  status: text('status').notNull().default('pending'), // 'pending' | 'processing' | 'completed' | 'failed'
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  lastError: text('last_error'),
+  sentCount: integer('sent_count').notNull().default(0),
+  failedCount: integer('failed_count').notNull().default(0),
+  scheduledAt: text('scheduled_at').notNull(),
+  completedAt: text('completed_at'),
+  createdAt: text('created_at').notNull(),
 });
 
 // 14. Push Subscriptions Table (Web Push & FCM)
@@ -671,6 +699,9 @@ export type CustomerLedger = typeof customerLedger.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type NotificationEvent = typeof notificationEvents.$inferSelect;
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type ShoppingCart = typeof shoppingCarts.$inferSelect;
 export type CartItem = typeof cartItems.$inferSelect;
 export type Wishlist = typeof wishlists.$inferSelect;

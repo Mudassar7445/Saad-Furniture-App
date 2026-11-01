@@ -1,5 +1,5 @@
 // Service Worker for Saad Furniture PWA & Mobile Web Push Notifications
-const CACHE_NAME = 'saad-furniture-v3';
+const CACHE_NAME = 'saad-furniture-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -38,9 +38,11 @@ self.addEventListener('push', (event) => {
     body: data.body || data.message,
     icon: data.icon || '/assets/branding/app-dp.png',
     badge: data.badge || '/assets/branding/notification-icon.svg',
+    image: data.image || undefined,
     vibrate: [200, 100, 200, 100, 250],
-    tag: data.tag || 'saad-notification',
+    tag: data.tag || `saad-${Date.now()}`,
     renotify: true,
+    requireInteraction: false,
     data: {
       url: data.url || '/',
       timestamp: Date.now(),

@@ -54,6 +54,7 @@ import { AdminSaleCodesModule } from '@/components/admin/AdminSaleCodesModule';
 import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBuilderModal';
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
+import { AdminNotificationsModule } from '@/components/admin/AdminNotificationsModule';
 import { PremiumSettingsView } from '@/components/settings/PremiumSettingsView';
 
 export const FURNITURE_PRODUCTION_STAGES = [
@@ -1717,34 +1718,7 @@ export default function SuperAdminDashboard() {
 
         {/* 6. MODULE: NOTIFICATION & ANNOUNCEMENTS */}
         {activeModule === 'notifications' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-serif font-bold text-white">Client Notifications & Broadcast Announcements</h2>
-                <p className="text-xs text-slate-400">
-                  Send targeted push notifications to individual patrons or blast announcements to all customers
-                </p>
-              </div>
-              <Button
-                variant="gold"
-                size="sm"
-                onClick={() => {
-                  setNotifForm({ targetUserId: 'all', title: '', message: '', type: 'announcement' });
-                  setShowSendNotification(true);
-                }}
-              >
-                <Send className="w-4 h-4 mr-1.5" />
-                New Announcement
-              </Button>
-            </div>
-
-            <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 space-y-4">
-              <h3 className="text-sm font-bold text-white font-serif">Notification Dispatch Rules</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                When an announcement is dispatched, it is automatically synchronized across the customer dashboard, in-app notification center, and dispatched via Google Firebase Cloud Messaging (FCM) to subscribed patrons.
-              </p>
-            </div>
-          </div>
+          <AdminNotificationsModule />
         )}
 
 

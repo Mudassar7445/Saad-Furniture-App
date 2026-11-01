@@ -4,6 +4,7 @@ import { db, initializeDatabase } from '@/lib/db';
 import { products, auditLogs, wishlists } from '@/lib/db/schema';
 import { seedDatabase } from '@/lib/db/seed';
 import { desc, eq, sql } from 'drizzle-orm';
+import { queueNotificationEvent } from '@/lib/services/webpush';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // 60s ISR / Edge cache
@@ -191,6 +192,16 @@ export async function POST(request: Request) {
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
+
+    // Notify subscribed patrons about new furniture piece
+    queueNotificationEvent({
+      type: 'new_product',
+      title: '✨ New Masterpiece: ' + title,
+      message: `Saad Furniture has unveiled a new ${category} creation. Tap to explore details.`,
+      category: 'products',
+      targetUserId: 'all',
+      url: `/?product=${productId}`,
+    }).catch((err) => console.error('Failed to queue new product push notification:', err));
 
     productsCache.clear();
     return NextResponse.json({ success: true, productId, sku });
