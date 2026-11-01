@@ -116,15 +116,24 @@ export const AdminWorkshopModule: React.FC = () => {
 
     try {
       setUploading(true);
-      setUploadProgress(`Uploading ${file.name} to Cloud Vault...`);
+      setUploadProgress(`Uploading ${file.name} to Google Drive Workshop Vault...`);
       setErrorMsg(null);
+
+      const isVideo = file.type.startsWith('video/');
+      const detectedType = isVideo ? 'video' : 'photo';
+      setMediaType(detectedType);
 
       const formData = new FormData();
       formData.append('file', file);
       formData.append('category', category);
-      formData.append('title', title || file.name);
+      formData.append('title', title.trim() || file.name.replace(/\.[^/.]+$/, ''));
+      formData.append('description', description);
+      formData.append('mediaType', detectedType);
+      formData.append('isFeatured', isFeatured ? '1' : '0');
+      formData.append('displayOrder', displayOrder);
+      if (videoDuration) formData.append('videoDuration', videoDuration);
 
-      const res = await fetch('/api/admin/google-drive/upload', {
+      const res = await fetch('/api/workshop/upload', {
         method: 'POST',
         body: formData,
       });
@@ -135,21 +144,17 @@ export const AdminWorkshopModule: React.FC = () => {
       }
 
       const media = data.media;
-      const fileUrl = media.url || media.proxyUrl || media.viewUrl;
-      setUrl(fileUrl);
-      if (media.driveFileId) setGoogleDriveFileId(media.driveFileId);
-
-      if (file.type.startsWith('video/')) {
-        setMediaType('video');
-      } else {
-        setMediaType('photo');
-        setThumbnailUrl(fileUrl);
-      }
+      setEditingItem(media);
+      setUrl(media.url || media.streamUrl || `/api/workshop/stream/${media.id}`);
+      if (media.googleDriveFileId) setGoogleDriveFileId(media.googleDriveFileId);
+      if (!title.trim()) setTitle(media.title);
+      if (media.thumbnailUrl) setThumbnailUrl(media.thumbnailUrl);
+      setUploadProgress('Successfully uploaded to Google Drive!');
     } catch (err: any) {
       setErrorMsg(err.message || 'Upload error');
     } finally {
       setUploading(false);
-      setUploadProgress('');
+      setTimeout(() => setUploadProgress(''), 3000);
       e.target.value = '';
     }
   };
@@ -606,7 +611,7 @@ export const AdminWorkshopModule: React.FC = () => {
                 <span className="text-[10px] font-semibold text-slate-400 block">Attachment Preview</span>
                 <div className="aspect-video bg-black rounded-xl overflow-hidden max-w-sm mx-auto border border-white/10">
                   {mediaType === 'video' ? (
-                    <video src={url} controls className="w-full h-full object-contain" />
+                    <video src={url} controls playsInline preload="metadata" className="w-full h-full object-contain" />
                   ) : (
                     <img src={url} alt="Preview" className="w-full h-full object-cover" />
                   )}
@@ -700,7 +705,14 @@ export const AdminWorkshopModule: React.FC = () => {
           <div className="flex-1 flex items-center justify-center my-4" onClick={(e) => e.stopPropagation()}>
             {previewItem.mediaType === 'video' ? (
               <div className="w-full max-w-2xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-                <video src={previewItem.url} controls autoPlay className="w-full h-full object-contain" />
+                <video
+                  src={previewItem.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="auto"
+                  className="w-full h-full object-contain"
+                />
               </div>
             ) : (
               <div className="max-w-2xl max-h-[75vh] rounded-2xl overflow-hidden shadow-2xl">

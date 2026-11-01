@@ -279,10 +279,11 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
             {activeMediaItem.mediaType === 'video' ? (
               <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
                 <video
-                  src={activeMediaItem.url}
+                  src={activeMediaItem.streamUrl || activeMediaItem.url}
                   controls
                   autoPlay
                   playsInline
+                  preload="auto"
                   className="w-full h-full object-contain"
                 />
               </div>

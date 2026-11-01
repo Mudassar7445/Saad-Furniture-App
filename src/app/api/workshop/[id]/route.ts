@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, initializeDatabase } from '@/lib/db';
 import { workshopMedia, auditLogs } from '@/lib/db/schema';
 import { getSessionUser } from '@/lib/auth/jwt';
+import { deleteDriveFile } from '@/lib/storage/google-drive';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
@@ -30,7 +31,14 @@ export async function GET(
         .where(eq(workshopMedia.id, id));
     } catch {}
 
-    return NextResponse.json({ success: true, media });
+    const result = {
+      ...media,
+      streamUrl: media.mediaType === 'video' ? `/api/workshop/stream/${media.id}` : undefined,
+      url: media.mediaType === 'video' ? `/api/workshop/stream/${media.id}` : media.url,
+      rawUrl: media.url,
+    };
+
+    return NextResponse.json({ success: true, media: result });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Error' }, { status: 500 });
   }
@@ -98,6 +106,21 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    const [existing] = await db
+      .select()
+      .from(workshopMedia)
+      .where(eq(workshopMedia.id, id))
+      .limit(1);
+
+    if (existing?.googleDriveFileId) {
+      try {
+        await deleteDriveFile(existing.googleDriveFileId);
+      } catch (err) {
+        console.warn('Could not delete file from Google Drive:', err);
+      }
+    }
+
     await db.delete(workshopMedia).where(eq(workshopMedia.id, id));
 
     await db.insert(auditLogs).values({

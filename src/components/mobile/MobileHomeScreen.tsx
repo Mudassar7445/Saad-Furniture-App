@@ -29,12 +29,13 @@ import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface MobileHomeScreenProps {
   products: any[];
+  currentUser?: any;
   onSelectCategory: (cat: string) => void;
   onOpenProductDetail: (product: any) => void;
   onAddToCart: (product: any) => void;
   wishlistIds: Set<string>;
   onToggleWishlist: (productId: string) => void;
-  onOpenTracking: () => void;
+  onOpenTracking: (orderNumber?: string) => void;
   onOpenShop: () => void;
   onOpenDocuments?: () => void;
   onOpenWorkshop?: () => void;
@@ -42,6 +43,7 @@ interface MobileHomeScreenProps {
 
 export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   products,
+  currentUser,
   onSelectCategory,
   onOpenProductDetail,
   onAddToCart,
@@ -54,9 +56,25 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
 }) => {
   const { settings } = useShopSettings();
   const [quickOrderInput, setQuickOrderInput] = useState('');
+  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [selectedOrderIdx, setSelectedOrderIdx] = useState(0);
   const [workshopMediaList, setWorkshopMediaList] = useState<any[]>([]);
   const [loadingWorkshop, setLoadingWorkshop] = useState(false);
   const [activeVideoModal, setActiveVideoModal] = useState<any | null>(null);
+
+  // Fetch active customer orders
+  useEffect(() => {
+    if (currentUser) {
+      fetch('/api/orders')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.orders && Array.isArray(data.orders)) {
+            setUserOrders(data.orders);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentUser]);
 
   // Fetch workshop showcase media
   useEffect(() => {
@@ -112,6 +130,11 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
     );
   };
 
+  const activeOrders = userOrders.filter(
+    (o) => o.orderStatus !== 'delivered' && o.orderStatus !== 'cancelled'
+  );
+  const displayOrder = activeOrders[selectedOrderIdx] || activeOrders[0] || userOrders[0];
+
   return (
     <div className="space-y-6 pb-6">
       {/* 1. HERO PROMOTIONAL BANNER */}
@@ -145,6 +168,135 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 2. ORDER TRACKING SECTION (PROMINENT TOP POSITION) */}
+      <div className="px-4">
+        <div className="rounded-3xl bg-[#262421] text-[#F7F5F0] p-4 sm:p-5 space-y-3.5 shadow-xl border border-[#B99A68]/40 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#B99A68]/20 text-[#B99A68] flex items-center justify-center shrink-0 border border-[#B99A68]/30">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  Live Order Milestone Tracker
+                </h3>
+                <span className="text-[10px] text-[#B99A68] font-medium block">
+                  11-Stage Artisan Workshop Monitor
+                </span>
+              </div>
+            </div>
+
+            {displayOrder && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#B99A68]/20 text-[#B99A68] border border-[#B99A68]/30">
+                Active Commission
+              </span>
+            )}
+          </div>
+
+          {/* ACTIVE ORDER CARD IF AVAILABLE */}
+          {displayOrder ? (
+            <div className="p-3.5 rounded-2xl bg-[#191816] border border-white/5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[9px] text-slate-400 block uppercase">Order ID</span>
+                  <span className="font-mono font-bold text-white text-xs block">
+                    #{displayOrder.orderNumber}
+                  </span>
+                  <p className="text-[11px] text-slate-300 font-semibold truncate max-w-[200px] mt-0.5">
+                    {displayOrder.productName || 'Custom Furniture Suite'}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[9px] text-slate-400 block uppercase">Estimated Delivery</span>
+                  <span className="text-xs font-bold text-[#B99A68] block">
+                    {displayOrder.expectedCompletionDate || displayOrder.estimatedDeliveryDate || 'In Artisan Craft'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-slate-400">
+                    Stage: <strong className="text-white capitalize">{displayOrder.productionStage?.replace(/_/g, ' ') || 'Order Confirmed'}</strong>
+                  </span>
+                  <span className="font-mono font-bold text-[#B99A68]">
+                    {displayOrder.productionProgress || 20}% Complete
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden relative">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#8C734B] via-[#B99A68] to-[#E5CAA2] rounded-full transition-all duration-500 shadow-sm"
+                    style={{ width: `${Math.max(10, displayOrder.productionProgress || 20)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Multi-Order Switcher if user has multiple active orders */}
+              {activeOrders.length > 1 && (
+                <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar">
+                  <span className="text-[9px] text-slate-400 uppercase mr-1">Switch:</span>
+                  {activeOrders.map((ord, idx) => (
+                    <button
+                      key={ord.id}
+                      type="button"
+                      onClick={() => setSelectedOrderIdx(idx)}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-mono shrink-0 transition-colors ${
+                        (selectedOrderIdx === idx || (!selectedOrderIdx && idx === 0))
+                          ? 'bg-[#B99A68] text-slate-950 font-bold'
+                          : 'bg-slate-900 text-slate-400 border border-white/5'
+                      }`}
+                    >
+                      #{ord.orderNumber?.slice(-6) || idx + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-1 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400">
+                  Status: <strong className="text-emerald-400 capitalize">{displayOrder.orderStatus?.replace(/_/g, ' ')}</strong>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenTracking(displayOrder.orderNumber)}
+                  className="px-3 py-1.5 rounded-xl bg-[#B99A68] hover:bg-[#a68856] text-slate-950 text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
+                >
+                  <span>Track Full Dossier</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Guest / Quick Search Box */
+            <div className="space-y-2">
+              <p className="text-[11px] text-[#EAE2D6] leading-relaxed">
+                Enter your official Saad Furniture Order ID to view real-time woodworking, foam shaping, polishing, and white-glove delivery milestones.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={quickOrderInput}
+                  onChange={(e) => setQuickOrderInput(e.target.value)}
+                  placeholder="Order Number (e.g. SF-ONL-101)..."
+                  className="flex-1 px-3 py-2 text-xs bg-[#191816] border border-[#B99A68]/40 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                />
+                <button
+                  type="button"
+                  onClick={() => onOpenTracking(quickOrderInput.trim() || undefined)}
+                  className="px-4 py-2 rounded-xl bg-[#B99A68] hover:bg-[#a68856] text-[#262421] text-xs font-black shadow-sm transition-colors flex items-center gap-1"
+                >
+                  <span>Track</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -423,39 +575,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 5. QUICK TRACK ORDER CARD */}
-      <div className="px-4">
-        <div className="rounded-3xl bg-[#262421] text-[#F7F5F0] p-5 space-y-3 shadow-md border border-[#B99A68]/30">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#B99A68]/20 text-[#B99A68] flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#F7F5F0]">Track Your Order Progress</h4>
-              <span className="text-[10px] text-[#EAE2D6]">Live 11-Stage Workshop Milestone Monitor</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={quickOrderInput}
-              onChange={(e) => setQuickOrderInput(e.target.value)}
-              placeholder="Order Number (e.g. SF-2026-101)..."
-              className="flex-1 px-3 py-2 text-xs bg-[#191816] border border-[#B99A68]/40 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
-            />
-            <button
-              type="button"
-              onClick={onOpenTracking}
-              className="px-3.5 py-2 rounded-xl bg-[#B99A68] text-[#262421] text-xs font-black shadow-sm"
-            >
-              Track
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. BEST SELLERS CAROUSEL */}
+      {/* 5. BEST SELLERS CAROUSEL */}
       <div className="space-y-2.5">
         <div className="px-4 flex items-center justify-between">
           <div>
@@ -597,10 +717,11 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
             {activeVideoModal.mediaType === 'video' ? (
               <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
                 <video
-                  src={activeVideoModal.url}
+                  src={activeVideoModal.streamUrl || activeVideoModal.url}
                   controls
                   autoPlay
                   playsInline
+                  preload="auto"
                   className="w-full h-full object-contain"
                 />
               </div>

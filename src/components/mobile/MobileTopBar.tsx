@@ -59,36 +59,8 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         </div>
       </div>
 
-      {/* Action Icons: Dedicated Workshop & Top Inbox Button */}
+      {/* Action Icons: Notification (Bell), Search, Wishlist, Cart */}
       <div className="flex items-center gap-1">
-        {onOpenWorkshop && (
-          <button
-            type="button"
-            onClick={onOpenWorkshop}
-            className="px-2 py-1 rounded-full bg-[#B99A68]/15 border border-[#B99A68]/40 text-[#262421] text-[10px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs"
-            title="Inside Our Workshop"
-          >
-            <Film className="w-3.5 h-3.5 text-[#B99A68]" />
-            <span className="hidden sm:inline">Workshop</span>
-          </button>
-        )}
-
-        {onOpenInbox && (
-          <button
-            type="button"
-            onClick={onOpenInbox}
-            className="relative p-2 rounded-full text-[#262421] hover:bg-[#EAE2D6]/60 transition-colors"
-            title="Messages & Inbox"
-          >
-            <Bell className="w-4 h-4 stroke-[2.2]" />
-            {unreadInboxCount > 0 && (
-              <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#B99A68] text-[#262421] text-[8px] font-black flex items-center justify-center shadow-xs">
-                {unreadInboxCount}
-              </span>
-            )}
-          </button>
-        )}
-
         <button
           type="button"
           onClick={onSearchClick}
@@ -111,6 +83,22 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
             </span>
           )}
         </button>
+
+        {onOpenInbox && (
+          <button
+            type="button"
+            onClick={onOpenInbox}
+            className="relative p-1.5 rounded-full text-[#262421] hover:bg-[#EAE2D6]/60 transition-colors"
+            title="Notifications & Updates"
+          >
+            <Bell className="w-4 h-4 stroke-[2.2]" />
+            {unreadInboxCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-3.5 px-0.5 rounded-full bg-[#B99A68] text-[#262421] text-[8px] font-black flex items-center justify-center border border-white shadow-xs">
+                {unreadInboxCount > 9 ? '9+' : unreadInboxCount}
+              </span>
+            )}
+          </button>
+        )}
 
         <button
           type="button"

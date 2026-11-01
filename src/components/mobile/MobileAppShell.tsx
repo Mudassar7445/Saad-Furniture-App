@@ -118,12 +118,33 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'home' && (
           <MobileHomeScreen
             products={products}
+            currentUser={currentUser}
             onSelectCategory={(cat: string) => handleOpenShop(cat)}
             onOpenProductDetail={(p: any) => setSelectedProduct(p)}
             onAddToCart={(p: any) => onAddToCart(p)}
             wishlistIds={wishlistProductIds}
             onToggleWishlist={onToggleWishlist}
-            onOpenTracking={() => setActiveTab('orders')}
+            onOpenTracking={async (orderNum?: string) => {
+              if (orderNum) {
+                try {
+                  const res = await fetch('/api/orders');
+                  if (res.ok) {
+                    const data = await res.json();
+                    const allOrders: any[] = data.orders || [];
+                    const found = allOrders.find(
+                      (o: any) =>
+                        o.orderNumber?.toLowerCase() === orderNum.toLowerCase() ||
+                        o.id?.toLowerCase() === orderNum.toLowerCase()
+                    );
+                    if (found) {
+                      setQuickTrackOrder(found);
+                      return;
+                    }
+                  }
+                } catch {}
+              }
+              setActiveTab('orders');
+            }}
             onOpenShop={() => handleOpenShop('All')}
             onOpenDocuments={() => setActiveTab('documents')}
             onOpenWorkshop={() => setActiveTab('workshop')}
@@ -162,6 +183,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             currentUser={currentUser}
             onOpenAuth={() => handleOpenAuth('notifications')}
             onNavigateToOrders={() => setActiveTab('orders')}
+            onUpdateUnreadCount={(count: number) => setUnreadNotificationsCount(count)}
           />
         )}
 

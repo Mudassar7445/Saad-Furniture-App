@@ -23,7 +23,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'shop' as MobileTab, label: 'Shop', icon: ShoppingBag, badge: cartCount },
     { id: 'workshop' as MobileTab, label: 'Workshop', icon: Film },
     { id: 'orders' as MobileTab, label: 'Orders', icon: Clock },
-    { id: 'notifications' as MobileTab, label: 'Inbox', icon: Bell, badge: unreadNotificationsCount },
+    { id: 'profile' as MobileTab, label: 'Profile', icon: User },
   ];
 
   return (

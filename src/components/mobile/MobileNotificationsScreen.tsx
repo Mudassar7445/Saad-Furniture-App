@@ -20,12 +20,14 @@ interface MobileNotificationsScreenProps {
   currentUser: any | null;
   onOpenAuth: () => void;
   onNavigateToOrders?: () => void;
+  onUpdateUnreadCount?: (count: number) => void;
 }
 
 export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps> = ({
   currentUser,
   onOpenAuth,
   onNavigateToOrders,
+  onUpdateUnreadCount,
 }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,27 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
       const res = await fetch('/api/notifications');
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const list = data.notifications || [];
+        setNotifications(list);
+
+        // Automatically mark displayed notifications as read in the database
+        const unreadList = list.filter((n: any) => !n.isRead);
+        if (unreadList.length > 0) {
+          try {
+            await fetch('/api/notifications', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            // Update local state and tell parent shell to remove unread badge immediately
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: 1 })));
+            if (onUpdateUnreadCount) onUpdateUnreadCount(0);
+          } catch (patchErr) {
+            console.error('Failed to auto-mark notifications read', patchErr);
+          }
+        } else {
+          if (onUpdateUnreadCount) onUpdateUnreadCount(0);
+        }
       }
     } catch (err) {
       console.error('Failed to load notifications', err);
@@ -54,10 +76,32 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
     }
   };
 
+  const markSingleAsRead = async (notificationId: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notificationId }),
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, isRead: 1 } : n))
+      );
+      const remainingUnread = notifications.filter((n) => n.id !== notificationId && !n.isRead).length;
+      if (onUpdateUnreadCount) onUpdateUnreadCount(remainingUnread);
+    } catch (err) {
+      console.error('Failed to mark notification read', err);
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
-      await fetch('/api/notifications/read-all', { method: 'POST' });
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: 1 })));
+      if (onUpdateUnreadCount) onUpdateUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark notifications read', err);
     }
@@ -164,7 +208,10 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
             return (
               <div
                 key={n.id}
-                onClick={onNavigateToOrders}
+                onClick={() => {
+                  markSingleAsRead(n.id);
+                  if (onNavigateToOrders) onNavigateToOrders();
+                }}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex gap-3 items-start ${
                   n.isRead
                     ? 'bg-white border-[#EAE2D6]'

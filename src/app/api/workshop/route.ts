@@ -36,10 +36,23 @@ export async function GET(request: Request) {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(workshopMedia.displayOrder), desc(workshopMedia.createdAt));
 
+    const mappedList = mediaList.map((item) => {
+      if (item.mediaType === 'video') {
+        const streamUrl = `/api/workshop/stream/${item.id}`;
+        return {
+          ...item,
+          rawUrl: item.url,
+          streamUrl,
+          url: streamUrl,
+        };
+      }
+      return item;
+    });
+
     return NextResponse.json({
       success: true,
-      media: mediaList,
-      total: mediaList.length,
+      media: mappedList,
+      total: mappedList.length,
     });
   } catch (error: any) {
     console.error('Workshop media fetch error:', error);

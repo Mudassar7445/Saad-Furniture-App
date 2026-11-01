@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { notifications, auditLogs } from '@/lib/db/schema';
 import { fcmService } from '@/lib/services/fcm';
-import { eq, or, desc } from 'drizzle-orm';
+import { eq, or, and, desc } from 'drizzle-orm';
 
 export async function GET() {
   const sessionUser = await getSessionUser();
@@ -72,15 +72,46 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { id } = body;
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { id } = body;
 
-  if (id) {
-    await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.id, id));
-  } else {
-    await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.userId, sessionUser.id));
+    if (id) {
+      await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.id, id));
+    } else {
+      await db
+        .update(notifications)
+        .set({ isRead: 1 })
+        .where(
+          sessionUser.role === 'super_admin'
+            ? undefined
+            : or(eq(notifications.userId, sessionUser.id), eq(notifications.userId, 'all'))
+        );
+    }
+
+    // Return the updated unread count
+    let remainingUnread: any[] = [];
+    if (sessionUser.role === 'super_admin') {
+      remainingUnread = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.isRead, 0));
+    } else {
+      remainingUnread = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            or(eq(notifications.userId, sessionUser.id), eq(notifications.userId, 'all')),
+            eq(notifications.isRead, 0)
+          )
+        );
+    }
+
+    return NextResponse.json({ success: true, unreadCount: remainingUnread.length });
+  } catch (error: any) {
+    console.error('Update notification read status error:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to update read status' }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
 

@@ -770,6 +770,14 @@ export function getFolderPathSegments(category?: string, mimeType?: string): str
   const cat = (category || '').trim();
   const mime = (mimeType || '').toLowerCase();
 
+  // Dedicated Workshop Media folder hierarchy: SAAD FURNITURE / WORKSHOP MEDIA / (VIDEOS | PHOTOS)
+  if (cat.toLowerCase().includes('workshop')) {
+    if (mime.startsWith('video/')) {
+      return ['SAAD FURNITURE', 'WORKSHOP MEDIA', 'VIDEOS'];
+    }
+    return ['SAAD FURNITURE', 'WORKSHOP MEDIA', 'PHOTOS'];
+  }
+
   if (mime.startsWith('video/')) {
     return [ROOT_FOLDER_NAME, 'Product Videos'];
   }
@@ -805,7 +813,8 @@ export function getFolderPathSegments(category?: string, mimeType?: string): str
  * Ensure full hierarchical folder structure in Google Drive
  */
 export async function ensureDriveHierarchy(pathSegments: string[]): Promise<string> {
-  const rootId = await ensureFolderWithToken(ROOT_FOLDER_NAME);
+  const rootName = pathSegments[0] || ROOT_FOLDER_NAME;
+  const rootId = await ensureFolderWithToken(rootName);
 
   let currentParentId = rootId;
   for (let i = 1; i < pathSegments.length; i++) {
