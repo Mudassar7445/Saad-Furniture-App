@@ -96,61 +96,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
 
-  // Touch & Drag Gesture state for smooth sliding
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isHorizontalGesture = useRef<boolean | null>(null);
+  // Dedicated Native Scroll Snap Container Ref
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setActiveImageIdx(0);
-    setDragOffset(0);
-    setIsDragging(false);
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = 0;
+    }
   }, [product?.id]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    isHorizontalGesture.current = null;
-    setIsDragging(true);
-    setDragOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffX = currentX - touchStartX.current;
-    const diffY = currentY - (touchStartY.current ?? currentY);
-
-    if (isHorizontalGesture.current === null) {
-      if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
-        isHorizontalGesture.current = Math.abs(diffX) > Math.abs(diffY);
-      }
-    }
-
-    if (isHorizontalGesture.current) {
-      const isAtStart = activeImageIdx === 0 && diffX > 0;
-      const isAtEnd = activeImageIdx === imageList.length - 1 && diffX < 0;
-      setDragOffset(isAtStart || isAtEnd ? diffX * 0.3 : diffX);
+  const scrollToImage = (idx: number) => {
+    const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
+    setActiveImageIdx(targetIdx);
+    if (scrollRef.current) {
+      const width = scrollRef.current.clientWidth;
+      scrollRef.current.scrollTo({
+        left: targetIdx * width,
+        behavior: 'smooth',
+      });
     }
   };
 
-  const handleTouchEnd = () => {
-    if (touchStartX.current !== null && isHorizontalGesture.current) {
-      const threshold = 40;
-      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
-        setActiveImageIdx((prev) => prev + 1);
-      } else if (dragOffset > threshold && activeImageIdx > 0) {
-        setActiveImageIdx((prev) => prev - 1);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const newIdx = Math.round(container.scrollLeft / width);
+      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
+        setActiveImageIdx(newIdx);
       }
     }
-    touchStartX.current = null;
-    touchStartY.current = null;
-    isHorizontalGesture.current = null;
-    setDragOffset(0);
-    setIsDragging(false);
   };
 
   const effectivePrice =
@@ -191,25 +167,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-100">
         {/* Left: Product Images Gallery */}
         <div className="space-y-3">
-          <div
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-            className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none"
-            style={{ touchAction: 'pan-y' }}
-          >
-            {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
+          {/* Main Image Slider with Native 120Hz Hardware Scroll Snap */}
+          <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none">
             <div
-              className="w-full h-full flex"
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar select-none"
               style={{
-                transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
-                transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1)',
-                willChange: 'transform',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehaviorX: 'contain',
               }}
             >
               {imageList.map((imgUrl, idx) => (
-                <div key={idx} className="min-w-full w-full h-full flex-shrink-0 relative">
+                <div
+                  key={idx}
+                  className="min-w-full w-full h-full flex-shrink-0 snap-center snap-always relative"
+                  style={{
+                    scrollSnapAlign: 'center',
+                    scrollSnapStop: 'always',
+                  }}
+                >
                   <img
                     src={imgUrl}
                     alt={`${product.title} - ${idx + 1}`}
@@ -220,13 +198,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               ))}
             </div>
             {product.discountPrice && (
-              <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg">
+              <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg pointer-events-none">
                 Save ${(product.price - product.discountPrice).toLocaleString()}
               </span>
             )}
             <button
+              type="button"
               onClick={() => onToggleWishlist(product.id)}
-              className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors ${
+              className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors z-20 ${
                 isWishlisted
                   ? 'bg-rose-500 text-white'
                   : 'bg-black/50 text-slate-300 hover:text-white hover:bg-black/80'
@@ -243,9 +222,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveImageIdx((prev) => prev - 1);
+                      scrollToImage(activeImageIdx - 1);
                     }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-20 shadow-lg active:scale-95"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="w-5 h-5" />
@@ -257,9 +236,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveImageIdx((prev) => prev + 1);
+                      scrollToImage(activeImageIdx + 1);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-10 shadow-lg active:scale-95"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center transition-all z-20 shadow-lg active:scale-95"
                     aria-label="Next image"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -270,7 +249,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
             {/* Counter Badge */}
             {imageList.length > 1 && (
-              <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm pointer-events-none">
+              <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-20 shadow-sm pointer-events-none">
                 {activeImageIdx + 1} / {imageList.length}
               </div>
             )}
@@ -282,7 +261,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {imageList.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setActiveImageIdx(idx)}
+                  onClick={() => scrollToImage(idx)}
                   className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                     activeImageIdx === idx
                       ? 'border-[#c5a880] scale-95'

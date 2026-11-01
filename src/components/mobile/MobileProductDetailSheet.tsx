@@ -100,71 +100,40 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
-  // High-performance Touch & Gesture Drag State
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const startX = useRef<number | null>(null);
-  const startY = useRef<number | null>(null);
-  const isHorizontalMove = useRef<boolean | null>(null);
+  // Dedicated Native Scroll Snap Container Ref
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Reset to first image when viewing a new product
   useEffect(() => {
     setActiveImageIdx(0);
-    setDragOffset(0);
-    setIsDragging(false);
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = 0;
+    }
   }, [product?.id]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    startY.current = e.touches[0].clientY;
-    isHorizontalMove.current = null;
-    setIsDragging(true);
-    setDragOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startX.current === null) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const deltaX = currentX - startX.current;
-    const deltaY = currentY - (startY.current ?? currentY);
-
-    // Lock onto gesture direction after 6px of motion
-    if (isHorizontalMove.current === null) {
-      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
-        isHorizontalMove.current = Math.abs(deltaX) > Math.abs(deltaY);
-      }
-    }
-
-    if (isHorizontalMove.current) {
-      // Resistance at boundaries
-      const isAtStart = activeImageIdx === 0 && deltaX > 0;
-      const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
-      const resistedDelta = isAtStart || isAtEnd ? deltaX * 0.3 : deltaX;
-      setDragOffset(resistedDelta);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (startX.current !== null && isHorizontalMove.current) {
-      const threshold = 40; // minimum pixels to trigger slide
-      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
-        setActiveImageIdx((prev) => prev + 1);
-      } else if (dragOffset > threshold && activeImageIdx > 0) {
-        setActiveImageIdx((prev) => prev - 1);
-      }
-    }
-    startX.current = null;
-    startY.current = null;
-    isHorizontalMove.current = null;
-    setDragOffset(0);
-    setIsDragging(false);
-  };
-
+  // Keep scroll container in sync with active index (via dots or chevrons)
   const scrollToImage = (idx: number) => {
     const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
     setActiveImageIdx(targetIdx);
-    setDragOffset(0);
+    if (scrollRef.current) {
+      const containerWidth = scrollRef.current.clientWidth;
+      scrollRef.current.scrollTo({
+        left: targetIdx * containerWidth,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  // Real-time listener for native 120Hz finger swiping
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const newIdx = Math.round(container.scrollLeft / width);
+      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
+        setActiveImageIdx(newIdx);
+      }
+    }
   };
 
   const effectivePrice = product.discountPrice || product.price;
@@ -222,27 +191,26 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
       {/* Main Content */}
       <div className="flex-1 pb-28 space-y-4">
         {/* Full-bleed Swipeable Gallery */}
-        <div
-          className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none"
-          style={{ touchAction: 'pan-y' }}
-        >
-          {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
+        <div className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none">
+          {/* Native 120Hz Hardware-Accelerated Scroll Snap Carousel */}
           <div
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-            className="w-full h-full flex"
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar select-none"
             style={{
-              transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
-              transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1)',
-              willChange: 'transform',
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehaviorX: 'contain',
             }}
           >
             {imageList.map((imgUrl, idx) => (
               <div
                 key={idx}
-                className="min-w-full w-full h-full flex-shrink-0 relative bg-[#F7F5F0]"
+                className="min-w-full w-full h-full flex-shrink-0 snap-center snap-always relative bg-[#F7F5F0]"
+                style={{
+                  scrollSnapAlign: 'center',
+                  scrollSnapStop: 'always',
+                }}
               >
                 <img
                   src={imgUrl}
