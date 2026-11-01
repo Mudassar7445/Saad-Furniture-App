@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Home, ShoppingBag, Clock, User, Film } from 'lucide-react';
 
 export type MobileTab = 'home' | 'shop' | 'workshop' | 'orders' | 'notifications' | 'profile' | 'documents';
@@ -12,29 +12,29 @@ interface MobileBottomNavProps {
   cartCount?: number;
 }
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
+const TAB_CONFIGS = [
+  { id: 'home' as MobileTab, label: 'Home', icon: Home },
+  { id: 'shop' as MobileTab, label: 'Shop', icon: ShoppingBag, isCart: true },
+  { id: 'workshop' as MobileTab, label: 'Workshop', icon: Film },
+  { id: 'orders' as MobileTab, label: 'Orders', icon: Clock },
+  { id: 'profile' as MobileTab, label: 'Profile', icon: User, isProfile: true },
+];
+
+const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
   activeTab,
   onChangeTab,
   unreadNotificationsCount = 0,
   cartCount = 0,
 }) => {
-  const tabs = [
-    { id: 'home' as MobileTab, label: 'Home', icon: Home },
-    { id: 'shop' as MobileTab, label: 'Shop', icon: ShoppingBag, badge: cartCount },
-    { id: 'workshop' as MobileTab, label: 'Workshop', icon: Film },
-    { id: 'orders' as MobileTab, label: 'Orders', icon: Clock },
-    { id: 'profile' as MobileTab, label: 'Profile', icon: User, badge: unreadNotificationsCount },
-  ];
-
   const handleTabClick = (tabId: MobileTab) => {
-    // Provide subtle haptic feedback
+    // Subtle tactile haptic feedback
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
-        navigator.vibrate(10);
+        navigator.vibrate(8);
       } catch {}
     }
 
-    // If already on this tab, smoothly scroll to top without adding duplicate history
+    // Tapping active tab smoothly scrolls to top without creating duplicate history
     if (activeTab === tabId) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -47,15 +47,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     <nav
       role="navigation"
       aria-label="Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF]/95 dark:bg-[#131722]/95 backdrop-blur-xl border-t border-[#EAE2D6] dark:border-white/10 px-2 flex items-center justify-around shadow-[0_-8px_30px_rgba(38,36,33,0.08)] md:hidden transition-colors select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF]/98 dark:bg-[#131722]/98 backdrop-blur-xl border-t border-[#EAE2D6] dark:border-white/10 px-2 flex items-center justify-around shadow-[0_-8px_30px_rgba(0,0,0,0.1)] md:hidden transition-colors select-none transform-gpu"
       style={{
         paddingBottom: 'max(env(safe-area-inset-bottom, 10px), 10px)',
         height: 'calc(62px + max(env(safe-area-inset-bottom, 10px), 10px))',
       }}
     >
-      {tabs.map((tab) => {
+      {TAB_CONFIGS.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
+        const badgeCount = tab.isCart ? cartCount : tab.isProfile ? unreadNotificationsCount : 0;
 
         return (
           <button
@@ -71,7 +72,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               <div
                 className={`relative px-4 py-1.5 rounded-full transition-all duration-200 flex items-center justify-center ${
                   isActive
-                    ? 'bg-[#262421] dark:bg-[#B99A68] text-[#F7F5F0] dark:text-[#131722] shadow-[0_2px_12px_rgba(185,154,104,0.3)]'
+                    ? 'bg-[#262421] dark:bg-[#B99A68] text-[#F7F5F0] dark:text-[#131722] shadow-[0_2px_12px_rgba(185,154,104,0.35)]'
                     : 'text-[#89847C] hover:text-[#262421] dark:hover:text-[#F1F5F9]'
                 }`}
               >
@@ -82,10 +83,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 />
               </div>
 
-              {/* Luxury Badge (Cart count / Unread count) */}
-              {tab.badge && tab.badge > 0 ? (
-                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#B99A68] text-[#262421] text-[9px] font-black flex items-center justify-center border-2 border-[#FFFFFF] dark:border-[#131722] shadow-sm animate-pulse">
-                  {tab.badge > 9 ? '9+' : tab.badge}
+              {/* Luxury Badge without flickering */}
+              {badgeCount > 0 ? (
+                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#B99A68] text-[#262421] text-[9px] font-black flex items-center justify-center border-2 border-[#FFFFFF] dark:border-[#131722] shadow-sm">
+                  {badgeCount > 9 ? '9+' : badgeCount}
                 </span>
               ) : null}
             </div>
@@ -106,3 +107,5 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     </nav>
   );
 };
+
+export const MobileBottomNav = memo(MobileBottomNavComponent);

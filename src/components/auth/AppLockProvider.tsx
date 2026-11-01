@@ -191,11 +191,11 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
   if (!isClientReady) {
     return (
       <div className="fixed inset-0 z-[99999] bg-[#0b0d11] flex flex-col items-center justify-center text-center p-6 select-none">
-        <div className="w-16 h-16 rounded-3xl bg-[#1c1915] border border-[#B99A68]/40 shadow-2xl flex items-center justify-center text-[#B99A68] mb-4 animate-pulse">
-          <ShieldCheck className="w-8 h-8" />
+        <div className="w-20 h-20 rounded-3xl bg-[#161411] border border-[#B99A68]/50 shadow-2xl flex items-center justify-center p-3 text-[#B99A68] mb-4 shadow-[0_0_35px_rgba(185,154,104,0.2)] animate-pulse">
+          <img src="/assets/branding/app-dp.svg?v=3" alt="Saad Furniture" className="w-full h-full object-contain" />
         </div>
-        <h1 className="font-serif font-bold text-lg text-white tracking-wider">Saad Furniture Atelier</h1>
-        <p className="text-[11px] text-[#B99A68] tracking-widest uppercase mt-1">Securing Private Atelier Session...</p>
+        <h1 className="font-serif font-black text-xl text-white tracking-wider">Saad Furniture</h1>
+        <p className="text-[11px] text-[#B99A68] tracking-widest uppercase mt-1.5 font-semibold">Securing Private Atelier Session...</p>
       </div>
     );
   }
@@ -308,10 +308,39 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
     }
   }, [lockoutTimer, onSuccess, config.biometricCredentialId]);
 
+  // Gentle auto-prompt for supported biometrics on initial mount
+  useEffect(() => {
+    if (config.biometricEnabled && lockoutTimer === 0) {
+      const timer = setTimeout(() => {
+        triggerBiometricUnlock();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [config.biometricEnabled, lockoutTimer, triggerBiometricUnlock]);
+
+  // Keypad letters mapping like iOS/Android banking apps
+  const keypadData = [
+    { num: '1', letters: '' },
+    { num: '2', letters: 'ABC' },
+    { num: '3', letters: 'DEF' },
+    { num: '4', letters: 'GHI' },
+    { num: '5', letters: 'JKL' },
+    { num: '6', letters: 'MNO' },
+    { num: '7', letters: 'PQRS' },
+    { num: '8', letters: 'TUV' },
+    { num: '9', letters: 'WXYZ' },
+  ];
+
   // Handle PIN digit press
   const handleDigitPress = (digit: string) => {
     if (verifying || lockoutTimer > 0) return;
     setErrorMessage(null);
+
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(8);
+      } catch {}
+    }
 
     setPin((prev) => {
       if (prev.length >= pinLength) return prev;
@@ -326,6 +355,11 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
   const handleBackspace = () => {
     if (verifying || lockoutTimer > 0) return;
     setErrorMessage(null);
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(8);
+      } catch {}
+    }
     setPin((prev) => prev.slice(0, -1));
   };
 
@@ -401,44 +435,56 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-[#0b0d11] text-white flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
-      {/* Background Subtle Luxury Ambience */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-[#B99A68]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#B99A68]/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 z-[99999] bg-[#0b0d11] text-white flex flex-col justify-between px-6 py-8 select-none animate-in fade-in duration-300">
+      {/* Background Subtle Luxury Furniture Ambience */}
+      <div className="absolute inset-0 bg-radial from-[#181613] via-[#0e1014] to-[#07080b] pointer-events-none" />
+      <div className="absolute top-10 right-10 w-80 h-80 bg-[#B99A68]/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-80 h-80 bg-[#B99A68]/8 rounded-full blur-[90px] pointer-events-none" />
 
-      {/* Top Header */}
-      <div className="text-center pt-6 relative z-10">
-        <div className="w-16 h-16 rounded-3xl bg-[#1c1915] border border-[#B99A68]/40 shadow-2xl mx-auto flex items-center justify-center p-3 text-[#B99A68] mb-3">
-          <ShieldCheck className="w-8 h-8" />
+      {/* 1. Top Header: Saad Furniture Crest + Welcome Back + Subtitle */}
+      <div className="text-center pt-2 relative z-10">
+        <div className="w-16 h-16 mx-auto mb-3 drop-shadow-[0_8px_24px_rgba(212,175,55,0.35)]">
+          <img
+            src="/assets/branding/app-dp.svg?v=3"
+            alt="Saad Furniture"
+            className="w-full h-full object-contain"
+          />
         </div>
-        <h2 className="text-lg font-serif font-bold text-white tracking-wide">
-          Saad Furniture Private Atelier
-        </h2>
-        <p className="text-xs text-[#B99A68] font-medium tracking-wider uppercase mt-1">
-          {lockoutTimer > 0 ? 'Authentication Paused' : 'Enter Security PIN to Unlock'}
+
+        <h1 className="text-2xl font-serif font-black text-white tracking-tight">
+          Welcome Back
+        </h1>
+
+        <p className="text-[11px] text-[#B99A68] font-semibold tracking-widest uppercase mt-1">
+          Your privacy is protected
         </p>
       </div>
 
-      {/* Center: PIN Dots & Quick Biometric Trigger */}
-      <div className="my-auto text-center space-y-4 relative z-10">
-        {/* Direct Biometric Unlock Action Bar */}
+      {/* 2. Center: Large Biometric Unlock Area + PIN Indicators */}
+      <div className="my-auto text-center space-y-5 relative z-10">
+        {/* Large Elegant Biometric Fingerprint Area */}
         {config.biometricEnabled && lockoutTimer === 0 && (
-          <button
-            type="button"
-            onClick={triggerBiometricUnlock}
-            disabled={verifying}
-            className="mx-auto py-2.5 px-5 rounded-2xl bg-[#B99A68]/15 border border-[#B99A68]/40 hover:bg-[#B99A68]/25 active:scale-95 transition-all flex items-center justify-center gap-2.5 text-[#B99A68] shadow-md group disabled:opacity-50"
-          >
-            <div className="w-7 h-7 rounded-full bg-[#B99A68]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Fingerprint className="w-4 h-4 text-[#B99A68]" />
-            </div>
-            <span className="font-semibold text-xs tracking-wide">Touch Sensor to Unlock</span>
-          </button>
+          <div className="flex flex-col items-center justify-center">
+            <button
+              type="button"
+              onClick={triggerBiometricUnlock}
+              disabled={verifying}
+              className="relative p-5 rounded-full bg-[#161411] border-2 border-[#B99A68]/50 hover:border-[#B99A68] active:scale-95 shadow-[0_0_30px_rgba(185,154,104,0.25)] transition-all touch-manipulation cursor-pointer group"
+              aria-label="Unlock with Fingerprint or Face ID"
+            >
+              {/* Concentric subtle pulsing rings */}
+              <div className="absolute inset-0 rounded-full border border-[#B99A68]/30 animate-ping opacity-20 pointer-events-none" />
+              <Fingerprint className="w-11 h-11 text-[#B99A68] group-hover:scale-105 transition-transform stroke-[1.8]" />
+            </button>
+            <span className="text-[10px] font-semibold text-[#B99A68]/80 tracking-widest uppercase mt-2.5">
+              Touch Sensor to Unlock
+            </span>
+          </div>
         )}
 
-        {/* Lockout Notice */}
+        {/* Security Lockout Notice */}
         {lockoutTimer > 0 ? (
-          <div className="p-3 bg-amber-950/80 border border-amber-500/40 rounded-2xl max-w-xs mx-auto text-amber-200 text-xs space-y-1 shadow-lg">
+          <div className="p-3.5 bg-amber-950/80 border border-amber-500/40 rounded-2xl max-w-xs mx-auto text-amber-200 text-xs space-y-1 shadow-xl">
             <AlertCircle className="w-5 h-5 mx-auto text-amber-400" />
             <p className="font-bold">Security Lockout Active</p>
             <p className="text-[11px] text-amber-300/80">
@@ -446,10 +492,10 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
             </p>
           </div>
         ) : (
-          <>
+          <div className="space-y-3">
             {/* PIN Dots Indicator */}
             <div
-              className={`flex justify-center items-center gap-3.5 transition-transform ${
+              className={`flex justify-center items-center gap-4 transition-transform ${
                 isShaking ? 'animate-bounce text-red-500' : ''
               }`}
             >
@@ -458,10 +504,10 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
                 return (
                   <div
                     key={idx}
-                    className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
+                    className={`w-4 h-4 rounded-full transition-all duration-200 ${
                       isFilled
-                        ? 'bg-[#B99A68] scale-125 shadow-lg shadow-[#B99A68]/50 ring-2 ring-[#B99A68]/40'
-                        : 'bg-white/20 border border-white/20'
+                        ? 'bg-gradient-to-tr from-[#B99A68] via-[#E5C278] to-[#FFFFFF] scale-125 shadow-[0_0_14px_rgba(212,175,55,0.8)] ring-2 ring-[#B99A68]/60'
+                        : 'bg-white/5 border-2 border-[#B99A68]/30'
                     }`}
                   />
                 );
@@ -480,38 +526,48 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Verifying Credentials...
               </p>
             )}
-          </>
+          </div>
         )}
       </div>
 
-      {/* Bottom: Numeric Keypad */}
-      <div className="pb-4 max-w-xs w-full mx-auto relative z-10 space-y-4">
-        <div className="grid grid-cols-3 gap-3.5">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+      {/* 3. Bottom: Premium Numeric Keypad (Banking Style) */}
+      <div className="pb-2 max-w-xs w-full mx-auto relative z-10 space-y-3.5">
+        <div className="grid grid-cols-3 gap-3.5 justify-items-center">
+          {keypadData.map((item) => (
             <button
-              key={num}
+              key={item.num}
               type="button"
               disabled={verifying || lockoutTimer > 0}
-              onClick={() => handleDigitPress(num)}
-              className="w-full aspect-square rounded-full bg-white/5 hover:bg-white/15 active:bg-[#B99A68] active:text-slate-950 text-xl font-bold font-mono transition-all flex items-center justify-center border border-white/10 active:scale-95 shadow-sm disabled:opacity-40"
+              onClick={() => handleDigitPress(item.num)}
+              className="w-18 h-18 rounded-full bg-white/5 hover:bg-white/10 active:bg-[#B99A68] active:text-[#0B0D11] border border-white/10 active:border-[#B99A68] transition-all flex flex-col items-center justify-center active:scale-95 shadow-sm disabled:opacity-40 touch-manipulation cursor-pointer group"
             >
-              {num}
+              <span className="text-2xl font-bold font-mono group-active:text-[#0B0D11] transition-colors">
+                {item.num}
+              </span>
+              {item.letters ? (
+                <span className="text-[9px] font-semibold tracking-widest text-[#B99A68]/80 group-active:text-[#0B0D11]/70 transition-colors -mt-0.5">
+                  {item.letters}
+                </span>
+              ) : (
+                <span className="h-[9px]" />
+              )}
             </button>
           ))}
 
-          {/* Biometric Button or Empty */}
+          {/* Biometric Button on Keypad (if enabled) */}
           {config.biometricEnabled ? (
             <button
               type="button"
               disabled={lockoutTimer > 0 || verifying}
               onClick={triggerBiometricUnlock}
-              className="w-full aspect-square rounded-full bg-[#B99A68]/15 hover:bg-[#B99A68]/30 active:scale-95 text-[#B99A68] flex items-center justify-center border border-[#B99A68]/40 transition-all shadow-sm disabled:opacity-40"
+              className="w-18 h-18 rounded-full bg-[#B99A68]/15 hover:bg-[#B99A68]/25 active:scale-95 text-[#B99A68] flex items-center justify-center border border-[#B99A68]/40 transition-all shadow-sm disabled:opacity-30 touch-manipulation cursor-pointer"
               title="Authenticate with Fingerprint / Face ID"
+              aria-label="Biometric sensor"
             >
-              <Fingerprint className="w-7 h-7" />
+              <Fingerprint className="w-7 h-7 stroke-[2]" />
             </button>
           ) : (
-            <div />
+            <div className="w-18 h-18" />
           )}
 
           {/* Digit 0 */}
@@ -519,9 +575,12 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
             type="button"
             disabled={verifying || lockoutTimer > 0}
             onClick={() => handleDigitPress('0')}
-            className="w-full aspect-square rounded-full bg-white/5 hover:bg-white/15 active:bg-[#B99A68] active:text-slate-950 text-xl font-bold font-mono transition-all flex items-center justify-center border border-white/10 active:scale-95 shadow-sm disabled:opacity-40"
+            className="w-18 h-18 rounded-full bg-white/5 hover:bg-white/10 active:bg-[#B99A68] active:text-[#0B0D11] border border-white/10 active:border-[#B99A68] transition-all flex flex-col items-center justify-center active:scale-95 shadow-sm disabled:opacity-40 touch-manipulation cursor-pointer group"
           >
-            0
+            <span className="text-2xl font-bold font-mono group-active:text-[#0B0D11] transition-colors">
+              0
+            </span>
+            <span className="h-[9px]" />
           </button>
 
           {/* Backspace Button */}
@@ -529,19 +588,19 @@ const AppLockScreen: React.FC<AppLockScreenProps> = ({
             type="button"
             disabled={verifying || lockoutTimer > 0 || pin.length === 0}
             onClick={handleBackspace}
-            className="w-full aspect-square rounded-full bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center border border-white/10 active:scale-95 transition-all shadow-sm disabled:opacity-30"
+            className="w-18 h-18 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 active:text-white flex items-center justify-center border border-white/10 active:scale-95 transition-all shadow-sm disabled:opacity-20 touch-manipulation cursor-pointer"
             aria-label="Delete last digit"
           >
-            <Delete className="w-5 h-5" />
+            <Delete className="w-6 h-6" />
           </button>
         </div>
 
         {/* Fallback Option */}
-        <div className="text-center pt-2">
+        <div className="text-center pt-1">
           <button
             type="button"
             onClick={() => setShowPasswordModal(true)}
-            className="text-xs text-[#B99A68] hover:underline font-medium"
+            className="text-xs text-[#B99A68] hover:text-[#FFF5DF] hover:underline font-medium transition-colors"
           >
             Forgot PIN? Unlock with password
           </button>

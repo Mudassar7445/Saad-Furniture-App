@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MobileTopBar } from './MobileTopBar';
 import { MobileBottomNav, MobileTab } from './MobileBottomNav';
 import { MobileHomeScreen } from './MobileHomeScreen';
@@ -16,7 +16,7 @@ import { MobileCheckoutSheet } from './MobileCheckoutSheet';
 import { MobileOrderTrackingSheet } from './MobileOrderTrackingSheet';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { PushNotificationManager } from '@/components/notifications/PushNotificationManager';
-import { LogOut, Sparkles } from 'lucide-react';
+import { LogOut, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface MobileAppShellProps {
   currentUser: any | null;
@@ -65,9 +65,10 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const [quickTrackOrder, setQuickTrackOrder] = useState<any | null>(null);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  // Android Navigation, Back Stack & Transition Animation State
+  // Android Navigation, Back Stack, Transition & Exit State
   const [navDirection, setNavDirection] = useState<'forward' | 'backward'>('forward');
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
+  const [isAppExited, setIsAppExited] = useState<boolean>(false);
   const tabHistory = useRef<MobileTab[]>(['home']);
   const scrollPositions = useRef<Record<string, number>>({});
   const isHandlingPopState = useRef<boolean>(false);
@@ -82,6 +83,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     quickTrackOrder,
     authModalOpen,
     showExitModal,
+    isAppExited,
   });
 
   useEffect(() => {
@@ -94,6 +96,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       quickTrackOrder,
       authModalOpen,
       showExitModal,
+      isAppExited,
     };
   });
 
@@ -107,6 +110,12 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     const handlePopState = () => {
       const cur = stateRef.current;
       isHandlingPopState.current = true;
+
+      // If already on the safe exit screen, allow native exit without trapping
+      if (cur.isAppExited) {
+        isHandlingPopState.current = false;
+        return;
+      }
 
       // 1. If Exit Modal is open, dismiss it
       if (cur.showExitModal) {
@@ -238,6 +247,32 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     }
   };
 
+  const handleChangeTab = useCallback((nextTab: MobileTab) => {
+    setActiveTab((prevTab) => {
+      if (nextTab === prevTab) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return prevTab;
+      }
+
+      // Save scroll position of previous tab
+      if (typeof window !== 'undefined') {
+        scrollPositions.current[prevTab] = window.scrollY;
+      }
+
+      setNavDirection('forward');
+      tabHistory.current.push(nextTab);
+      pushNavEntry(`tab-${nextTab}`);
+
+      // Restore scroll position after view switch
+      requestAnimationFrame(() => {
+        const savedY = scrollPositions.current[nextTab] || 0;
+        window.scrollTo({ top: savedY, behavior: 'instant' as ScrollBehavior });
+      });
+
+      return nextTab;
+    });
+  }, []);
+
   const handleOpenShop = (category: string = 'All') => {
     setNavDirection('forward');
     setSelectedCategory(category);
@@ -246,33 +281,6 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     } else {
       pushNavEntry(`shop-${category}`);
     }
-  };
-
-  const handleChangeTab = (nextTab: MobileTab) => {
-    if (nextTab === activeTab) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    // Save scroll position of previous tab
-    if (typeof window !== 'undefined') {
-      scrollPositions.current[activeTab] = window.scrollY;
-    }
-
-    setNavDirection('forward');
-    if (nextTab === 'shop' && selectedCategory !== 'All') {
-      setSelectedCategory('All');
-    }
-
-    tabHistory.current.push(nextTab);
-    setActiveTab(nextTab);
-    pushNavEntry(`tab-${nextTab}`);
-
-    // Restore scroll position
-    requestAnimationFrame(() => {
-      const savedY = scrollPositions.current[nextTab] || 0;
-      window.scrollTo({ top: savedY, behavior: 'instant' as ScrollBehavior });
-    });
   };
 
   const handleOpenAuth = (destination: MobileTab = 'profile') => {
@@ -289,14 +297,25 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     }
   };
 
+  // Real Android Exit Handler
   const handleConfirmExit = () => {
     setShowExitModal(false);
+
     if (typeof window !== 'undefined') {
-      try {
-        window.history.go(-2);
-      } catch {
-        window.close();
+      // 1. Android Webview / Cordova / Capacitor wrapper check
+      const nav = window.navigator as any;
+      if (nav?.app?.exitApp) {
+        nav.app.exitApp();
+        return;
       }
+
+      // 2. Attempt standard window.close()
+      try {
+        window.close();
+      } catch {}
+
+      // 3. Due to browser security policies on standalone web tabs, show honest and secure exit screen
+      setIsAppExited(true);
     }
   };
 
@@ -326,6 +345,46 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     }
   };
 
+  // Dedicated App Exited Screen (Safe, Honest & Secure)
+  if (isAppExited) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-[#0B0D11] text-white flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
+        <div className="w-20 h-20 mx-auto mb-4 drop-shadow-[0_8px_24px_rgba(212,175,55,0.35)]">
+          <img
+            src="/assets/branding/app-dp.svg?v=3"
+            alt="Saad Furniture"
+            className="w-full h-full object-contain"
+          />
+        </div>
+
+        <h1 className="text-2xl font-serif font-black text-white tracking-tight">
+          Session Safely Closed
+        </h1>
+
+        <p className="text-xs text-[#B99A68] tracking-widest uppercase font-semibold mt-1 mb-5">
+          Saad Furniture Private Atelier
+        </p>
+
+        <div className="max-w-xs bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-stone-300 leading-relaxed mb-6 space-y-2">
+          <p className="flex items-center justify-center gap-1.5 text-emerald-400 font-semibold">
+            <CheckCircle2 className="w-4 h-4" /> Cart & Wishlist Preserved
+          </p>
+          <p className="text-[11px] text-stone-400">
+            You can safely close this browser window or swipe up to return to your device home screen.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAppExited(false)}
+          className="w-full max-w-xs py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#B99A68] to-[#D4AF37] text-[#0B0D11] font-bold text-sm shadow-xl active:scale-95 transition-transform"
+        >
+          Re-enter Showroom
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#0b0d11] flex flex-col font-sans select-none antialiased transition-colors duration-200">
       {/* 1. Mobile Luxury Sticky Header */}
@@ -342,13 +401,11 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         onOpenInbox={() => handleChangeTab('notifications')}
       />
 
-      {/* 2. Main Screen View Area with Fluid Directional Transitions */}
+      {/* 2. Main Screen View Area with Persistent Offstage Stack (Zero Redrawing / Reloading) */}
       <main className="flex-1 px-4 pt-3 pb-24 max-w-md mx-auto w-full">
-        <div
-          key={`${activeTab}-${activeTab === 'shop' ? selectedCategory : 'root'}`}
-          className={navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward'}
-        >
-          {activeTab === 'home' && (
+        {/* Tab 1: Home Screen */}
+        <div className={activeTab === 'home' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'home'}>
+          <div className={activeTab === 'home' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileHomeScreen
               products={products}
               currentUser={currentUser}
@@ -383,16 +440,22 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               onOpenDocuments={() => handleChangeTab('documents')}
               onOpenWorkshop={() => handleChangeTab('workshop')}
             />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'workshop' && (
+        {/* Tab 2: Workshop Screen */}
+        <div className={activeTab === 'workshop' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'workshop'}>
+          <div className={activeTab === 'workshop' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileWorkshopScreen
               onBackToHome={() => handleChangeTab('home')}
               onExploreShop={() => handleOpenShop('All')}
             />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'shop' && (
+        {/* Tab 3: Shop Screen */}
+        <div className={activeTab === 'shop' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'shop'}>
+          <div className={activeTab === 'shop' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileShopScreen
               products={products}
               selectedCategory={selectedCategory}
@@ -405,30 +468,42 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               wishlistIds={wishlistProductIds}
               onToggleWishlist={onToggleWishlist}
             />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'orders' && (
+        {/* Tab 4: Orders Screen */}
+        <div className={activeTab === 'orders' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'orders'}>
+          <div className={activeTab === 'orders' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileOrdersScreen
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('orders')}
               onExploreShop={() => handleOpenShop('All')}
             />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'notifications' && (
+        {/* Tab 5: Notifications Screen */}
+        <div className={activeTab === 'notifications' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'notifications'}>
+          <div className={activeTab === 'notifications' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileNotificationsScreen
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('notifications')}
               onNavigateToOrders={() => handleChangeTab('orders')}
               onUpdateUnreadCount={(count: number) => setUnreadNotificationsCount(count)}
             />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'documents' && (
+        {/* Tab 6: Documents Screen */}
+        <div className={activeTab === 'documents' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'documents'}>
+          <div className={activeTab === 'documents' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileDocumentsScreen />
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'profile' && (
+        {/* Tab 7: Profile Screen */}
+        <div className={activeTab === 'profile' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'profile'}>
+          <div className={activeTab === 'profile' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>
             <MobileProfileScreen
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('profile')}
@@ -437,11 +512,11 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               onNavigateToWishlist={() => handleOpenShop('Saved (💖)')}
               onNavigateToDocuments={() => handleChangeTab('documents')}
             />
-          )}
+          </div>
         </div>
       </main>
 
-      {/* 3. Mobile Fixed Bottom 5-Tab Bar */}
+      {/* 3. Persistent Mobile Fixed Bottom 5-Tab Bar (Completely Stable Across Navigation) */}
       <MobileBottomNav
         activeTab={activeTab}
         onChangeTab={handleChangeTab}
