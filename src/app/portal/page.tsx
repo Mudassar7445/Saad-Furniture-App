@@ -30,6 +30,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
 
 export default function CustomerPortalPage() {
   const router = useRouter();
@@ -815,15 +816,26 @@ export default function CustomerPortalPage() {
                                 className="group relative rounded-xl overflow-hidden aspect-video bg-black cursor-pointer border border-white/10 hover:border-[#c5a880] transition-all"
                               >
                                 {med.mediaType === 'video' ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-slate-900 group-hover:bg-slate-800 transition-colors">
-                                    <div className="w-10 h-10 rounded-full bg-[#c5a880]/90 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                      <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                                  <div className="w-full h-full relative group-hover:scale-105 transition-transform duration-300">
+                                    <img
+                                      src={getSafeThumbnailUrl(med)}
+                                      alt={med.title}
+                                      loading="lazy"
+                                      decoding="async"
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                      <div className="w-10 h-10 rounded-full bg-[#c5a880]/90 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                                      </div>
                                     </div>
                                   </div>
                                 ) : (
                                   <img
-                                    src={med.url}
+                                    src={med.thumbnailUrl || med.url}
                                     alt={med.title}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
                                 )}

@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { WORKSHOP_CATEGORIES } from '@/components/mobile/MobileWorkshopScreen';
+import { captureVideoThumbnail, getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
 
 export const AdminWorkshopModule: React.FC = () => {
   const [mediaList, setMediaList] = useState<any[]>([]);
@@ -153,7 +154,17 @@ export const AdminWorkshopModule: React.FC = () => {
         formData.append('isFeatured', isFeatured ? '1' : '0');
         formData.append('displayOrder', displayOrder);
         if (videoDuration) formData.append('videoDuration', videoDuration);
-        if (thumbnailFile) formData.append('thumbnail', thumbnailFile);
+
+        // Auto-extract thumbnail from video if not manually selected
+        if (thumbnailFile) {
+          formData.append('thumbnail', thumbnailFile);
+        } else if (isVideo) {
+          try {
+            setUploadProgress(`Capturing instant WebP video thumbnail for "${file.name}"...`);
+            const autoThumb = await captureVideoThumbnail(file);
+            if (autoThumb) formData.append('thumbnail', autoThumb);
+          } catch {}
+        }
 
         const res = await fetch('/api/workshop/upload', {
           method: 'POST',
@@ -407,8 +418,10 @@ export const AdminWorkshopModule: React.FC = () => {
               >
                 <div className="relative aspect-video bg-black overflow-hidden">
                   <img
-                    src={item.thumbnailUrl || item.url}
+                    src={getSafeThumbnailUrl(item)}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {isVideo && (

@@ -121,9 +121,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Default thumbnail for photos is the image itself
+    // Default thumbnail for photos is the image itself, for videos use Google CDN or fallback
     if (mediaType === 'photo' && !finalThumbnailUrl) {
       finalThumbnailUrl = rawMediaUrl;
+    } else if (mediaType === 'video' && !finalThumbnailUrl) {
+      if (driveFileId && !driveFileId.startsWith('local_')) {
+        finalThumbnailUrl = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w800`;
+      } else {
+        finalThumbnailUrl = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+      }
     }
 
     // Stream URL route for smooth 206 Partial Content video delivery

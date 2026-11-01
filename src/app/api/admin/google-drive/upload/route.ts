@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const thumbnailFile = formData.get('thumbnail') as File | null;
     const category = (formData.get('category') as string) || 'Sofas';
     const title = (formData.get('title') as string) || '';
     const description = (formData.get('description') as string) || '';
@@ -104,6 +105,39 @@ export async function POST(req: NextRequest) {
       downloadUrl = base64Url;
     }
 
+    // Upload optimized thumbnail once if provided, or point to Google CDN thumbnail / luxury fallback
+    let finalThumbnailUrl: string | null = null;
+    if (thumbnailFile && connected) {
+      try {
+        const thumbArray = await thumbnailFile.arrayBuffer();
+        const thumbBuf = Buffer.from(thumbArray);
+        const thumbResult = await uploadBufferToDrive({
+          buffer: thumbBuf,
+          filename: `thumb_${safeFilename}.webp`,
+          mimeType: thumbnailFile.type || 'image/webp',
+          pathSegments: ['SAAD FURNITURE', 'THUMBNAILS'],
+          description: `Optimized thumbnail for ${title || filename}`,
+        });
+        finalThumbnailUrl = `/api/media/image/${thumbResult.id}`;
+      } catch (thumbErr) {
+        console.warn('Google Drive thumbnail upload fallback:', thumbErr);
+      }
+    }
+
+    if (!finalThumbnailUrl) {
+      if (mediaType === 'video') {
+        if (connected && driveFileId && !driveFileId.startsWith('local_')) {
+          finalThumbnailUrl = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w800`;
+        } else {
+          finalThumbnailUrl = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+        }
+      } else if (mediaType === 'photo') {
+        finalThumbnailUrl = connected ? `/api/media/image/${mediaId}` : viewUrl;
+      } else {
+        finalThumbnailUrl = null;
+      }
+    }
+
     const now = new Date().toISOString();
     const mediaRecord = {
       id: mediaId,
@@ -122,7 +156,7 @@ export async function POST(req: NextRequest) {
       title: (title || file.name).trim(),
       description: description?.trim() || null,
       stage,
-      thumbnailUrl: mediaType === 'video' ? directUrl : (connected ? `/api/media/image/${mediaId}` : viewUrl),
+      thumbnailUrl: finalThumbnailUrl,
       videoDuration: videoDuration || (mediaType === 'video' ? 60 : null),
       pageCount: pageCount || null,
       webViewLink: viewUrl,

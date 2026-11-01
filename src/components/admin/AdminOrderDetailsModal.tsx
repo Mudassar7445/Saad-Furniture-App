@@ -23,11 +23,13 @@ import {
   Phone,
   Mail,
   Truck,
+  Play,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import Link from 'next/link';
+import { getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
 
 interface AdminOrderDetailsModalProps {
   orderId: string | null;
@@ -395,11 +397,26 @@ export const AdminOrderDetailsModal: React.FC<AdminOrderDetailsModalProps> = ({
                     >
                       <div className="aspect-video rounded-lg overflow-hidden bg-black/60 relative">
                         {m.mediaType === 'video' ? (
-                          <video src={m.webViewLink || m.thumbnailUrl} className="w-full h-full object-cover" />
+                          <div className="w-full h-full relative">
+                            <img
+                              src={getSafeThumbnailUrl(m)}
+                              alt={m.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
+                                <Play className="w-3.5 h-3.5 fill-slate-950 ml-0.5" />
+                              </div>
+                            </div>
+                          </div>
                         ) : (
                           <img
                             src={m.thumbnailUrl || m.webViewLink}
                             alt={m.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         )}

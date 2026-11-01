@@ -19,6 +19,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { captureVideoThumbnail } from '@/lib/media/videoThumbnail';
 
 export const PRODUCT_CATEGORIES = [
   'Sofas',
@@ -238,6 +239,14 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
           setUploadProgressText(`Uploading ${file.name} (${i + 1}/${files.length})...`);
           const formData = new FormData();
           formData.append('file', file);
+
+          if (file.type.startsWith('video/')) {
+            try {
+              const thumb = await captureVideoThumbnail(file);
+              if (thumb) formData.append('thumbnail', thumb);
+            } catch {}
+          }
+
           formData.append('category', category);
           formData.append('title', `${title || 'Catalogue'} - ${file.name}`);
 

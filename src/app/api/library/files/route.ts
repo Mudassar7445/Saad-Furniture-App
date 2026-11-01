@@ -130,6 +130,7 @@ export async function POST(request: Request) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
+      const thumbnailFile = formData.get('thumbnail') as File | null;
       let rawTitle = (formData.get('title') as string)?.trim() || '';
       // Strip WhatsApp filename patterns and technical file extensions from customer title
       if (!rawTitle || rawTitle.toLowerCase().includes('whatsapp') || /\.(mp4|mov|avi|jpg|jpeg|png|webp|pdf)$/i.test(rawTitle)) {
@@ -184,6 +185,43 @@ export async function POST(request: Request) {
 
       const fileId = `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
+      // 1B. Handle Optimized Thumbnail (stored in Google Drive once or Google CDN)
+      let finalThumbnailUrl: string | null = null;
+      if (thumbnailFile) {
+        try {
+          const thumbBytes = await thumbnailFile.arrayBuffer();
+          const thumbBuffer = Buffer.from(thumbBytes);
+          const thumbMime = thumbnailFile.type || 'image/webp';
+          const thumbUpload = await googleDriveService.uploadBuffer(
+            thumbBuffer,
+            `thumb_${file.name.replace(/\.[^/.]+$/, '')}.webp`,
+            thumbMime,
+            folderId || undefined
+          );
+          finalThumbnailUrl = thumbUpload.id
+            ? `/api/media/image/${thumbUpload.id}`
+            : (thumbUpload.webViewLink || null);
+        } catch (thumbErr) {
+          console.warn('Google Drive thumbnail upload fallback:', thumbErr);
+        }
+      }
+
+      if (!finalThumbnailUrl) {
+        if (mediaType === 'video') {
+          if (driveUpload.id && !driveUpload.id.startsWith('gdrive_vault_')) {
+            finalThumbnailUrl = `https://drive.google.com/thumbnail?id=${driveUpload.id}&sz=w800`;
+          } else {
+            finalThumbnailUrl = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+          }
+        } else if (mediaType === 'photo') {
+          finalThumbnailUrl = driveUpload.id
+            ? `/api/media/image/${driveUpload.id}`
+            : (driveUpload.thumbnailLink || driveUpload.webViewLink);
+        } else {
+          finalThumbnailUrl = driveUpload.thumbnailLink || null;
+        }
+      }
+
       // 2. Save metadata in Turso with duplicate-check and orphan cleanup
       try {
         const mediaRecord = {
@@ -203,7 +241,7 @@ export async function POST(request: Request) {
           title: title.trim(),
           description,
           stage: 'final_inspection',
-          thumbnailUrl: driveUpload.thumbnailLink || driveUpload.webViewLink,
+          thumbnailUrl: finalThumbnailUrl,
           webViewLink: driveUpload.webViewLink,
           webContentLink: driveUpload.webContentLink,
           visibility,

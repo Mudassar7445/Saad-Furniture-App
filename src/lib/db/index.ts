@@ -238,6 +238,16 @@ export async function initializeDatabase() {
       } catch {}
     }
 
+    // Performance Sanitization: Prevent large video base64 strings from polluting media_files thumbnail_url
+    try {
+      await client.execute(`
+        UPDATE media_files 
+        SET thumbnail_url = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80' 
+        WHERE (media_type = 'video' OR mime_type LIKE 'video%') 
+          AND (thumbnail_url LIKE 'data:video%' OR thumbnail_url LIKE '%/stream%' OR thumbnail_url LIKE '%.mp4');
+      `);
+    } catch {}
+
     try {
       await client.execute(`ALTER TABLE payments ADD COLUMN received_by TEXT DEFAULT 'Saad Finance Bureau';`);
     } catch {}

@@ -139,7 +139,11 @@ export async function POST(request: Request) {
         title: title || file.name,
         description: description || null,
         stage,
-        thumbnailUrl: isVideo ? null : driveFile.webViewLink,
+        thumbnailUrl: isVideo
+          ? driveFile.id && !driveFile.id.startsWith('gdrive_vault_')
+            ? `https://drive.google.com/thumbnail?id=${driveFile.id}&sz=w800`
+            : 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
+          : driveFile.webViewLink,
         videoDuration: isVideo ? 30.0 : null,
         webViewLink: driveFile.webViewLink,
         webContentLink: driveFile.webContentLink,

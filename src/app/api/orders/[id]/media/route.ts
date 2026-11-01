@@ -129,7 +129,12 @@ export async function POST(
       title,
       description: `Workshop photographic proof for milestone ${stage}.`,
       stage,
-      thumbnailUrl: fileUrl,
+      thumbnailUrl:
+        mediaType === 'video'
+          ? gdriveId && !gdriveId.startsWith('local_') && !gdriveId.startsWith('gdrive_')
+            ? `https://drive.google.com/thumbnail?id=${gdriveId}&sz=w800`
+            : 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
+          : fileUrl,
       webViewLink: fileUrl,
       webContentLink: fileUrl,
       uploadedBy: sessionUser.name,

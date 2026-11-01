@@ -33,10 +33,12 @@ import {
   X,
   Plus,
   Check,
+  Play,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { InAppDocumentViewer, DocumentItem } from '@/components/media/InAppDocumentViewer';
+import { captureVideoThumbnail, getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
 
 const SYSTEM_CATEGORIES = [
   { id: 'all', label: 'All Files', icon: HardDrive },
@@ -212,6 +214,21 @@ export const AdminMediaLibraryModule: React.FC = () => {
 
         const formData = new FormData();
         formData.append('file', currentFile);
+
+        // Auto-extract lightweight WebP thumbnail from videos once on upload
+        const isVideo = currentFile.type.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(currentFile.name);
+        if (isVideo) {
+          setUploadStatusText(`Capturing lightweight video thumbnail for "${currentFile.name}"...`);
+          try {
+            const thumbFile = await captureVideoThumbnail(currentFile);
+            if (thumbFile) {
+              formData.append('thumbnail', thumbFile);
+            }
+          } catch (thumbErr) {
+            console.warn('Thumbnail generation skipped:', thumbErr);
+          }
+        }
+
         formData.append('category', uploadCategory);
         if (uploadTitle.trim()) formData.append('title', uploadTitle.trim());
         if (uploadFolderId) formData.append('folderId', uploadFolderId);
@@ -565,10 +582,27 @@ export const AdminMediaLibraryModule: React.FC = () => {
                 onClick={() => setViewerDoc(file)}
                 className="h-36 bg-gradient-to-br from-slate-900 to-black relative flex items-center justify-center cursor-pointer overflow-hidden"
               >
-                {file.thumbnailUrl || file.mimeType?.startsWith('image/') ? (
+                {file.mediaType === 'video' || file.mimeType?.startsWith('video/') ? (
+                  <div className="w-full h-full relative group/vid">
+                    <img
+                      src={getSafeThumbnailUrl(file)}
+                      alt={file.title || file.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-lg group-hover/vid:scale-110 transition-transform">
+                        <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                ) : file.thumbnailUrl || file.mimeType?.startsWith('image/') ? (
                   <img
-                    src={`/api/library/stream/${file.id}`}
+                    src={file.thumbnailUrl || `/api/media/image/${file.id}`}
                     alt={file.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (

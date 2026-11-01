@@ -22,9 +22,11 @@ import {
   Eye,
   RefreshCw,
   MessageCircle,
+  Play,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
 
 interface MobileOrderTrackingSheetProps {
   order: any | null;
@@ -60,6 +62,7 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
 }) => {
   const [activeTab, setActiveTab] = useState<'timeline' | 'media' | 'details' | 'payments'>('timeline');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
@@ -350,20 +353,68 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
                         <span className="text-[11px] font-bold text-[#89847C] uppercase tracking-wider block mb-2">
                           Craftsmanship Videos ({videos.length})
                         </span>
-                        <div className="space-y-2">
-                          {videos.map((vid: any, index: number) => (
-                            <div
-                              key={vid.id || index}
-                              className="rounded-xl overflow-hidden bg-black border border-[#EAE2D6]"
-                            >
-                              <video
-                                src={`/api/library/stream/${vid.id}`}
-                                className="w-full max-h-48 object-cover"
-                                controls
-                                playsInline
-                              />
-                            </div>
-                          ))}
+                        <div className="space-y-3">
+                          {videos.map((vid: any, index: number) => {
+                            const isPlaying = activeVideoId === (vid.id || `vid_${index}`);
+                            const safeThumb = getSafeThumbnailUrl(vid);
+                            const vidTitle = vid.title || vid.name || `Craftsmanship Video ${index + 1}`;
+
+                            return (
+                              <div
+                                key={vid.id || index}
+                                className="rounded-2xl overflow-hidden bg-black border border-[#EAE2D6] shadow-sm"
+                              >
+                                {isPlaying ? (
+                                  <video
+                                    src={`/api/library/stream/${vid.id}`}
+                                    className="w-full max-h-56 object-cover"
+                                    controls
+                                    autoPlay
+                                    playsInline
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() => setActiveVideoId(vid.id || `vid_${index}`)}
+                                    className="group relative rounded-2xl overflow-hidden aspect-video bg-[#1C1A18] cursor-pointer"
+                                  >
+                                    <img
+                                      src={safeThumb}
+                                      alt={vidTitle}
+                                      loading="lazy"
+                                      decoding="async"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3.5">
+                                      <div className="self-end">
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 uppercase tracking-wider shadow">
+                                          {vid.stage ? vid.stage.replace(/_/g, ' ') : 'Production Milestone'}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-bold text-white line-clamp-1 drop-shadow">
+                                          {vidTitle}
+                                        </h4>
+                                        <span className="text-[10px] text-[#B99A68] font-bold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-sm">
+                                          Tap to Play
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
