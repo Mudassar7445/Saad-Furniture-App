@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   ArrowRight,
@@ -18,8 +18,13 @@ import {
   FileText,
   BookOpen,
   MapPin,
+  Film,
+  X,
+  Wrench,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
 
 interface MobileHomeScreenProps {
@@ -32,6 +37,7 @@ interface MobileHomeScreenProps {
   onOpenTracking: () => void;
   onOpenShop: () => void;
   onOpenDocuments?: () => void;
+  onOpenWorkshop?: () => void;
 }
 
 export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
@@ -44,9 +50,23 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   onOpenTracking,
   onOpenShop,
   onOpenDocuments,
+  onOpenWorkshop,
 }) => {
   const { settings } = useShopSettings();
   const [quickOrderInput, setQuickOrderInput] = useState('');
+  const [workshopMediaList, setWorkshopMediaList] = useState<any[]>([]);
+  const [loadingWorkshop, setLoadingWorkshop] = useState(false);
+  const [activeVideoModal, setActiveVideoModal] = useState<any | null>(null);
+
+  // Fetch workshop showcase media
+  useEffect(() => {
+    setLoadingWorkshop(true);
+    fetch('/api/workshop')
+      .then((res) => (res.ok ? res.json() : { media: [] }))
+      .then((data) => setWorkshopMediaList(data.media || []))
+      .catch(() => {})
+      .finally(() => setLoadingWorkshop(false));
+  }, []);
 
   const categories = [
     { name: 'Sofas', icon: '🛋️', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80' },
@@ -216,6 +236,117 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 3B. INSIDE OUR WORKSHOP SHOWCASE (SECTION 3) */}
+      <div className="space-y-3 pt-1">
+        <div className="px-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-serif text-base font-bold text-[#262421]">Inside Our Workshop</h3>
+            <span className="text-[10px] text-[#89847C] block leading-tight">
+              Every piece is crafted with passion, precision, and attention to detail.
+            </span>
+          </div>
+          {onOpenWorkshop && (
+            <button
+              onClick={onOpenWorkshop}
+              className="text-xs text-[#B99A68] font-bold flex items-center gap-0.5 hover:underline shrink-0 ml-2"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Featured Video Card or Empty State */}
+        <div className="px-4">
+          {workshopMediaList.length === 0 ? (
+            <div className="p-6 text-center bg-white rounded-2xl border border-dashed border-[#EAE2D6] space-y-2">
+              <Wrench className="w-8 h-8 mx-auto text-[#B99A68]/50" />
+              <h4 className="text-xs font-bold text-[#262421]">Workshop Production Updates Coming Soon</h4>
+              <p className="text-[11px] text-[#89847C]">
+                Our artisans are currently crafting custom commissions in the studio. Live production footage will appear here.
+              </p>
+            </div>
+          ) : (
+            (() => {
+              const feat = workshopMediaList.find((m) => m.isFeatured && m.mediaType === 'video') ||
+                workshopMediaList.find((m) => m.mediaType === 'video') ||
+                workshopMediaList[0];
+              if (!feat) return null;
+              return (
+                <div
+                  onClick={() => setActiveVideoModal(feat)}
+                  className="group relative rounded-2xl overflow-hidden aspect-video bg-black border border-[#EAE2D6] shadow-md cursor-pointer active:scale-[0.99] transition-transform"
+                >
+                  <img
+                    src={feat.thumbnailUrl || feat.url}
+                    alt={feat.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3.5">
+                    <div className="self-end">
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 uppercase tracking-wider shadow">
+                        Featured Atelier Tour
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold text-white line-clamp-1">
+                        {feat.title}
+                      </h4>
+                      <p className="text-[10px] text-[#EAE2D6] line-clamp-1 mt-0.5">
+                        {feat.description || 'Watch our master artisans craft bespoke luxury furniture in-app.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+        </div>
+
+        {/* Horizontal Workshop Photo Gallery */}
+        {workshopMediaList.length > 1 && (
+          <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1 snap-x">
+            {workshopMediaList.slice(1, 8).map((photo) => (
+              <div
+                key={photo.id}
+                onClick={() => setActiveVideoModal(photo)}
+                className="flex-shrink-0 w-36 snap-start rounded-xl overflow-hidden bg-white border border-[#EAE2D6] shadow-sm cursor-pointer group active:scale-95 transition-transform"
+              >
+                <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
+                  <img
+                    src={photo.thumbnailUrl || photo.url}
+                    alt={photo.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {photo.mediaType === 'video' && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
+                        <Play className="w-3 h-3 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 space-y-0.5">
+                  <span className="text-[9px] uppercase tracking-wider text-[#B99A68] font-bold block truncate">
+                    {photo.category.replace('_', ' ')}
+                  </span>
+                  <h5 className="text-[11px] font-bold text-[#262421] line-clamp-1">
+                    {photo.title}
+                  </h5>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 4. LATEST CATALOG PIECES & NEW ARRIVALS (HORIZONTAL CAROUSEL) */}
@@ -434,6 +565,85 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
           )}
         </div>
       </div>
+
+      {/* In-App Workshop Video / Photo Modal */}
+      {activeVideoModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4"
+          onClick={() => setActiveVideoModal(null)}
+        >
+          <div className="flex items-center justify-between z-10 text-white" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#B99A68] font-bold block">
+                Saad Master Workshop • Live Production
+              </span>
+              <h3 className="text-sm font-bold text-white truncate max-w-[260px]">
+                {activeVideoModal.title}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveVideoModal(null)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div
+            className="flex-1 flex items-center justify-center my-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {activeVideoModal.mediaType === 'video' ? (
+              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
+                <video
+                  src={activeVideoModal.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={activeVideoModal.url}
+                  alt={activeVideoModal.title}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            )}
+          </div>
+
+          <div
+            className="bg-slate-900/90 border border-white/10 p-3.5 rounded-2xl text-xs text-white space-y-1.5 max-w-md mx-auto w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[#B99A68] font-bold uppercase text-[10px] tracking-wider">
+                Category: {activeVideoModal.category?.replace('_', ' ')}
+              </span>
+              {onOpenWorkshop && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveVideoModal(null);
+                    onOpenWorkshop();
+                  }}
+                  className="text-[10px] text-[#B99A68] hover:underline font-bold"
+                >
+                  View Complete Atelier Gallery →
+                </button>
+              )}
+            </div>
+            {activeVideoModal.description && (
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {activeVideoModal.description}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

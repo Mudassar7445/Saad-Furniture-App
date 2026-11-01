@@ -42,10 +42,15 @@ export async function POST(req: NextRequest) {
     else if (mimeType === 'application/pdf') mediaType = 'pdf';
     else if (mimeType.includes('document') || mimeType.includes('text')) mediaType = 'document';
 
+    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const mediaId = `media_${uniqueSuffix}`;
+    const safeBaseName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeFilename = `sf_${category.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${uniqueSuffix}_${safeBaseName}`;
+
     let directUrl = '';
     let viewUrl = '';
     let downloadUrl = '';
-    let driveFileId = `local_${Date.now()}`;
+    let driveFileId = `local_${uniqueSuffix}`;
     let fileSize = buffer.length;
 
     if (connected) {
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
       // Upload directly to Google Drive
       const driveResult = await uploadBufferToDrive({
         buffer,
-        filename,
+        filename: safeFilename,
         mimeType,
         pathSegments,
         description: title || `${category} luxury furniture media asset`,
@@ -63,38 +68,39 @@ export async function POST(req: NextRequest) {
 
       driveFileId = driveResult.id;
       fileSize = driveResult.size;
-      directUrl = `https://drive.google.com/thumbnail?id=${driveResult.id}&sz=w1200`;
+      // Use authorized server proxy for guaranteed cross-origin delivery and instant caching
+      directUrl = `/api/media/image/${mediaId}`;
       viewUrl = driveResult.webViewLink || `https://drive.google.com/file/d/${driveResult.id}/view`;
       downloadUrl = driveResult.webContentLink || `https://drive.google.com/uc?id=${driveResult.id}&export=download`;
     } else {
       // High-reliability local fallback so uploads never fail if Google Drive is not connected yet
       const base64Data = buffer.toString('base64');
-      directUrl = `data:${mimeType};base64,${base64Data}`;
-      viewUrl = directUrl;
-      downloadUrl = directUrl;
+      const base64Url = `data:${mimeType};base64,${base64Data}`;
+      directUrl = `/api/media/image/${mediaId}`;
+      viewUrl = base64Url;
+      downloadUrl = base64Url;
     }
 
-    const mediaId = `media_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
 
     await db.insert(mediaFiles).values({
       id: mediaId,
       googleDriveFileId: driveFileId,
-      fileName: filename,
-      originalName: filename,
+      fileName: safeFilename,
+      originalName: file.name,
       mimeType,
       fileSize,
       mediaType,
       category,
-      title: title || filename,
+      title: title || file.name,
       description: description || null,
       stage,
       productId: productId || null,
       orderId: orderId || null,
       customerId: customerId || null,
-      thumbnailUrl: directUrl,
+      thumbnailUrl: connected ? `/api/media/image/${mediaId}` : viewUrl,
       webViewLink: viewUrl,
-      webContentLink: downloadUrl,
+      webContentLink: connected ? downloadUrl : viewUrl,
       visibility: 'public',
       isPublished: 1,
       downloadAllowed: 1,

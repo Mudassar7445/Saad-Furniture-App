@@ -425,6 +425,7 @@ export const bankTransferReceipts = sqliteTable('bank_transfer_receipts', {
   receiptImageUrl: text('receipt_image_url').notNull(),
   status: text('status').notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
   reviewNotes: text('review_notes'),
+  rejectionReason: text('rejection_reason'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: text('reviewed_at'),
   createdAt: text('created_at').notNull(),
@@ -589,6 +590,60 @@ export const mediaUploadLogs = sqliteTable('media_upload_logs', {
   completedAt: text('completed_at'),
 });
 
+// 36. Workshop Media Table (Section 3 & 4: Mobile Home Showcase & Dedicated Media Page)
+export const workshopMedia = sqliteTable('workshop_media', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  mediaType: text('media_type').notNull().default('photo'), // 'photo' | 'video'
+  category: text('category').notNull().default('workshop_tour'), 
+  // 'workshop_tour' | 'sofa_frame' | 'woodworking' | 'foam_work' | 'fabric_stitching' | 'furniture_polishing' | 'final_finishing' | 'completed_products' | 'general'
+  url: text('url').notNull(),
+  thumbnailUrl: text('thumbnail_url'),
+  videoDuration: real('video_duration'), // seconds
+  isFeatured: integer('is_featured').notNull().default(0), // Featured on mobile homepage
+  displayOrder: integer('display_order').notNull().default(0),
+  isPublished: integer('is_published').notNull().default(1),
+  viewsCount: integer('views_count').notNull().default(0),
+  googleDriveFileId: text('google_drive_file_id'),
+  uploadedBy: text('uploaded_by').default('admin'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 37. Bank Accounts Table (Section 5: Bank Transfer Payment Method)
+export const bankAccounts = sqliteTable('bank_accounts', {
+  id: text('id').primaryKey(),
+  bankName: text('bank_name').notNull(),
+  accountTitle: text('account_title').notNull(),
+  accountNumber: text('account_number').notNull(),
+  iban: text('iban').notNull(),
+  branchName: text('branch_name'),
+  branchCode: text('branch_code'),
+  instructions: text('instructions'),
+  qrCodeUrl: text('qr_code_url'),
+  isActive: integer('is_active').notNull().default(1),
+  displayOrder: integer('display_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 38. Payment Gateways Config Table (Section 5: Card & Gateway Settings)
+export const paymentGatewaysConfig = sqliteTable('payment_gateways_config', {
+  id: text('id').primaryKey(), // 'card_gateway' | 'jazzcash_gateway' | 'easypaisa_gateway'
+  provider: text('provider').notNull().default('stripe'), // 'stripe' | 'safepay' | 'payfast' | 'alfa' | 'sandbox'
+  mode: text('mode').notNull().default('sandbox'), // 'sandbox' | 'live'
+  isEnabled: integer('is_enabled').notNull().default(1),
+  publishableKey: text('publishable_key'),
+  secretKeyEncrypted: text('secret_key_encrypted'),
+  webhookSecretEncrypted: text('webhook_secret_encrypted'),
+  merchantId: text('merchant_id'),
+  supportedCurrencies: text('supported_currencies').default('["PKR","USD"]'),
+  settingsJson: text('settings_json').default('{}'),
+  updatedAt: text('updated_at').notNull(),
+  updatedBy: text('updated_by').default('super_admin'),
+});
+
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type MediaFile = typeof mediaFiles.$inferSelect;
@@ -611,3 +666,6 @@ export type MediaFolder = typeof mediaFolders.$inferSelect;
 export type MediaCustomerAccess = typeof mediaCustomerAccess.$inferSelect;
 export type MediaAccessLog = typeof mediaAccessLogs.$inferSelect;
 export type MediaUploadLog = typeof mediaUploadLogs.$inferSelect;
+export type WorkshopMedia = typeof workshopMedia.$inferSelect;
+export type BankAccount = typeof bankAccounts.$inferSelect;
+export type PaymentGatewayConfig = typeof paymentGatewaysConfig.$inferSelect;

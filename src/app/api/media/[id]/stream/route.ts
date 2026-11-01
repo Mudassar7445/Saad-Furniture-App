@@ -9,19 +9,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
-
   const [media] = await db.select().from(mediaFiles).where(eq(mediaFiles.id, id)).limit(1);
   if (!media) {
     return new NextResponse('Media not found', { status: 404 });
   }
 
-  // Security: Customer can only access media belonging to their own order!
-  if (sessionUser.role === 'customer' && media.customerId !== sessionUser.id && !media.isPublic) {
-    return new NextResponse('Forbidden: Access to private patron media denied', { status: 403 });
+  // Security check: Only require authentication for private customer media
+  const isPublicMedia = media.isPublic === 1 || media.visibility === 'public' || media.productId != null;
+  if (!isPublicMedia) {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    if (sessionUser.role === 'customer' && media.customerId !== sessionUser.id) {
+      return new NextResponse('Forbidden: Access to private patron media denied', { status: 403 });
+    }
   }
 
   // If media is a data URL (local fallback):

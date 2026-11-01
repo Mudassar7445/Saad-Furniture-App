@@ -9,6 +9,7 @@ import { MobileOrdersScreen } from './MobileOrdersScreen';
 import { MobileNotificationsScreen } from './MobileNotificationsScreen';
 import { MobileProfileScreen } from './MobileProfileScreen';
 import { MobileDocumentsScreen } from './MobileDocumentsScreen';
+import { MobileWorkshopScreen } from './MobileWorkshopScreen';
 import { MobileProductDetailSheet } from './MobileProductDetailSheet';
 import { MobileCartSheet } from './MobileCartSheet';
 import { MobileCheckoutSheet } from './MobileCheckoutSheet';
@@ -103,10 +104,13 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         currentUser={currentUser}
         cartCount={cart.totalCount}
         wishlistCount={wishlistProductIds.size}
+        unreadInboxCount={unreadNotificationsCount}
         onOpenCart={() => setCartSheetOpen(true)}
         onSearchClick={() => handleOpenShop('All')}
         onOpenWishlist={() => handleOpenShop('All')}
         onOpenProfile={() => setActiveTab('profile')}
+        onOpenWorkshop={() => setActiveTab('workshop')}
+        onOpenInbox={() => setActiveTab('notifications')}
       />
 
       {/* 2. Main Screen View Area */}
@@ -122,6 +126,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             onOpenTracking={() => setActiveTab('orders')}
             onOpenShop={() => handleOpenShop('All')}
             onOpenDocuments={() => setActiveTab('documents')}
+            onOpenWorkshop={() => setActiveTab('workshop')}
+          />
+        )}
+
+        {activeTab === 'workshop' && (
+          <MobileWorkshopScreen
+            onBackToHome={() => setActiveTab('home')}
+            onExploreShop={() => handleOpenShop('All')}
           />
         )}
 

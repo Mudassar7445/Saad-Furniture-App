@@ -15,6 +15,12 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   Search,
+  UserPlus,
+  Phone,
+  Mail,
+  ChevronDown,
+  X,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -63,6 +69,110 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
   const [assignedStaffId, setAssignedStaffId] = useState<string>('');
   const [assignedStaffName, setAssignedStaffName] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
+
+  // Customer Search & Quick Creation States
+  const [localCustomers, setLocalCustomers] = useState<any[]>(customersList || []);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState<boolean>(false);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState<boolean>(false);
+
+  // New Customer Form
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustWhatsapp, setNewCustWhatsapp] = useState('');
+  const [newCustAddress, setNewCustAddress] = useState('');
+  const [newCustCity, setNewCustCity] = useState('Lahore');
+  const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustNotes, setNewCustNotes] = useState('');
+  const [newCustSubmitting, setNewCustSubmitting] = useState(false);
+  const [newCustError, setNewCustError] = useState<string | null>(null);
+
+  // Sync customersList to localCustomers
+  useEffect(() => {
+    if (customersList && customersList.length > 0) {
+      setLocalCustomers(customersList);
+    }
+  }, [customersList]);
+
+  // Selected customer object
+  const selectedCustomer = localCustomers.find((c) => c.id === selectedCustomerId);
+
+  // Filter customers by name, phone, or email
+  const filteredCustomers = localCustomers.filter((c) => {
+    if (!customerSearchTerm.trim()) return true;
+    const term = customerSearchTerm.toLowerCase();
+    const nameMatch = c.name?.toLowerCase().includes(term);
+    const phoneMatch = c.phone?.toLowerCase().includes(term);
+    const emailMatch = c.email?.toLowerCase().includes(term);
+    const cityMatch = c.city?.toLowerCase().includes(term);
+    return nameMatch || phoneMatch || emailMatch || cityMatch;
+  });
+
+  // Handle Quick Create Customer
+  const handleQuickCreateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewCustError(null);
+
+    if (!newCustName.trim()) {
+      setNewCustError('Customer full name is required.');
+      return;
+    }
+    if (!newCustPhone.trim()) {
+      setNewCustError('Customer mobile number is required.');
+      return;
+    }
+
+    try {
+      setNewCustSubmitting(true);
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCustName.trim(),
+          phone: newCustPhone.trim(),
+          whatsappNumber: newCustWhatsapp.trim() || undefined,
+          address: newCustAddress.trim() || undefined,
+          city: newCustCity.trim() || 'Lahore',
+          email: newCustEmail.trim() || undefined,
+          notes: newCustNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create customer account');
+      }
+
+      const created = data.customer;
+      // Add to local list if not already present
+      setLocalCustomers((prev) => {
+        const exists = prev.some((c) => c.id === created.id);
+        return exists ? prev : [created, ...prev];
+      });
+
+      // Auto-select this customer in current order!
+      setSelectedCustomerId(created.id);
+      if (created.address) {
+        setDeliveryAddress(created.address);
+      }
+      setCustomerSearchTerm('');
+      setCustomerDropdownOpen(false);
+
+      // Reset form & close quick-create modal
+      setNewCustName('');
+      setNewCustPhone('');
+      setNewCustWhatsapp('');
+      setNewCustAddress('');
+      setNewCustCity('Lahore');
+      setNewCustEmail('');
+      setNewCustNotes('');
+      setShowAddCustomerModal(false);
+    } catch (err: any) {
+      setNewCustError(err.message || 'Error saving customer');
+    } finally {
+      setNewCustSubmitting(false);
+    }
+  };
 
   // Items State
   const [items, setItems] = useState<OrderItemRow[]>([
@@ -175,8 +285,8 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
     if (prod) {
       let thumb = '';
       try {
-        const imgs = JSON.parse(prod.images || '[]');
-        thumb = imgs[0] || prod.featuredImage || '';
+        const imgs = Array.isArray(prod.images) ? prod.images : JSON.parse(prod.images || '[]');
+        thumb = prod.featuredImage || imgs[0] || '';
       } catch {
         thumb = prod.featuredImage || '';
       }
@@ -263,7 +373,8 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Create Multi-Item Customer Commission"
@@ -285,28 +396,123 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-300 mb-1">Select Patron *</label>
-              <select
-                required
-                value={selectedCustomerId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedCustomerId(val);
-                  const cust = customersList.find((c) => c.id === val);
-                  if (cust) {
-                    setDeliveryAddress(cust.address || '');
-                  }
-                }}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
-              >
-                <option value="">-- Choose Patron Account --</option>
-                {customersList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.phone || c.email})
-                  </option>
-                ))}
-              </select>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-slate-300">Select Patron *</label>
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomerModal(true)}
+                  className="text-[11px] text-[#B99A68] hover:text-[#d4b584] font-bold flex items-center gap-1 transition-colors hover:underline"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Add New Customer</span>
+                </button>
+              </div>
+
+              {selectedCustomer ? (
+                /* Selected Customer Summary Card */
+                <div className="p-3 bg-slate-900 border border-[#B99A68]/60 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-[#B99A68]/20 border border-[#B99A68] flex items-center justify-center shrink-0 text-[#B99A68] font-bold text-xs">
+                      {selectedCustomer.name?.charAt(0) || 'P'}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-xs truncate flex items-center gap-1.5">
+                        <span>{selectedCustomer.name}</span>
+                        <Badge variant="gold">Active Patron</Badge>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate flex items-center gap-2 mt-0.5">
+                        <span className="flex items-center gap-0.5"><Phone className="w-2.5 h-2.5 text-[#B99A68]" /> {selectedCustomer.phone || 'No phone'}</span>
+                        {selectedCustomer.city && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-500" /> {selectedCustomer.city}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCustomerId('');
+                      setCustomerSearchTerm('');
+                      setCustomerDropdownOpen(true);
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold shrink-0 transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                /* Searchable Patron Selector Combobox */
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <input
+                      type="text"
+                      value={customerSearchTerm}
+                      onChange={(e) => {
+                        setCustomerSearchTerm(e.target.value);
+                        setCustomerDropdownOpen(true);
+                      }}
+                      onFocus={() => setCustomerDropdownOpen(true)}
+                      placeholder="Search by name, mobile number, or city..."
+                      className="w-full pl-9 pr-8 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    />
+                    {customerSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomerSearchTerm('')}
+                        className="absolute right-2.5 top-3 text-slate-400 hover:text-white"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {customerDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#141822] border border-[#B99A68]/40 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-white/5">
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.slice(0, 15).map((cust) => (
+                          <div
+                            key={cust.id}
+                            onClick={() => {
+                              setSelectedCustomerId(cust.id);
+                              if (cust.address) {
+                                setDeliveryAddress(cust.address);
+                              }
+                              setCustomerDropdownOpen(false);
+                            }}
+                            className="p-2.5 hover:bg-white/5 cursor-pointer flex items-center justify-between gap-2 transition-colors"
+                          >
+                            <div>
+                              <span className="font-bold text-white block text-xs">{cust.name}</span>
+                              <span className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                <span>📱 {cust.phone || 'N/A'}</span>
+                                {cust.city && <span>📍 {cust.city}</span>}
+                              </span>
+                            </div>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 border-slate-700">
+                              Select
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-center text-slate-400 text-xs">
+                          No matching patrons found for "{customerSearchTerm}"
+                        </div>
+                      )}
+
+                      <div
+                        onClick={() => {
+                          setCustomerDropdownOpen(false);
+                          setShowAddCustomerModal(true);
+                        }}
+                        className="p-2.5 bg-[#B99A68]/10 hover:bg-[#B99A68]/20 cursor-pointer flex items-center justify-center gap-1.5 text-[#B99A68] font-bold text-xs transition-colors"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>+ Register "{customerSearchTerm || 'New Customer'}" as Patron</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -704,6 +910,129 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
         </div>
       </form>
     </Modal>
+
+    {/* ADD NEW CUSTOMER MODAL (SECTION 2) */}
+    <Modal
+      isOpen={showAddCustomerModal}
+      onClose={() => setShowAddCustomerModal(false)}
+      title="Add New Patron Account"
+      subtitle="Register a new customer profile. Will automatically be selected for this order."
+      maxWidth="md"
+    >
+      <form onSubmit={handleQuickCreateCustomer} className="space-y-4 text-xs text-white">
+        {newCustError && (
+          <div className="p-3 bg-red-950/60 border border-red-500/40 rounded-xl text-red-200 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+            <span>{newCustError}</span>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-slate-300 mb-1">Full Name *</label>
+          <input
+            type="text"
+            required
+            value={newCustName}
+            onChange={(e) => setNewCustName(e.target.value)}
+            placeholder="e.g. Mian Tariq Mahmood"
+            className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-slate-300 mb-1">Mobile / Phone Number *</label>
+            <input
+              type="text"
+              required
+              value={newCustPhone}
+              onChange={(e) => setNewCustPhone(e.target.value)}
+              placeholder="e.g. 0300 1234567"
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 mb-1">WhatsApp Number (Optional)</label>
+            <input
+              type="text"
+              value={newCustWhatsapp}
+              onChange={(e) => setNewCustWhatsapp(e.target.value)}
+              placeholder="e.g. +92 300 1234567"
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
+            <label className="block text-slate-300 mb-1">Delivery Destination Address *</label>
+            <input
+              type="text"
+              required
+              value={newCustAddress}
+              onChange={(e) => setNewCustAddress(e.target.value)}
+              placeholder="e.g. House #42, Street 7, Phase 6 DHA"
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 mb-1">City *</label>
+            <input
+              type="text"
+              required
+              value={newCustCity}
+              onChange={(e) => setNewCustCity(e.target.value)}
+              placeholder="e.g. Lahore"
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-slate-300 mb-1">Email Address (Optional)</label>
+          <input
+            type="email"
+            value={newCustEmail}
+            onChange={(e) => setNewCustEmail(e.target.value)}
+            placeholder="patron@gmail.com (Auto-generated if empty)"
+            className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-slate-300 mb-1">Patron Notes / Preferences (Optional)</label>
+          <textarea
+            rows={2}
+            value={newCustNotes}
+            onChange={(e) => setNewCustNotes(e.target.value)}
+            placeholder="e.g. VIP client, prefers dark walnut finish and high-firmness seating"
+            className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-[#B99A68]"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => setShowAddCustomerModal(false)}
+            disabled={newCustSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="gold"
+            type="submit"
+            disabled={newCustSubmitting}
+            className="font-bold px-5"
+          >
+            {newCustSubmitting ? 'Saving Patron...' : 'Save & Select For Order'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  </>
   );
 };
 

@@ -20,6 +20,8 @@ import {
   Upload,
   AlertCircle,
   Truck,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -68,19 +70,70 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [jazzcashMobile, setJazzcashMobile] = useState('');
   const [jazzcashCnic, setJazzcashCnic] = useState('');
 
+  // Bank transfer state
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>('');
   const [bankSenderTitle, setBankSenderTitle] = useState('');
-  const [bankName, setBankName] = useState('Meezan Bank');
   const [bankRef, setBankRef] = useState('');
+  const [transferredAmount, setTransferredAmount] = useState('');
   const [bankReceiptUrl, setBankReceiptUrl] = useState('');
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderConfirmed, setOrderConfirmed] = useState<any | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      fetch('/api/payment/banks')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.bankAccounts && data.bankAccounts.length > 0) {
+            setBankAccounts(data.bankAccounts);
+            setSelectedBankId(data.bankAccounts[0].id);
+          }
+        })
+        .catch((err) => console.error('Failed to load banks', err));
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const discountAmount = appliedCoupon?.discountAmount || 0;
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
+  const activeBank = bankAccounts.find((b) => b.id === selectedBankId) || bankAccounts[0];
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingReceipt(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/payment/receipt-upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.receiptUrl) {
+        setBankReceiptUrl(data.receiptUrl);
+      } else {
+        alert(data.error || 'Failed to upload receipt screenshot');
+      }
+    } catch (err) {
+      console.error('Receipt upload error', err);
+      alert('Network error while attaching receipt');
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
 
   const handleNextFromCustomer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +165,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         delivery: { address, city, area, postalCode, instructions },
         items: items.map((i) => ({
           productId: i.productId,
+          productTitle: i.productTitle || i.title,
           quantity: i.quantity,
           selectedColour: i.selectedColour,
           selectedDesign: i.selectedDesign,
@@ -124,10 +178,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           cardBrand: 'Visa',
           jazzcashMobile: jazzcashMobile || phone,
           jazzcashCnic,
-          bankName,
+          bankName: activeBank?.bankName || 'Meezan Bank Limited',
           senderAccountTitle: bankSenderTitle || name,
           transactionReference: bankRef || `BANK-${Date.now().toString().slice(-6)}`,
-          receiptImageUrl: bankReceiptUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop',
+          transferredAmount: transferredAmount ? Number(transferredAmount) : grandTotal,
+          receiptImageUrl: bankReceiptUrl || null,
         },
       };
 
@@ -682,23 +737,101 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
 
                 {paymentMethod === 'bank_transfer' && (
-                  <div className="p-4 rounded-xl bg-slate-900/90 border border-white/10 space-y-3 text-xs">
-                    <div className="p-3 rounded-lg bg-black/40 border border-[#c5a880]/30 space-y-1.5">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Bank:</span>
-                        <span className="font-semibold text-white">Meezan Bank Ltd / SCB</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Account Title:</span>
-                        <span className="font-semibold text-[#e5caa2]">Saad Furniture Private Limited</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Account / IBAN:</span>
-                        <span className="font-mono font-bold text-white select-all">PK36MEZN0001234567890101</span>
-                      </div>
+                  <div className="p-4 rounded-xl bg-slate-900/90 border border-white/10 space-y-3.5 text-xs">
+                    <div className="flex items-center justify-between pb-1 border-b border-white/5">
+                      <span className="font-bold text-white uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-[#c5a880]" /> Official Atelier Bank Account
+                      </span>
+                      <span className="text-[10px] text-slate-400">Direct Bank Transfer</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Bank selector pills */}
+                    {bankAccounts.length > 1 && (
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {bankAccounts.map((b) => (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => setSelectedBankId(b.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors ${
+                              selectedBankId === b.id
+                                ? 'bg-[#c5a880] text-slate-950 font-bold'
+                                : 'bg-slate-950 text-slate-300 border border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            {b.bankName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {activeBank && (
+                      <div className="p-3.5 rounded-xl bg-black/40 border border-[#c5a880]/30 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Bank Name:</span>
+                          <span className="font-bold text-white">{activeBank.bankName}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Account Title:</span>
+                          <span className="font-semibold text-[#e5caa2]">{activeBank.accountTitle}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1.5 border-t border-white/5">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Account Number:</span>
+                            <span className="font-mono font-bold text-white text-xs select-all">
+                              {activeBank.accountNumber}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(activeBank.accountNumber, 'acc')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-[11px] text-slate-200 hover:text-white hover:border-[#c5a880] flex items-center gap-1"
+                          >
+                            {copiedField === 'acc' ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" /> Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3 text-[#c5a880]" /> Copy Account No
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-1.5 border-t border-white/5">
+                          <div className="overflow-hidden">
+                            <span className="text-[10px] text-slate-400 block">IBAN / Raast:</span>
+                            <span className="font-mono font-bold text-[#c5a880] text-[11px] select-all truncate block">
+                              {activeBank.iban}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(activeBank.iban, 'iban')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-[11px] text-slate-200 hover:text-white hover:border-[#c5a880] flex items-center gap-1 shrink-0"
+                          >
+                            {copiedField === 'iban' ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" /> Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3 text-[#c5a880]" /> Copy IBAN
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {activeBank.instructions && (
+                          <p className="text-[10px] text-slate-400 italic pt-1 border-t border-white/5">
+                            {activeBank.instructions}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[11px] text-slate-400 mb-1">Sender Account Title</label>
                         <input
@@ -710,7 +843,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Transaction Ref / UTR</label>
+                        <label className="block text-[11px] text-slate-400 mb-1">Transaction Ref / UTR *</label>
                         <input
                           type="text"
                           value={bankRef}
@@ -719,19 +852,36 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
                         />
                       </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">Transferred Amount (₨)</label>
+                        <input
+                          type="number"
+                          value={transferredAmount}
+                          onChange={(e) => setTransferredAmount(e.target.value)}
+                          placeholder={grandTotal.toString()}
+                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-[#c5a880]"
+                        />
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Receipt Screenshot / Image Link</label>
-                      <input
-                        type="url"
-                        value={bankReceiptUrl}
-                        onChange={(e) => setBankReceiptUrl(e.target.value)}
-                        placeholder="https://... receipt image link"
-                        className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[#c5a880]"
-                      />
+                      <label className="block text-[11px] text-slate-400 mb-1">
+                        Upload Transfer Screenshot / Receipt Proof
+                      </label>
+                      <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-white/20 bg-slate-950/60 hover:border-[#c5a880] cursor-pointer transition-colors">
+                        <Upload className="w-4 h-4 text-[#c5a880]" />
+                        <span className="text-xs text-slate-300 font-medium">
+                          {uploadingReceipt ? 'Attaching Receipt Screenshot...' : bankReceiptUrl ? 'Receipt Proof Attached ✓ (Click to change)' : 'Click to select receipt screenshot from device'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={handleReceiptUpload}
+                          className="hidden"
+                        />
+                      </label>
                       <span className="text-[10px] text-slate-500 mt-1 block">
-                        Super Admin Accounts Bureau verifies receipts and confirms within 1-2 hours.
+                        Super Admin Accounts Bureau audits all submitted bank receipts and confirms within 1-2 hours.
                       </span>
                     </div>
                   </div>

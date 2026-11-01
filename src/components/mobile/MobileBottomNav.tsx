@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Home, ShoppingBag, Clock, Bell, User } from 'lucide-react';
+import { Home, ShoppingBag, Clock, Bell, User, Film } from 'lucide-react';
 
-export type MobileTab = 'home' | 'shop' | 'orders' | 'notifications' | 'profile' | 'documents';
+export type MobileTab = 'home' | 'shop' | 'workshop' | 'orders' | 'notifications' | 'profile' | 'documents';
 
 interface MobileBottomNavProps {
   activeTab: MobileTab;
@@ -21,9 +21,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const tabs = [
     { id: 'home' as MobileTab, label: 'Home', icon: Home },
     { id: 'shop' as MobileTab, label: 'Shop', icon: ShoppingBag, badge: cartCount },
-    { id: 'orders' as MobileTab, label: 'My Orders', icon: Clock },
+    { id: 'workshop' as MobileTab, label: 'Workshop', icon: Film },
+    { id: 'orders' as MobileTab, label: 'Orders', icon: Clock },
     { id: 'notifications' as MobileTab, label: 'Inbox', icon: Bell, badge: unreadNotificationsCount },
-    { id: 'profile' as MobileTab, label: 'Profile', icon: User },
   ];
 
   return (

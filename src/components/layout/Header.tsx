@@ -105,6 +105,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Nav Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
           <Link
+            href="/workshop"
+            className="text-xs font-semibold text-[#B99A68] hover:text-[#d4b584] transition-colors hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#B99A68]/10 border border-[#B99A68]/30 hover:bg-[#B99A68]/20"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#B99A68]" />
+            <span>Workshop</span>
+          </Link>
+          <Link
             href="/about"
             className="text-xs font-semibold text-slate-300 hover:text-[#B99A68] transition-colors hidden md:block px-2.5 py-1.5 rounded-lg hover:bg-white/5"
           >

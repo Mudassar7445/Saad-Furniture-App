@@ -180,6 +180,8 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     });
   };
 
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
+
   // Handle direct file upload to Google Drive 5TB storage or local asset
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'pdf') => {
     const files = e.target.files;
@@ -188,27 +190,22 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     try {
       setUploading(true);
       setErrorMsg(null);
+      setUploadSuccessMsg(null);
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
         if (type === 'image') {
-          setUploadProgressText(`Optimizing & attaching ${file.name}...`);
-          // 1. Instantly compress and generate local data URL so the user's exact photo is visible immediately
-          const { dataUrl, blob } = await compressImageFile(file);
+          setUploadProgressText(`Uploading photograph ${i + 1} of ${files.length}: ${file.name}...`);
           
-          if (dataUrl) {
-            setImages((prev) => [...prev, dataUrl]);
-            setFeaturedImage((prev) => prev || dataUrl);
-          }
+          // Generate quick preview blob
+          const { dataUrl, blob } = await compressImageFile(file);
 
-          // 2. Upload compressed asset to Google Drive in background
           try {
-            setUploadProgressText(`Uploading ${file.name} to Cloud Storage...`);
             const formData = new FormData();
             formData.append('file', blob, file.name);
             formData.append('category', category);
-            formData.append('title', `${title || 'Catalogue'} - ${file.name}`);
+            formData.append('title', `${title || 'Piece'} - ${file.name}`);
 
             const res = await fetch('/api/admin/google-drive/upload', {
               method: 'POST',
@@ -217,19 +214,28 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
 
             const data = await res.json();
             if (res.ok && data.media) {
-              const uploadedUrl = data.media.url || data.media.viewUrl;
-              if (uploadedUrl) {
-                // Update with permanent cloud URL
-                setImages((prev) => prev.map((img) => (img === dataUrl ? uploadedUrl : img)));
-                setFeaturedImage((prev) => (prev === dataUrl ? uploadedUrl : prev));
-              }
+              const permanentUrl = data.media.url || data.media.proxyUrl || data.media.viewUrl;
+              setImages((prev) => {
+                const next = [...prev, permanentUrl];
+                return next;
+              });
+              setFeaturedImage((prev) => prev || permanentUrl);
+              setUploadSuccessMsg(`Successfully attached ${file.name}`);
+            } else {
+              // Fallback to dataUrl if upload endpoint returned error so user photograph is still retained
+              const fallbackUrl = dataUrl;
+              setImages((prev) => [...prev, fallbackUrl]);
+              setFeaturedImage((prev) => prev || fallbackUrl);
+              setUploadSuccessMsg(`Photograph attached locally`);
             }
           } catch (uploadCloudErr) {
-            console.warn('Cloud storage sync skipped, using optimized direct asset:', uploadCloudErr);
+            console.warn('Cloud storage sync note, keeping local optimized asset:', uploadCloudErr);
+            setImages((prev) => [...prev, dataUrl]);
+            setFeaturedImage((prev) => prev || dataUrl);
           }
         } else {
           // For video / pdf
-          setUploadProgressText(`Uploading ${file.name} to Storage...`);
+          setUploadProgressText(`Uploading ${file.name} (${i + 1}/${files.length})...`);
           const formData = new FormData();
           formData.append('file', file);
           formData.append('category', category);
@@ -242,12 +248,13 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
 
           const data = await res.json();
           if (res.ok && data.media) {
-            const uploadedUrl = data.media.url || data.media.viewUrl;
+            const uploadedUrl = data.media.url || data.media.proxyUrl || data.media.viewUrl;
             if (type === 'video') {
               setVideos((prev) => [...prev, uploadedUrl]);
             } else if (type === 'pdf') {
               setDocuments((prev) => [...prev, uploadedUrl]);
             }
+            setUploadSuccessMsg(`Attached ${file.name}`);
           } else {
             throw new Error(data.error || `Upload failed for ${file.name}`);
           }
@@ -268,6 +275,44 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
     setImages(updated);
     if (featuredImage === removedUrl) {
       setFeaturedImage(updated[0] || '');
+    }
+  };
+
+  const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>, replaceIndex: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setUploadProgressText(`Replacing image with ${file.name}...`);
+      setErrorMsg(null);
+
+      const { dataUrl, blob } = await compressImageFile(file);
+      const formData = new FormData();
+      formData.append('file', blob, file.name);
+      formData.append('category', category);
+      formData.append('title', `${title || 'Piece'} - ${file.name}`);
+
+      const res = await fetch('/api/admin/google-drive/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      const permanentUrl = (res.ok && data.media) ? (data.media.url || data.media.proxyUrl || data.media.viewUrl) : dataUrl;
+
+      const oldUrl = images[replaceIndex];
+      setImages((prev) => prev.map((img, i) => (i === replaceIndex ? permanentUrl : img)));
+      if (featuredImage === oldUrl || !featuredImage) {
+        setFeaturedImage(permanentUrl);
+      }
+      setUploadSuccessMsg(`Replaced photo with ${file.name}`);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Image replacement failed.');
+    } finally {
+      setUploading(false);
+      setUploadProgressText('');
+      e.target.value = '';
     }
   };
 
@@ -309,17 +354,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
         warrantyDetails: warrantyDetails.trim(),
         featured: featured ? 1 : 0,
         featuredImage: featuredImage || (images.length > 0 ? images[0] : null),
-        images: images.length > 0 ? images : [
-          category === 'Double Beds'
-            ? 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80'
-            : category === 'Wardrobes'
-            ? 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1200&q=80'
-            : category === 'Center Tables'
-            ? 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80'
-            : category === 'Room Chairs'
-            ? 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
-            : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80'
-        ],
+        images: images.length > 0 ? images : [],
         videos,
         documents,
       };
@@ -514,6 +549,13 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
             <Badge variant="gold">Auto Folder: SAAD FURNITURE MASTER / Product Catalog / {category}</Badge>
           </div>
 
+          {uploadSuccessMsg && (
+            <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{uploadSuccessMsg}</span>
+            </div>
+          )}
+
           {uploading && (
             <div className="p-3 bg-[#B99A68]/20 border border-[#B99A68]/40 rounded-xl text-white text-xs flex items-center gap-2">
               <RefreshCw className="w-4 h-4 text-[#B99A68] animate-spin shrink-0" />
@@ -618,7 +660,7 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
                         {!isMain && (
                           <button
                             type="button"
@@ -629,6 +671,18 @@ export const ProductMediaUploadModal: React.FC<ProductMediaUploadModalProps> = (
                             <Star className="w-3.5 h-3.5" />
                           </button>
                         )}
+                        <label
+                          className="p-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-700 hover:scale-105 transition-transform cursor-pointer"
+                          title="Replace this image"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            onChange={(e) => handleReplaceImage(e, imgIdx)}
+                            className="hidden"
+                          />
+                        </label>
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(imgIdx)}

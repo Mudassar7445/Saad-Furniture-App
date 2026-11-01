@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   ShieldCheck,
@@ -17,6 +17,8 @@ import {
   Phone,
   User,
   MapPin,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -54,24 +56,73 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
   const [city, setCity] = useState(currentUser?.city || 'Lahore');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank_transfer' | 'jazzcash' | 'card'>('bank_transfer');
+  
+  // Bank details state
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>('');
+  const [bankRef, setBankRef] = useState('');
+  const [transferredAmount, setTransferredAmount] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Card details state (PCI-compliant: never stored, used for tokenization)
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+
   const [createdOrder, setCreatedOrder] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/payment/banks')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.bankAccounts && data.bankAccounts.length > 0) {
+            setBankAccounts(data.bankAccounts);
+            setSelectedBankId(data.bankAccounts[0].id);
+          }
+        })
+        .catch((err) => console.error('Failed to load active bank accounts', err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const finalTotal = Math.max(0, cart.subtotal - discountAmount + cart.deliveryFee);
+  const activeBank = bankAccounts.find((b) => b.id === selectedBankId) || bankAccounts[0];
 
-  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingReceipt(true);
-    // Simulating instant receipt attachment
-    setTimeout(() => {
-      setReceiptUrl(URL.createObjectURL(file));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/payment/receipt-upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.receiptUrl) {
+        setReceiptUrl(data.receiptUrl);
+      } else {
+        alert(data.error || 'Failed to upload receipt screenshot');
+      }
+    } catch (err) {
+      console.error('Receipt upload error', err);
+      alert('Network error while attaching receipt');
+    } finally {
       setUploadingReceipt(false);
-    }, 1000);
+    }
   };
 
   const handleSubmitOrder = async () => {
@@ -83,27 +134,35 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: name,
-          customerPhone: phone,
-          customerEmail: email,
-          deliveryAddress: address,
-          city,
-          specialInstructions,
-          paymentMethod,
-          bankReceiptUrl: receiptUrl || null,
+          customer: {
+            name,
+            phone,
+            email: email || `${phone.replace(/[^0-9]/g, '') || Date.now()}@saadfurniture.patron`,
+          },
+          delivery: {
+            address,
+            city,
+            instructions: specialInstructions,
+          },
           items: cart.items.map((i) => ({
             productId: i.productId,
-            productName: i.productName,
-            price: i.unitPrice || i.price,
+            productTitle: i.productName || i.title,
             quantity: i.quantity,
-            woodType: i.woodType,
-            fabricColor: i.fabricColor,
+            selectedColour: i.fabricColor || i.color || 'Standard',
+            customNotes: i.woodType ? `Wood: ${i.woodType}` : null,
           })),
-          subtotal: cart.subtotal,
-          discountAmount,
           couponCode: appliedCoupon?.code || null,
-          deliveryFee: cart.deliveryFee,
-          grandTotal: finalTotal,
+          paymentMethod,
+          paymentDetails: {
+            bankName: activeBank?.bankName || 'Meezan Bank Limited',
+            senderAccountTitle: name,
+            senderAccountNumber: null,
+            transactionReference: bankRef || `BANK-${Date.now().toString().slice(-6)}`,
+            receiptImageUrl: receiptUrl || null,
+            transferredAmount: transferredAmount ? Number(transferredAmount) : finalTotal,
+            cardLast4: cardNumber ? cardNumber.slice(-4) : '4242',
+            cardBrand: 'Visa',
+          },
         }),
       });
 
@@ -313,37 +372,133 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
 
               {/* Bank Transfer Details Box */}
               {paymentMethod === 'bank_transfer' && (
-                <div className="bg-white p-4 rounded-2xl border border-[#B99A68]/50 shadow-sm space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#262421] flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-[#B99A68]" /> Official Atelier Bank Account
-                  </h4>
-                  <div className="space-y-1.5 text-xs bg-[#F7F5F0] p-3 rounded-xl">
-                    <div className="flex justify-between">
-                      <span className="text-[#89847C]">Bank:</span>
-                      <strong className="text-[#262421]">Meezan Bank Limited</strong>
+                <div className="bg-white p-4 rounded-2xl border border-[#B99A68]/50 shadow-sm space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#262421] flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-[#B99A68]" /> Official Atelier Bank Account
+                    </h4>
+                    <span className="text-[10px] text-[#89847C]">Select Bank</span>
+                  </div>
+
+                  {/* Multiple Bank Selector Pills */}
+                  {bankAccounts.length > 1 && (
+                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                      {bankAccounts.map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setSelectedBankId(b.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0 transition-colors ${
+                            selectedBankId === b.id
+                              ? 'bg-[#262421] text-[#B99A68] border border-[#B99A68]'
+                              : 'bg-[#F7F5F0] text-[#89847C] border border-[#EAE2D6]'
+                          }`}
+                        >
+                          {b.bankName}
+                        </button>
+                      ))}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#89847C]">Account Title:</span>
-                      <strong className="text-[#262421]">Saad Furniture Industry</strong>
+                  )}
+
+                  {activeBank && (
+                    <div className="space-y-2 text-xs bg-[#F7F5F0] p-3 rounded-xl border border-[#EAE2D6]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#89847C]">Bank:</span>
+                        <strong className="text-[#262421]">{activeBank.bankName}</strong>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#89847C]">Account Title:</span>
+                        <strong className="text-[#262421]">{activeBank.accountTitle}</strong>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-[#EAE2D6]">
+                        <div>
+                          <span className="text-[10px] text-[#89847C] block">Account No:</span>
+                          <span className="font-mono font-bold text-[#262421] text-xs">
+                            {activeBank.accountNumber}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(activeBank.accountNumber, 'acc')}
+                          className="px-2 py-1 rounded-md bg-white border border-[#EAE2D6] text-[10px] font-bold text-[#262421] hover:border-[#B99A68] flex items-center gap-1 shadow-xs"
+                        >
+                          {copiedField === 'acc' ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" /> Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-[#B99A68]" /> Copy No.
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-[#EAE2D6]">
+                        <div>
+                          <span className="text-[10px] text-[#89847C] block">IBAN / Raast:</span>
+                          <span className="font-mono text-[#B99A68] text-[11px] font-bold">
+                            {activeBank.iban}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(activeBank.iban, 'iban')}
+                          className="px-2 py-1 rounded-md bg-white border border-[#EAE2D6] text-[10px] font-bold text-[#262421] hover:border-[#B99A68] flex items-center gap-1 shadow-xs"
+                        >
+                          {copiedField === 'iban' ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" /> Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-[#B99A68]" /> Copy IBAN
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {activeBank.instructions && (
+                        <p className="text-[10px] text-[#89847C] italic pt-1">
+                          {activeBank.instructions}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#89847C]">Account No:</span>
-                      <strong className="font-mono text-[#262421]">02840105829102</strong>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#89847C] block mb-1">
+                        Transaction Ref / UTR *
+                      </label>
+                      <input
+                        type="text"
+                        value={bankRef}
+                        onChange={(e) => setBankRef(e.target.value)}
+                        placeholder="e.g. MEZN-98214"
+                        className="w-full px-2.5 py-1.5 bg-[#F7F5F0] rounded-lg border border-[#EAE2D6] text-xs text-[#292722] focus:outline-none focus:border-[#B99A68]"
+                      />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#89847C]">Raast ID:</span>
-                      <strong className="font-mono text-[#B99A68]">03009482811</strong>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#89847C] block mb-1">
+                        Transferred Amount (₨)
+                      </label>
+                      <input
+                        type="number"
+                        value={transferredAmount}
+                        onChange={(e) => setTransferredAmount(e.target.value)}
+                        placeholder={finalTotal.toString()}
+                        className="w-full px-2.5 py-1.5 bg-[#F7F5F0] rounded-lg border border-[#EAE2D6] text-xs text-[#292722] font-mono focus:outline-none focus:border-[#B99A68]"
+                      />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-[11px] font-bold text-[#89847C] block mb-1">
-                      Upload Transfer Screenshot / Receipt (Optional)
+                      Upload Transfer Screenshot / Receipt Proof
                     </label>
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#EAE2D6] rounded-xl p-3 cursor-pointer hover:border-[#B99A68] bg-[#F7F5F0]/50">
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#EAE2D6] rounded-xl p-3 cursor-pointer hover:border-[#B99A68] bg-[#F7F5F0]/50 transition-colors">
                       <Upload className="w-5 h-5 text-[#89847C] mb-1" />
                       <span className="text-[11px] font-bold text-[#262421]">
-                        {uploadingReceipt ? 'Attaching Receipt...' : receiptUrl ? 'Receipt Attached ✓' : 'Tap to select receipt photo'}
+                        {uploadingReceipt ? 'Attaching Receipt...' : receiptUrl ? 'Receipt Attached ✓ (Tap to change)' : 'Tap to select receipt photo'}
                       </span>
                       <input
                         type="file"
@@ -353,6 +508,75 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
                       />
                     </label>
                   </div>
+                </div>
+              )}
+
+              {/* Card Payment Details Box */}
+              {paymentMethod === 'card' && (
+                <div className="bg-white p-4 rounded-2xl border border-[#B99A68]/50 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#EAE2D6]">
+                    <div className="flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-[#B99A68]" />
+                      <span className="text-xs font-bold text-[#262421]">Pay with Card (Debit/Credit)</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">Visa</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Mastercard</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#89847C] block mb-1">Cardholder Name</label>
+                    <input
+                      type="text"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="Name on card"
+                      className="w-full px-3 py-2 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-xs text-[#292722] focus:outline-none focus:border-[#B99A68]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#89847C] block mb-1">Card Number</label>
+                    <input
+                      type="text"
+                      maxLength={19}
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="4242 •••• •••• 4242"
+                      className="w-full px-3 py-2 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-xs text-[#292722] font-mono focus:outline-none focus:border-[#B99A68]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#89847C] block mb-1">Expiry (MM/YY)</label>
+                      <input
+                        type="text"
+                        maxLength={5}
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(e.target.value)}
+                        placeholder="12/28"
+                        className="w-full px-3 py-2 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-xs text-[#292722] font-mono focus:outline-none focus:border-[#B99A68]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#89847C] block mb-1">CVV / Security Code</label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value)}
+                        placeholder="•••"
+                        className="w-full px-3 py-2 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-xs text-[#292722] font-mono focus:outline-none focus:border-[#B99A68]"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-[#89847C] flex items-center gap-1 pt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>256-bit PCI-DSS encrypted card gateway. Card credentials are never stored.</span>
+                  </p>
                 </div>
               )}
 

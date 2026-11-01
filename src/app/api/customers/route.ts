@@ -5,7 +5,7 @@ import { users, orders, auditLogs } from '@/lib/db/schema';
 import bcrypt from 'bcryptjs';
 import { eq, desc } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(request: Request) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -20,16 +20,33 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get('search')?.toLowerCase().trim() || '';
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
+
   const allCustomers = await db
     .select()
     .from(users)
     .where(eq(users.role, 'customer'))
     .orderBy(desc(users.createdAt));
 
+  let filtered = allCustomers;
+  if (search) {
+    filtered = allCustomers.filter((c) => {
+      const nameMatch = c.name?.toLowerCase().includes(search);
+      const phoneMatch = c.phone?.toLowerCase().includes(search);
+      const emailMatch = c.email?.toLowerCase().includes(search);
+      const cityMatch = c.city?.toLowerCase().includes(search);
+      const addressMatch = c.address?.toLowerCase().includes(search);
+      return nameMatch || phoneMatch || emailMatch || cityMatch || addressMatch;
+    });
+  }
+
   const allOrders = await db.select().from(orders);
 
   // Compute aggregate stats per customer
-  const enrichedCustomers = allCustomers.map((cust) => {
+  const enrichedCustomers = filtered.map((cust) => {
     const custOrders = allOrders.filter((o) => o.customerId === cust.id);
     const totalOrders = custOrders.length;
     const activeOrders = custOrders.filter(
@@ -65,62 +82,109 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ customers: enrichedCustomers });
+  const total = enrichedCustomers.length;
+  const paginated = enrichedCustomers.slice((page - 1) * limit, page * limit);
+
+  return NextResponse.json({
+    customers: searchParams.has('limit') ? paginated : enrichedCustomers,
+    total,
+    page,
+    limit,
+  });
 }
 
 export async function POST(request: Request) {
   const sessionUser = await getSessionUser();
-  if (!sessionUser || sessionUser.role !== 'super_admin') {
+  if (
+    !sessionUser ||
+    (sessionUser.role !== 'super_admin' && !sessionUser.permissions?.includes('orders'))
+  ) {
     return NextResponse.json(
-      { error: 'Only Super Admin can create customer accounts.' },
+      { error: 'Unauthorized: Permission to manage customers required.' },
       { status: 403 }
     );
   }
 
   try {
     const body = await request.json();
-    const { name, email, phone, password, address, city, firstBusinessDate } = body;
+    const { name, email, phone, password, address, city, firstBusinessDate, notes, whatsappNumber } = body;
 
-    if (!name || !email || !password) {
+    if (!name || !name.trim()) {
       return NextResponse.json(
-        { error: 'Name, email, and initial password are required.' },
+        { error: 'Customer full name is required.' },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalizedEmail))
-      .limit(1);
-
-    if (existing.length > 0) {
+    if (!phone || !phone.trim()) {
       return NextResponse.json(
-        { error: 'A user with this email address already exists.' },
-        { status: 409 }
+        { error: 'Mobile / contact number is required.' },
+        { status: 400 }
       );
     }
 
+    const cleanPhone = phone.trim();
+    const cleanName = name.trim();
+
+    // Check if customer with this exact phone already exists to avoid duplicate accounts
+    const existingByPhone = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, cleanPhone))
+      .limit(1);
+
+    if (existingByPhone.length > 0) {
+      const existing = existingByPhone[0];
+      return NextResponse.json({
+        success: true,
+        customer: existing,
+        message: 'Existing customer account matched and loaded.',
+        isExisting: true,
+      });
+    }
+
+    // Auto-generate unique email if optional email is not provided
+    const cleanEmail = email && email.trim()
+      ? email.toLowerCase().trim()
+      : `patron_${cleanPhone.replace(/[^0-9]/g, '') || Date.now()}@saadpatron.com`;
+
+    // Check if email is already taken
+    const existingByEmail = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, cleanEmail))
+      .limit(1);
+
+    if (existingByEmail.length > 0) {
+      const existing = existingByEmail[0];
+      return NextResponse.json({
+        success: true,
+        customer: existing,
+        message: 'Existing customer account matched and loaded.',
+        isExisting: true,
+      });
+    }
+
+    const defaultPassword = password || `Saad@${Math.floor(1000 + Math.random() * 9000)}`;
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(defaultPassword, salt);
     const now = new Date().toISOString();
     const customerId = `cust_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     const newCustomer = {
       id: customerId,
-      name,
-      email: normalizedEmail,
-      phone: phone || null,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
       passwordHash,
       role: 'customer',
-      permissions: '[]',
+      permissions: JSON.stringify({ notes: notes || null, whatsapp: whatsappNumber || cleanPhone }),
       status: 'active',
       avatarUrl:
         body.avatarUrl ||
         `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80`,
-      address: address || null,
-      city: city || null,
+      address: address?.trim() || null,
+      city: city?.trim() || 'Lahore',
       firstBusinessDate: firstBusinessDate || now.split('T')[0],
       createdAt: now,
       updatedAt: now,
@@ -134,21 +198,15 @@ export async function POST(request: Request) {
       userId: sessionUser.id,
       userName: sessionUser.name,
       action: 'CREATE_CUSTOMER',
-      details: `Created customer account for ${name} (${normalizedEmail})`,
+      details: `Created customer account for [${cleanName}] (${cleanPhone})`,
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
 
     return NextResponse.json({
       success: true,
-      customer: {
-        id: customerId,
-        name,
-        email: normalizedEmail,
-        phone,
-        status: 'active',
-        firstBusinessDate: newCustomer.firstBusinessDate,
-      },
+      customer: newCustomer,
+      message: 'New customer account created successfully.',
     });
   } catch (error) {
     console.error('Create customer error:', error);

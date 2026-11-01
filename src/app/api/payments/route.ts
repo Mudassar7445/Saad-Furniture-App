@@ -81,12 +81,14 @@ export async function POST(request: Request) {
       createdAt: now,
     });
 
-    // 2. Update order paidAmount and remainingBalance
+    // 2. Update order paidAmount, remainingBalance, and paymentStatus
+    const newPaymentStatus = newRemainingBalance <= 0 ? 'paid' : 'partially_paid';
     await db
       .update(orders)
       .set({
         paidAmount: newPaidAmount,
         remainingBalance: newRemainingBalance,
+        paymentStatus: newPaymentStatus,
         updatedAt: now,
       })
       .where(eq(orders.id, orderId));

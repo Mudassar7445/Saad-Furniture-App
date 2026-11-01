@@ -779,6 +779,284 @@ export async function initializeDatabase() {
       console.warn('Cloud storage connection seed note:', connErr);
     }
 
+    // --- 36. WORKSHOP MEDIA TABLE & MIGRATIONS ---
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS workshop_media (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        media_type TEXT NOT NULL DEFAULT 'photo',
+        category TEXT NOT NULL DEFAULT 'workshop_tour',
+        url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        video_duration REAL,
+        is_featured INTEGER NOT NULL DEFAULT 0,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        is_published INTEGER NOT NULL DEFAULT 1,
+        views_count INTEGER NOT NULL DEFAULT 0,
+        google_drive_file_id TEXT,
+        uploaded_by TEXT DEFAULT 'admin',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // --- 37. BANK ACCOUNTS TABLE ---
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS bank_accounts (
+        id TEXT PRIMARY KEY,
+        bank_name TEXT NOT NULL,
+        account_title TEXT NOT NULL,
+        account_number TEXT NOT NULL,
+        iban TEXT NOT NULL,
+        branch_name TEXT,
+        branch_code TEXT,
+        instructions TEXT,
+        qr_code_url TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // Safe column migration for bank_transfer_receipts
+    try {
+      await client.execute(`ALTER TABLE bank_transfer_receipts ADD COLUMN rejection_reason TEXT;`);
+    } catch {}
+
+    // --- 38. PAYMENT GATEWAYS CONFIG TABLE ---
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS payment_gateways_config (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'stripe',
+        mode TEXT NOT NULL DEFAULT 'sandbox',
+        is_enabled INTEGER NOT NULL DEFAULT 1,
+        publishable_key TEXT,
+        secret_key_encrypted TEXT,
+        webhook_secret_encrypted TEXT,
+        merchant_id TEXT,
+        supported_currencies TEXT DEFAULT '["PKR","USD"]',
+        settings_json TEXT DEFAULT '{}',
+        updated_at TEXT NOT NULL,
+        updated_by TEXT DEFAULT 'super_admin'
+      );
+    `);
+
+    // Ensure default bank accounts exist
+    try {
+      const existingBanks = await client.execute(`SELECT count(*) as cnt FROM bank_accounts;`);
+      if (Number(existingBanks.rows[0].cnt || 0) === 0) {
+        const now = new Date().toISOString();
+        const defaultBanks = [
+          {
+            id: 'bank_meezan_primary',
+            bank_name: 'Meezan Bank Limited',
+            account_title: 'Saad Furniture Private Limited',
+            account_number: '02840105829102',
+            iban: 'PK64MEZN0002840105829102',
+            branch_name: 'Main Boulevard, Gulberg III Branch, Lahore',
+            branch_code: '0284',
+            instructions: 'Transfer order advance or total balance. Supports instant Raast IBFT via 03009482811. Attach transaction receipt screenshot for instant verification.',
+            is_active: 1,
+            display_order: 1,
+          },
+          {
+            id: 'bank_scb_premier',
+            bank_name: 'Standard Chartered Bank',
+            account_title: 'Saad Furniture Atelier',
+            account_number: '01827461901',
+            iban: 'PK36SCBL0000001827461901',
+            branch_name: 'DHA Phase 5 Commercial Avenue, Lahore',
+            branch_code: '0182',
+            instructions: 'Corporate premier client accounts for bespoke estate furnishing and white-glove projects.',
+            is_active: 1,
+            display_order: 2,
+          },
+          {
+            id: 'bank_alfalah_isb',
+            bank_name: 'Bank Alfalah Limited',
+            account_title: 'Saad Furniture & Interior Studio',
+            account_number: '5512900381',
+            iban: 'PK12ALFH00005512900381',
+            branch_name: 'F-6 Super Market Executive Branch, Islamabad',
+            branch_code: '5512',
+            instructions: 'Direct transfer for North/Islamabad region patron commissions.',
+            is_active: 1,
+            display_order: 3,
+          },
+        ];
+
+        for (const b of defaultBanks) {
+          await client.execute({
+            sql: `INSERT INTO bank_accounts (id, bank_name, account_title, account_number, iban, branch_name, branch_code, instructions, is_active, display_order, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            args: [b.id, b.bank_name, b.account_title, b.account_number, b.iban, b.branch_name, b.branch_code, b.instructions, b.is_active, b.display_order, now, now],
+          });
+        }
+      }
+    } catch (bErr) {
+      console.warn('Bank accounts seed note:', bErr);
+    }
+
+    // Ensure default card gateway config exists
+    try {
+      const existingGateway = await client.execute(`SELECT id FROM payment_gateways_config WHERE id = 'card_gateway' LIMIT 1;`);
+      if (existingGateway.rows.length === 0) {
+        await client.execute({
+          sql: `INSERT INTO payment_gateways_config (
+                  id, provider, mode, is_enabled, publishable_key, merchant_id,
+                  supported_currencies, settings_json, updated_at, updated_by
+                ) VALUES (
+                  'card_gateway', 'stripe', 'sandbox', 1, 'pk_test_saad_furniture_luxury_demo', 'acct_saadfurniture2026',
+                  '["PKR","USD"]', '{"allowVisa": true, "allowMastercard": true, "require3DS": true}', ?, 'super_admin'
+                );`,
+          args: [new Date().toISOString()],
+        });
+      }
+    } catch (gErr) {
+      console.warn('Gateway config seed note:', gErr);
+    }
+
+    // Ensure initial workshop media exists
+    try {
+      const existingWorkshop = await client.execute(`SELECT count(*) as cnt FROM workshop_media;`);
+      if (Number(existingWorkshop.rows[0].cnt || 0) === 0) {
+        const now = new Date().toISOString();
+        const initialWorkshopMedia = [
+          {
+            id: 'ws_feat_video_1',
+            title: 'Inside Our Master Atelier: The Making of Royal Suites',
+            description: 'Comprehensive 4K walkthrough of our primary manufacturing facility, showcasing hardwood seasoning, computerized precision wood routing, hand carving, and architectural assembly.',
+            media_type: 'video',
+            category: 'workshop_tour',
+            url: 'https://assets.mixkit.co/videos/preview/mixkit-carpenter-measuring-a-wood-plank-41584-large.mp4',
+            thumbnail_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
+            video_duration: 72,
+            is_featured: 1,
+            display_order: 1,
+            is_published: 1,
+            views_count: 1420,
+          },
+          {
+            id: 'ws_sofa_frame_1',
+            title: 'Sofa Frame Manufacturing & Mortise Joinery',
+            description: 'Precision crafting of structural sofa frames using 100% seasoned solid Sheesham hardwood with reinforced corner blocks and double-dowel joinery.',
+            media_type: 'photo',
+            category: 'sofa_frame',
+            url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+            thumbnail_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80',
+            video_duration: null,
+            is_featured: 0,
+            display_order: 2,
+            is_published: 1,
+            views_count: 890,
+          },
+          {
+            id: 'ws_woodworking_1',
+            title: 'Precision Timber Cutting & Planing Atelier',
+            description: 'Raw log conversion, industrial wood seasoning, moisture measurement, and high-precision CNC routing of architectural bedposts.',
+            media_type: 'video',
+            category: 'woodworking',
+            url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-carpenter-shaping-wood-with-a-chisel-42777-large.mp4',
+            thumbnail_url: 'https://images.unsplash.com/photo-1502005229762-ee1b2b8ab98f?auto=format&fit=crop&w=1200&q=80',
+            video_duration: 48,
+            is_featured: 0,
+            display_order: 3,
+            is_published: 1,
+            views_count: 1105,
+          },
+          {
+            id: 'ws_foam_1',
+            title: 'Multi-Zone Ergonomic Foam Work & Webbing',
+            description: 'Application of Master Molty Diamond 40-density foam with serpentine steel springs and interwoven nylon webbing for 15-year sagging prevention.',
+            media_type: 'photo',
+            category: 'foam_work',
+            url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80',
+            thumbnail_url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80',
+            video_duration: null,
+            is_featured: 0,
+            display_order: 4,
+            is_published: 1,
+            views_count: 670,
+          },
+          {
+            id: 'ws_stitching_1',
+            title: 'Bespoke Fabric & Pure Leather Stitching',
+            description: 'Artisans hand-tufting velvet chesterfields with diamond pleats and heavy-gauge industrial thread stitching.',
+            media_type: 'photo',
+            category: 'fabric_stitching',
+            url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80',
+            thumbnail_url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+            video_duration: null,
+            is_featured: 0,
+            display_order: 5,
+            is_published: 1,
+            views_count: 742,
+          },
+          {
+            id: 'ws_polish_1',
+            title: '7-Coat Furniture Polishing & Hand Waxing',
+            description: 'Application of moisture-resistant polyurethane coats followed by traditional spirit polish and organic beeswax buffing for high-gloss grain accentuation.',
+            media_type: 'video',
+            category: 'furniture_polishing',
+            url: 'https://assets.mixkit.co/videos/preview/mixkit-carpenter-measuring-a-wood-plank-41584-large.mp4',
+            thumbnail_url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80',
+            video_duration: 60,
+            is_featured: 0,
+            display_order: 6,
+            is_published: 1,
+            views_count: 980,
+          },
+          {
+            id: 'ws_finishing_1',
+            title: 'Final Quality Audit & Brass Hardware Fitting',
+            description: 'Installation of antiqued solid brass handles, precision Blum soft-close hinges, and zero-defect white-glove inspection.',
+            media_type: 'photo',
+            category: 'final_finishing',
+            url: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
+            thumbnail_url: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80',
+            video_duration: null,
+            is_featured: 0,
+            display_order: 7,
+            is_published: 1,
+            views_count: 812,
+          },
+          {
+            id: 'ws_completed_1',
+            title: 'Completed Royal Velvet Emerald Living Suite',
+            description: 'Finished bespoke 8-piece royal salon commission prepared for white-glove double-corrugated transport to Islamabad villa.',
+            media_type: 'photo',
+            category: 'completed_products',
+            url: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
+            thumbnail_url: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80',
+            video_duration: null,
+            is_featured: 0,
+            display_order: 8,
+            is_published: 1,
+            views_count: 1530,
+          },
+        ];
+
+        for (const item of initialWorkshopMedia) {
+          await client.execute({
+            sql: `INSERT INTO workshop_media (
+                    id, title, description, media_type, category, url, thumbnail_url,
+                    video_duration, is_featured, display_order, is_published, views_count,
+                    created_at, updated_at
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            args: [
+              item.id, item.title, item.description, item.media_type, item.category,
+              item.url, item.thumbnail_url, item.video_duration, item.is_featured,
+              item.display_order, item.is_published, item.views_count, now, now
+            ],
+          });
+        }
+      }
+    } catch (wsErr) {
+      console.warn('Workshop media seed note:', wsErr);
+    }
+
     isInitialized = true;
   } catch (err) {
     console.error('Database table initialization note:', err);

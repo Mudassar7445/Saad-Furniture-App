@@ -46,6 +46,8 @@ import { OnlineOrdersModule } from '@/components/admin/OnlineOrdersModule';
 import { ShopProfileSettingsModule } from '@/components/admin/ShopProfileSettingsModule';
 import { AdminMediaLibraryModule } from '@/components/admin/AdminMediaLibraryModule';
 import { CloudStorageSettingsModule } from '@/components/admin/CloudStorageSettingsModule';
+import { AdminWorkshopModule } from '@/components/admin/AdminWorkshopModule';
+import { AdminPaymentSettingsModule } from '@/components/admin/AdminPaymentSettingsModule';
 import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBuilderModal';
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
@@ -54,7 +56,7 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeModule, setActiveModule] = useState<
-    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage'
+    'overview' | 'online_orders' | 'orders' | 'deliveries' | 'ledger' | 'inquiries' | 'customers' | 'staff' | 'products' | 'notifications' | 'settings' | 'activity' | 'shop_profile' | 'media_library' | 'cloud_storage' | 'workshop' | 'payment_settings'
   >('overview');
   const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'cloud_storage'>('general');
   const [loading, setLoading] = useState(true);
@@ -566,6 +568,8 @@ export default function SuperAdminDashboard() {
   const navItems = [
     { id: 'overview', label: 'Executive Overview', icon: Layers },
     { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
+    { id: 'workshop', label: 'Workshop Showcase', icon: Play },
+    { id: 'payment_settings', label: 'Payment & Bank Accounts', icon: CreditCard },
     { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
     { id: 'cloud_storage', label: 'Google Drive 5TB Storage', icon: HardDrive },
     { id: 'orders', label: 'Showroom Commissions', icon: Package, count: ordersList.filter((o) => o.orderType !== 'online').length },
@@ -1617,10 +1621,11 @@ export default function SuperAdminDashboard() {
               {productsList.map((prod) => {
                 let imgs: string[] = [];
                 try {
-                  imgs = JSON.parse(prod.images || '[]');
+                  imgs = Array.isArray(prod.images) ? prod.images : JSON.parse(prod.images || '[]');
                 } catch {
                   imgs = [];
                 }
+                const displayImg = prod.featuredImage || (imgs.length > 0 ? imgs[0] : null) || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80';
                 return (
                   <div
                     key={prod.id}
@@ -1628,7 +1633,7 @@ export default function SuperAdminDashboard() {
                   >
                     <div className="relative aspect-video bg-black">
                       <img
-                        src={imgs[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80'}
+                        src={displayImg}
                         alt={prod.title}
                         className="w-full h-full object-cover"
                       />
@@ -1731,6 +1736,16 @@ export default function SuperAdminDashboard() {
         {/* DIRECT GOOGLE DRIVE CLOUD STORAGE MODULE */}
         {activeModule === 'cloud_storage' && (
           <CloudStorageSettingsModule />
+        )}
+
+        {/* WORKSHOP SHOWCASE MANAGEMENT MODULE */}
+        {activeModule === 'workshop' && (
+          <AdminWorkshopModule />
+        )}
+
+        {/* ADVANCED PAYMENT & BANK ACCOUNTS SETTINGS MODULE */}
+        {activeModule === 'payment_settings' && (
+          <AdminPaymentSettingsModule />
         )}
 
         {/* 7. MODULE: PROTECTED SUPER ADMIN SETTINGS AREA */}
