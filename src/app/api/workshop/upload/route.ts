@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Stream URL route for smooth 206 Partial Content video delivery
-    const streamUrl = `/api/workshop/stream/${workshopId}`;
+    const streamUrl = `/api/workshop/videos/${workshopId}/stream`;
     const publicUrl = mediaType === 'video' ? streamUrl : rawMediaUrl;
 
     // If setting as featured, unset other featured records

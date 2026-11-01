@@ -145,7 +145,7 @@ export const AdminWorkshopModule: React.FC = () => {
 
       const media = data.media;
       setEditingItem(media);
-      setUrl(media.url || media.streamUrl || `/api/workshop/stream/${media.id}`);
+      setUrl(media.url || media.streamUrl || `/api/workshop/videos/${media.id}/stream`);
       if (media.googleDriveFileId) setGoogleDriveFileId(media.googleDriveFileId);
       if (!title.trim()) setTitle(media.title);
       if (media.thumbnailUrl) setThumbnailUrl(media.thumbnailUrl);

@@ -5,7 +5,18 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { desc, asc, eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60; // 60s ISR cache for blazing fast responses
+
+const WORKSHOP_CATEGORY_THUMBNAILS: Record<string, string> = {
+  workshop_tour: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+  sofa_frame: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+  woodworking: 'https://images.unsplash.com/photo-1502005229762-ee1b2b8ab98f?auto=format&fit=crop&w=800&q=80',
+  foam_work: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
+  fabric_stitching: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
+  furniture_polishing: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
+  final_finishing: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+  completed_products: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
+};
 
 export async function GET(request: Request) {
   try {
@@ -36,24 +47,50 @@ export async function GET(request: Request) {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(workshopMedia.displayOrder), desc(workshopMedia.createdAt));
 
-    const mappedList = mediaList.map((item) => {
-      if (item.mediaType === 'video') {
-        const streamUrl = `/api/workshop/stream/${item.id}`;
-        return {
-          ...item,
-          rawUrl: item.url,
-          streamUrl,
-          url: streamUrl,
-        };
+    // Return lightweight metadata only - NEVER stream binaries in gallery responses
+    const lightweightMedia = mediaList.map((item) => {
+      const fallbackThumb = WORKSHOP_CATEGORY_THUMBNAILS[item.category] || WORKSHOP_CATEGORY_THUMBNAILS.workshop_tour;
+      
+      // Ensure thumbnailUrl is strictly an image URL, never a video or stream route
+      let safeThumbnail = item.thumbnailUrl?.trim();
+      if (!safeThumbnail || safeThumbnail.includes('/stream/') || safeThumbnail.endsWith('.mp4')) {
+        safeThumbnail = item.mediaType === 'photo' && item.url && !item.url.includes('/stream/')
+          ? item.url
+          : fallbackThumb;
       }
-      return item;
+
+      const streamUrl = `/api/workshop/videos/${item.id}/stream`;
+
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        mediaType: item.mediaType,
+        category: item.category,
+        thumbnailUrl: safeThumbnail,
+        videoDuration: item.videoDuration,
+        isFeatured: item.isFeatured,
+        displayOrder: item.displayOrder,
+        isPublished: item.isPublished,
+        googleDriveFileId: item.googleDriveFileId,
+        createdAt: item.createdAt,
+        // Stream URL provided separately, only invoked when user explicitly taps Play
+        streamUrl: item.mediaType === 'video' ? streamUrl : undefined,
+        url: item.mediaType === 'video' ? streamUrl : (item.url || safeThumbnail),
+      };
     });
 
-    return NextResponse.json({
-      success: true,
-      media: mappedList,
-      total: mappedList.length,
-    });
+    const headers = new Headers();
+    headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
+    return NextResponse.json(
+      {
+        success: true,
+        media: lightweightMedia,
+        total: lightweightMedia.length,
+      },
+      { headers }
+    );
   } catch (error: any) {
     console.error('Workshop media fetch error:', error);
     return NextResponse.json(

@@ -41,6 +41,9 @@ interface MobileHomeScreenProps {
   onOpenWorkshop?: () => void;
 }
 
+let homeWorkshopCache: any[] | null = null;
+let homeWorkshopCacheTime = 0;
+
 export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   products,
   currentUser,
@@ -58,9 +61,11 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
   const [quickOrderInput, setQuickOrderInput] = useState('');
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [selectedOrderIdx, setSelectedOrderIdx] = useState(0);
-  const [workshopMediaList, setWorkshopMediaList] = useState<any[]>([]);
+  const [workshopMediaList, setWorkshopMediaList] = useState<any[]>(homeWorkshopCache || []);
   const [loadingWorkshop, setLoadingWorkshop] = useState(false);
   const [activeVideoModal, setActiveVideoModal] = useState<any | null>(null);
+  const [videoPlaybackError, setVideoPlaybackError] = useState(false);
+  const [videoIsBuffering, setVideoIsBuffering] = useState(true);
 
   // Fetch active customer orders
   useEffect(() => {
@@ -76,14 +81,30 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
     }
   }, [currentUser]);
 
-  // Fetch workshop showcase media
+  // Fetch lightweight workshop showcase metadata with in-memory caching
   useEffect(() => {
+    const isCacheFresh = homeWorkshopCache && Date.now() - homeWorkshopCacheTime < 180000;
+    if (isCacheFresh && homeWorkshopCache) {
+      setWorkshopMediaList(homeWorkshopCache);
+      return;
+    }
+
     setLoadingWorkshop(true);
-    fetch('/api/workshop')
+    const controller = new AbortController();
+    fetch('/api/workshop', { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : { media: [] }))
-      .then((data) => setWorkshopMediaList(data.media || []))
-      .catch(() => {})
+      .then((data) => {
+        const media = data.media || [];
+        homeWorkshopCache = media;
+        homeWorkshopCacheTime = Date.now();
+        setWorkshopMediaList(media);
+      })
+      .catch((e) => {
+        if (e.name !== 'AbortError') console.warn('Workshop fetch warning:', e);
+      })
       .finally(() => setLoadingWorkshop(false));
+
+    return () => controller.abort();
   }, []);
 
   const categories = [
@@ -432,8 +453,10 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   className="group relative rounded-2xl overflow-hidden aspect-video bg-black border border-[#EAE2D6] shadow-md cursor-pointer active:scale-[0.99] transition-transform"
                 >
                   <img
-                    src={feat.thumbnailUrl || feat.url}
+                    src={feat.thumbnailUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'}
                     alt={feat.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3.5">
@@ -475,8 +498,10 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
               >
                 <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
                   <img
-                    src={photo.thumbnailUrl || photo.url}
+                    src={photo.thumbnailUrl || (photo.mediaType === 'photo' ? photo.url : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80')}
                     alt={photo.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {photo.mediaType === 'video' && (
@@ -690,7 +715,10 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
       {activeVideoModal && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4"
-          onClick={() => setActiveVideoModal(null)}
+          onClick={() => {
+            setActiveVideoModal(null);
+            setVideoPlaybackError(false);
+          }}
         >
           <div className="flex items-center justify-between z-10 text-white" onClick={(e) => e.stopPropagation()}>
             <div>
@@ -703,7 +731,10 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => setActiveVideoModal(null)}
+              onClick={() => {
+                setActiveVideoModal(null);
+                setVideoPlaybackError(false);
+              }}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
             >
               <X className="w-5 h-5" />
@@ -715,20 +746,47 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {activeVideoModal.mediaType === 'video' ? (
-              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
-                <video
-                  src={activeVideoModal.streamUrl || activeVideoModal.url}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="auto"
-                  className="w-full h-full object-contain"
-                />
+              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/10">
+                {videoIsBuffering && !videoPlaybackError && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 pointer-events-none gap-2">
+                    <div className="w-7 h-7 border-2 border-[#B99A68] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] text-[#EAE2D6] font-mono">Streaming Atelier HD...</span>
+                  </div>
+                )}
+
+                {videoPlaybackError ? (
+                  <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center z-20 space-y-3">
+                    <span className="text-xs text-[#EAE2D6]">Craftsmanship video is currently syncing from Google Drive vault.</span>
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlaybackError(false)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#B99A68] text-slate-950 text-xs font-bold hover:bg-[#a68856] transition-colors"
+                    >
+                      Retry Stream
+                    </button>
+                  </div>
+                ) : (
+                  <video
+                    key={activeVideoModal.id}
+                    src={`/api/workshop/videos/${activeVideoModal.id}/stream`}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    onWaiting={() => setVideoIsBuffering(true)}
+                    onCanPlay={() => setVideoIsBuffering(false)}
+                    onError={() => {
+                      setVideoIsBuffering(false);
+                      setVideoPlaybackError(true);
+                    }}
+                    className="w-full h-full object-contain"
+                  />
+                )}
               </div>
             ) : (
-              <div className="max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl">
+              <div className="max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
                 <img
-                  src={activeVideoModal.url}
+                  src={activeVideoModal.url || activeVideoModal.thumbnailUrl}
                   alt={activeVideoModal.title}
                   className="w-full h-full object-contain"
                 />

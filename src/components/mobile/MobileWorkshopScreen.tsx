@@ -37,22 +37,37 @@ interface MobileWorkshopScreenProps {
   onExploreShop?: () => void;
 }
 
+let workshopScreenCache: any[] | null = null;
+let workshopScreenCacheTime = 0;
+
 export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
   onBackToHome,
   onExploreShop,
 }) => {
-  const [mediaList, setMediaList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [mediaList, setMediaList] = useState<any[]>(workshopScreenCache || []);
+  const [loading, setLoading] = useState(workshopScreenCache ? false : true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeMediaItem, setActiveMediaItem] = useState<any | null>(null);
+  const [videoPlaybackError, setVideoPlaybackError] = useState(false);
+  const [videoIsBuffering, setVideoIsBuffering] = useState(true);
 
   const fetchMedia = async () => {
+    const isCacheFresh = workshopScreenCache && Date.now() - workshopScreenCacheTime < 180000;
+    if (isCacheFresh && workshopScreenCache) {
+      setMediaList(workshopScreenCache);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch('/api/workshop');
       if (res.ok) {
         const data = await res.json();
-        setMediaList(data.media || []);
+        const media = data.media || [];
+        workshopScreenCache = media;
+        workshopScreenCacheTime = Date.now();
+        setMediaList(media);
       }
     } catch (e) {
       console.error('Failed to load workshop media:', e);
@@ -111,12 +126,18 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
           </div>
 
           <div
-            onClick={() => setActiveMediaItem(featuredVideo)}
+            onClick={() => {
+              setVideoPlaybackError(false);
+              setVideoIsBuffering(true);
+              setActiveMediaItem(featuredVideo);
+            }}
             className="group relative rounded-2xl overflow-hidden aspect-video bg-black border border-[#EAE2D6] shadow-md cursor-pointer active:scale-[0.99] transition-transform"
           >
             <img
-              src={featuredVideo.thumbnailUrl || featuredVideo.url}
+              src={featuredVideo.thumbnailUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'}
               alt={featuredVideo.title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-4">
@@ -191,13 +212,19 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
             return (
               <div
                 key={item.id}
-                onClick={() => setActiveMediaItem(item)}
+                onClick={() => {
+                  setVideoPlaybackError(false);
+                  setVideoIsBuffering(true);
+                  setActiveMediaItem(item);
+                }}
                 className="bg-white rounded-2xl border border-[#EAE2D6] overflow-hidden shadow-sm flex flex-col justify-between cursor-pointer group active:scale-[0.98] transition-transform"
               >
                 <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
                   <img
-                    src={item.thumbnailUrl || item.url}
+                    src={item.thumbnailUrl || (item.mediaType === 'photo' ? item.url : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80')}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {isVideo ? (
@@ -250,7 +277,10 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
       {activeMediaItem && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4"
-          onClick={() => setActiveMediaItem(null)}
+          onClick={() => {
+            setActiveMediaItem(null);
+            setVideoPlaybackError(false);
+          }}
         >
           {/* Top Bar */}
           <div className="flex items-center justify-between z-10 text-white" onClick={(e) => e.stopPropagation()}>
@@ -264,7 +294,10 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => setActiveMediaItem(null)}
+              onClick={() => {
+                setActiveMediaItem(null);
+                setVideoPlaybackError(false);
+              }}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
             >
               <X className="w-5 h-5" />
@@ -277,20 +310,47 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {activeMediaItem.mediaType === 'video' ? (
-              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
-                <video
-                  src={activeMediaItem.streamUrl || activeMediaItem.url}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="auto"
-                  className="w-full h-full object-contain"
-                />
+              <div className="w-full max-w-md aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/10">
+                {videoIsBuffering && !videoPlaybackError && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 pointer-events-none gap-2">
+                    <div className="w-7 h-7 border-2 border-[#B99A68] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] text-[#EAE2D6] font-mono">Connecting to Workshop Stream...</span>
+                  </div>
+                )}
+
+                {videoPlaybackError ? (
+                  <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center z-20 space-y-3">
+                    <span className="text-xs text-[#EAE2D6]">Craftsmanship video is currently syncing from Google Drive vault.</span>
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlaybackError(false)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#B99A68] text-slate-950 text-xs font-bold hover:bg-[#a68856] transition-colors"
+                    >
+                      Retry Stream
+                    </button>
+                  </div>
+                ) : (
+                  <video
+                    key={activeMediaItem.id}
+                    src={`/api/workshop/videos/${activeMediaItem.id}/stream`}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    onWaiting={() => setVideoIsBuffering(true)}
+                    onCanPlay={() => setVideoIsBuffering(false)}
+                    onError={() => {
+                      setVideoIsBuffering(false);
+                      setVideoPlaybackError(true);
+                    }}
+                    className="w-full h-full object-contain"
+                  />
+                )}
               </div>
             ) : (
-              <div className="max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl">
+              <div className="max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
                 <img
-                  src={activeMediaItem.url}
+                  src={activeMediaItem.url || activeMediaItem.thumbnailUrl}
                   alt={activeMediaItem.title}
                   className="w-full h-full object-contain"
                 />
