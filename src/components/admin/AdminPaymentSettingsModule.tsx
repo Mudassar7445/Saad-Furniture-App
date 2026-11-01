@@ -88,6 +88,32 @@ export const AdminPaymentSettingsModule: React.FC = () => {
     qrCodeUrl: '',
     isActive: true,
   });
+  const [uploadingQr, setUploadingQr] = useState(false);
+
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingQr(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/payment/receipt-upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.receiptUrl) {
+        setBankForm((prev) => ({ ...prev, qrCodeUrl: data.receiptUrl }));
+      } else {
+        alert(data.error || 'Failed to upload QR Code');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error uploading QR Code image');
+    } finally {
+      setUploadingQr(false);
+    }
+  };
 
   // Gateway config state
   const [gatewayConfig, setGatewayConfig] = useState<any>(null);
@@ -1012,6 +1038,60 @@ export const AdminPaymentSettingsModule: React.FC = () => {
               placeholder="e.g. Please use Order ID in transfer remarks for instant auto-matching."
               className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#B99A68]"
             />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+              Payment QR Code (Raast / Banking App QR)
+            </label>
+            {bankForm.qrCodeUrl ? (
+              <div className="flex items-center gap-3 p-3 bg-slate-950 border border-white/10 rounded-xl">
+                <img
+                  src={bankForm.qrCodeUrl}
+                  alt="Bank QR Code"
+                  className="w-16 h-16 object-contain rounded-lg bg-white p-1 border border-white/20"
+                />
+                <div className="space-y-1">
+                  <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> QR Code Attached
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setBankForm({ ...bankForm, qrCodeUrl: '' })}
+                    className="text-[11px] text-rose-400 hover:text-rose-300 underline"
+                  >
+                    Remove QR Code
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="qrCodeFileInput"
+                  accept="image/*"
+                  onChange={handleQrUpload}
+                  disabled={uploadingQr}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="qrCodeFileInput"
+                  className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-white/10 rounded-xl text-xs text-slate-200 cursor-pointer flex items-center gap-2 transition-colors"
+                >
+                  {uploadingQr ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#B99A68]" />
+                      <span>Uploading to Google Drive...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5 text-[#B99A68]" />
+                      <span>Upload Raast / Bank QR Image</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 pt-2">

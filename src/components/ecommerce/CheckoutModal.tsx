@@ -828,6 +828,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             {activeBank.instructions}
                           </p>
                         )}
+
+                        {activeBank.qrCodeUrl && (
+                          <div className="flex flex-col items-center justify-center pt-2 pb-1 border-t border-white/5">
+                            <span className="text-[10px] font-bold text-slate-400 mb-1">
+                              Scan to Pay (Raast / Banking App)
+                            </span>
+                            <img
+                              src={activeBank.qrCodeUrl}
+                              alt={`${activeBank.bankName} QR Code`}
+                              className="w-28 h-28 object-contain rounded-xl bg-white p-1 border border-white/20 shadow-sm"
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
 

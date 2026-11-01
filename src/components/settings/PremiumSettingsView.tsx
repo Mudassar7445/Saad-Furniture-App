@@ -41,6 +41,8 @@ import { Modal } from '@/components/ui/Modal';
 import { useAppLock } from '@/components/auth/AppLockProvider';
 import { isBiometricSupported, registerDeviceBiometric } from '@/lib/auth/biometrics';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { useLanguage } from '@/components/i18n/LanguageProvider';
 
 interface PremiumSettingsViewProps {
   currentUser: any;
@@ -110,10 +112,10 @@ export const PremiumSettingsView: React.FC<PremiumSettingsViewProps> = ({
   const [notifPayments, setNotifPayments] = useState(true);
   const [testingPush, setTestingPush] = useState(false);
 
-  // --- Preferences ---
-  const [appTheme, setAppTheme] = useState<'system' | 'light' | 'dark'>('system');
+  // --- Global Theme & Language Hooks ---
+  const { theme: appTheme, setTheme: setAppTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [language, setLanguage] = useState<'en' | 'ur' | 'bi'>('en');
 
   // Sync state with lock config
   useEffect(() => {

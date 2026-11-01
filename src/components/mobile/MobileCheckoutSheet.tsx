@@ -461,6 +461,19 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
                           {activeBank.instructions}
                         </p>
                       )}
+
+                      {activeBank.qrCodeUrl && (
+                        <div className="flex flex-col items-center justify-center pt-2 pb-1 border-t border-[#EAE2D6]">
+                          <span className="text-[10px] font-bold text-[#89847C] mb-1">
+                            Scan to Pay (Raast / Banking App)
+                          </span>
+                          <img
+                            src={activeBank.qrCodeUrl}
+                            alt={`${activeBank.bankName} QR Code`}
+                            className="w-32 h-32 object-contain rounded-xl bg-white p-1 border border-[#EAE2D6] shadow-xs"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -507,6 +520,16 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
                         className="hidden"
                       />
                     </label>
+                    {receiptUrl && (
+                      <div className="mt-1.5 flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-[11px]">
+                        <span className="flex items-center gap-1 font-semibold">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" /> Receipt uploaded successfully
+                        </span>
+                        <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold text-emerald-700">
+                          View
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

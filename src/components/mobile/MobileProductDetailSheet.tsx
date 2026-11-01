@@ -100,40 +100,94 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
-  // Dedicated Native Scroll Snap Container Ref
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Dedicated Hardware-Accelerated Pointer & Touch Swipe Engine
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const capturedPointerId = useRef<number | null>(null);
 
   // Reset to first image when viewing a new product
   useEffect(() => {
     setActiveImageIdx(0);
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = 0;
-    }
+    setDragOffset(0);
+    setIsDragging(false);
   }, [product?.id]);
 
-  // Keep scroll container in sync with active index (via dots or chevrons)
-  const scrollToImage = (idx: number) => {
-    const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
-    setActiveImageIdx(targetIdx);
-    if (scrollRef.current) {
-      const containerWidth = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({
-        left: targetIdx * containerWidth,
-        behavior: 'smooth',
-      });
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.isPrimary) return;
+    pointerStartX.current = e.clientX;
+    pointerStartY.current = e.clientY;
+    isHorizontalSwipe.current = null;
+    capturedPointerId.current = e.pointerId;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current === null) return;
+    const deltaX = e.clientX - pointerStartX.current;
+    const deltaY = e.clientY - (pointerStartY.current ?? e.clientY);
+
+    // Lock onto horizontal gesture once 6px motion occurs
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+          isHorizontalSwipe.current = true;
+          setIsDragging(true);
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        } else {
+          // Vertical movement takes over page scroll
+          isHorizontalSwipe.current = false;
+          pointerStartX.current = null;
+          return;
+        }
+      }
+    }
+
+    if (isHorizontalSwipe.current) {
+      // Elastic boundaries
+      const isAtStart = activeImageIdx === 0 && deltaX > 0;
+      const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
+      const effectiveDelta = isAtStart || isAtEnd ? deltaX * 0.35 : deltaX;
+      setDragOffset(effectiveDelta);
     }
   };
 
-  // Real-time listener for native 120Hz finger swiping
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const width = container.clientWidth;
-    if (width > 0) {
-      const newIdx = Math.round(container.scrollLeft / width);
-      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
-        setActiveImageIdx(newIdx);
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current !== null && isHorizontalSwipe.current) {
+      const threshold = 35; // 35px threshold for intuitive snap
+      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
+        setActiveImageIdx((prev) => prev + 1);
+      } else if (dragOffset > threshold && activeImageIdx > 0) {
+        setActiveImageIdx((prev) => prev - 1);
       }
     }
+
+    if (capturedPointerId.current !== null) {
+      try {
+        if (e.currentTarget.hasPointerCapture(capturedPointerId.current)) {
+          e.currentTarget.releasePointerCapture(capturedPointerId.current);
+        }
+      } catch (_) {}
+    }
+
+    pointerStartX.current = null;
+    pointerStartY.current = null;
+    isHorizontalSwipe.current = null;
+    capturedPointerId.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const scrollToImage = (idx: number) => {
+    const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
+    setActiveImageIdx(targetIdx);
+    setDragOffset(0);
+    setIsDragging(false);
   };
 
   const effectivePrice = product.discountPrice || product.price;
@@ -191,26 +245,27 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
       {/* Main Content */}
       <div className="flex-1 pb-28 space-y-4">
         {/* Full-bleed Swipeable Gallery */}
-        <div className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none">
-          {/* Native 120Hz Hardware-Accelerated Scroll Snap Carousel */}
+        <div
+          className="relative aspect-square bg-[#FFFFFF] overflow-hidden select-none"
+          style={{ touchAction: 'pan-y' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+        >
+          {/* Animated 1:1 Hardware-Accelerated Sliding Track */}
           <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar select-none"
+            className="w-full h-full flex"
             style={{
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehaviorX: 'contain',
+              transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
+              transition: isDragging ? 'none' : 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1)',
+              willChange: 'transform',
             }}
           >
             {imageList.map((imgUrl, idx) => (
               <div
                 key={idx}
-                className="min-w-full w-full h-full flex-shrink-0 snap-center snap-always relative bg-[#F7F5F0]"
-                style={{
-                  scrollSnapAlign: 'center',
-                  scrollSnapStop: 'always',
-                }}
+                className="min-w-full w-full h-full flex-shrink-0 relative bg-[#F7F5F0]"
               >
                 <img
                   src={imgUrl}

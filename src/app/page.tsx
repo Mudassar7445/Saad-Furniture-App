@@ -465,15 +465,6 @@ export default function ShowroomHomePage() {
           <Sparkles className="w-3.5 h-3.5 text-[#c5a880] shrink-0" />
           <span>
             Bespoke Royal Collection: Handcrafted Luxury Furniture with White-Glove Placement
-            {activePromo && (
-              <>
-                {' '}| Exclusive Promo: Use Code{' '}
-                <strong className="text-white underline tracking-wider font-bold">{activePromo.code}</strong> for{' '}
-                {activePromo.discountType === 'percentage'
-                  ? `${activePromo.discountValue}% Off`
-                  : `$${activePromo.discountValue} Off`}
-              </>
-            )}
           </span>
         </div>
 

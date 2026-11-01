@@ -96,37 +96,92 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
 
-  // Dedicated Native Scroll Snap Container Ref
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Dedicated Hardware-Accelerated Pointer & Touch Swipe Engine
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const capturedPointerId = useRef<number | null>(null);
 
   useEffect(() => {
     setActiveImageIdx(0);
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = 0;
-    }
+    setDragOffset(0);
+    setIsDragging(false);
   }, [product?.id]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.isPrimary) return;
+    pointerStartX.current = e.clientX;
+    pointerStartY.current = e.clientY;
+    isHorizontalSwipe.current = null;
+    capturedPointerId.current = e.pointerId;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current === null) return;
+    const deltaX = e.clientX - pointerStartX.current;
+    const deltaY = e.clientY - (pointerStartY.current ?? e.clientY);
+
+    // Lock onto horizontal gesture once 6px motion occurs
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+          isHorizontalSwipe.current = true;
+          setIsDragging(true);
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        } else {
+          // Vertical motion takes over
+          isHorizontalSwipe.current = false;
+          pointerStartX.current = null;
+          return;
+        }
+      }
+    }
+
+    if (isHorizontalSwipe.current) {
+      const isAtStart = activeImageIdx === 0 && deltaX > 0;
+      const isAtEnd = activeImageIdx === imageList.length - 1 && deltaX < 0;
+      const effectiveDelta = isAtStart || isAtEnd ? deltaX * 0.35 : deltaX;
+      setDragOffset(effectiveDelta);
+    }
+  };
+
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current !== null && isHorizontalSwipe.current) {
+      const threshold = 35;
+      if (dragOffset < -threshold && activeImageIdx < imageList.length - 1) {
+        setActiveImageIdx((prev) => prev + 1);
+      } else if (dragOffset > threshold && activeImageIdx > 0) {
+        setActiveImageIdx((prev) => prev - 1);
+      }
+    }
+
+    if (capturedPointerId.current !== null) {
+      try {
+        if (e.currentTarget.hasPointerCapture(capturedPointerId.current)) {
+          e.currentTarget.releasePointerCapture(capturedPointerId.current);
+        }
+      } catch (_) {}
+    }
+
+    pointerStartX.current = null;
+    pointerStartY.current = null;
+    isHorizontalSwipe.current = null;
+    capturedPointerId.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
 
   const scrollToImage = (idx: number) => {
     const targetIdx = Math.max(0, Math.min(idx, imageList.length - 1));
     setActiveImageIdx(targetIdx);
-    if (scrollRef.current) {
-      const width = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({
-        left: targetIdx * width,
-        behavior: 'smooth',
-      });
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const width = container.clientWidth;
-    if (width > 0) {
-      const newIdx = Math.round(container.scrollLeft / width);
-      if (newIdx !== activeImageIdx && newIdx >= 0 && newIdx < imageList.length) {
-        setActiveImageIdx(newIdx);
-      }
-    }
+    setDragOffset(0);
+    setIsDragging(false);
   };
 
   const effectivePrice =
@@ -167,26 +222,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-100">
         {/* Left: Product Images Gallery */}
         <div className="space-y-3">
-          {/* Main Image Slider with Native 120Hz Hardware Scroll Snap */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none">
+          {/* Main Image Slider with Hardware-Accelerated Pointer Tracking */}
+          <div
+            className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/10 group select-none"
+            style={{ touchAction: 'pan-y' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+          >
             <div
-              ref={scrollRef}
-              onScroll={handleScroll}
-              className="w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar select-none"
+              className="w-full h-full flex"
               style={{
-                scrollSnapType: 'x mandatory',
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehaviorX: 'contain',
+                transform: `translateX(calc(-${activeImageIdx * 100}% + ${dragOffset}px))`,
+                transition: isDragging ? 'none' : 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1)',
+                willChange: 'transform',
               }}
             >
               {imageList.map((imgUrl, idx) => (
                 <div
                   key={idx}
-                  className="min-w-full w-full h-full flex-shrink-0 snap-center snap-always relative"
-                  style={{
-                    scrollSnapAlign: 'center',
-                    scrollSnapStop: 'always',
-                  }}
+                  className="min-w-full w-full h-full flex-shrink-0 relative"
                 >
                   <img
                     src={imgUrl}

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppLockProvider } from '@/components/auth/AppLockProvider';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { LanguageProvider } from '@/components/i18n/LanguageProvider';
 
 export const metadata: Metadata = {
   title: 'Saad Furniture – Premium Customer Order Tracking & Showroom Management',
@@ -36,16 +38,47 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-[#0b0d11] text-slate-100">
+    <html lang="en" className="h-full bg-[#0b0d11] text-slate-100" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/svg+xml" href="/assets/branding/app-dp.svg" />
         <link rel="icon" type="image/png" sizes="192x192" href="/assets/branding/icon-192x192.png" />
         <link rel="apple-touch-icon" href="/assets/branding/app-dp.png" />
         <link rel="shortcut icon" href="/assets/branding/app-dp.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                // Synchronous Frame-0 Theme Restoration
+                var t = localStorage.getItem('saad_theme_mode');
+                var isDark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.setAttribute('data-theme', 'light');
+                }
+                // Synchronous Frame-0 Language / RTL Restoration
+                var lang = localStorage.getItem('saad_language');
+                if (lang === 'ur') {
+                  document.documentElement.setAttribute('dir', 'rtl');
+                  document.documentElement.setAttribute('lang', 'ur');
+                } else {
+                  document.documentElement.setAttribute('dir', 'ltr');
+                  document.documentElement.setAttribute('lang', 'en');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased bg-[#0b0d11]">
-        <AppLockProvider>{children}</AppLockProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AppLockProvider>{children}</AppLockProvider>
+          </LanguageProvider>
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
