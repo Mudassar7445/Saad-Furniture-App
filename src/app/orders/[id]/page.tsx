@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -29,12 +29,14 @@ import {
   Shield,
   Activity,
   Play,
+  Camera,
   Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { DEFAULT_ORDER_STAGES, OrderStage } from '@/lib/constants/orderStages';
+import { OrderCraftingGallery } from '@/components/orders/OrderCraftingGallery';
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -48,6 +50,8 @@ export default function OrderDetailsPage() {
   const [media, setMedia] = useState<any[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [galleryStageFilter, setGalleryStageFilter] = useState<string | null>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   // Delivery & Reversal State
   const [deliveryRecord, setDeliveryRecord] = useState<any>(null);
@@ -729,6 +733,34 @@ export default function OrderDetailsPage() {
                           Active In Atelier
                         </span>
                       )}
+
+                      {/* Stage Media Count & Gallery Link */}
+                      {(() => {
+                        const stgMedia = media.filter((m) => {
+                          const ms = (m.stage || '').toLowerCase().replace(/[\s-]+/g, '_');
+                          const ss = stg.id.toLowerCase().replace(/[\s-]+/g, '_');
+                          return ms === ss || ms.includes(ss) || ss.includes(ms);
+                        });
+                        if (stgMedia.length === 0) return null;
+                        const vCount = stgMedia.filter((m) => m.mediaType === 'video' || m.mimeType?.startsWith('video')).length;
+                        const pCount = stgMedia.length - vCount;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGalleryStageFilter(stg.id);
+                              galleryRef.current?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#c5a880]/20 hover:bg-[#c5a880] hover:text-slate-950 text-[#e5caa2] text-[9px] font-bold border border-[#c5a880]/40 transition-all shadow-sm"
+                            title={`View ${stgMedia.length} visual proofs for this stage in gallery`}
+                          >
+                            <Camera className="w-2.5 h-2.5" />
+                            {pCount > 0 ? `${pCount}P` : ''}
+                            {vCount > 0 ? ` ${vCount}V` : ''}
+                            <span>• View</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -1240,64 +1272,17 @@ export default function OrderDetailsPage() {
         </div>
 
         {/* ARTISAN WORKSHOP PHOTOGRAPHS & VIDEOS GALLERY */}
-        <section className="bg-[#141822] border border-white/10 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-[#c5a880]" />
-                Artisan Workshop Photographic & Video Proof (Google Drive 5TB Vault)
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Visual quality certifications captured by Saad atelier artisans
-              </p>
-            </div>
-
-            {canUploadMedia && (
-              <Button
-                variant="gold"
-                size="sm"
-                onClick={() => setShowUploadMediaModal(true)}
-                className="text-xs"
-              >
-                <UploadCloud className="w-3.5 h-3.5 mr-1.5" />
-                Upload Milestone Photo / Video
-              </Button>
-            )}
-          </div>
-
-          {media.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-500 bg-slate-900/40 rounded-xl border border-white/5">
-              Workshop cameras are scheduled for the next manufacturing phase. Photos and videos will appear here automatically.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {media.map((med) => (
-                <div
-                  key={med.id}
-                  onClick={() => setActiveMediaPreview(med)}
-                  className="group relative rounded-xl overflow-hidden aspect-video bg-black cursor-pointer border border-white/10 hover:border-[#c5a880] transition-all shadow-lg"
-                >
-                  {med.mediaType === 'video' ? (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-900 group-hover:bg-slate-800 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-[#c5a880]/90 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
-                      </div>
-                    </div>
-                  ) : (
-                    <img
-                      src={med.url}
-                      alt={med.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent opacity-90 p-2.5 flex flex-col justify-end">
-                    <span className="text-[11px] font-semibold text-white truncate">{med.title}</span>
-                    <span className="text-[9px] text-[#c5a880] uppercase tracking-wider">{med.stage?.replace('_', ' ')}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <section ref={galleryRef} className="bg-[#141822] border border-white/10 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <OrderCraftingGallery
+            orderId={orderId}
+            order={order}
+            items={items}
+            initialMedia={media}
+            isAdmin={canUploadMedia}
+            onMediaChange={(updated) => setMedia(updated)}
+            selectedStageFilter={galleryStageFilter}
+            onClearStageFilter={() => setGalleryStageFilter(null)}
+          />
         </section>
 
         {/* CHRONOLOGICAL CRAFTSMANSHIP & AUDIT TIMELINE FEED */}

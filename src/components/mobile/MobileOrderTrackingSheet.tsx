@@ -23,10 +23,12 @@ import {
   RefreshCw,
   MessageCircle,
   Play,
+  Camera,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
+import { OrderCraftingGallery } from '@/components/orders/OrderCraftingGallery';
 
 interface MobileOrderTrackingSheetProps {
   order: any | null;
@@ -61,6 +63,7 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<'timeline' | 'media' | 'details' | 'payments'>('timeline');
+  const [selectedStageFilter, setSelectedStageFilter] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<any>(null);
@@ -279,6 +282,34 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
                             )}
                           </div>
                           <p className="text-[11px] text-[#89847C] mt-0.5 leading-relaxed">{stage.desc}</p>
+
+                          {/* Stage Media Quick-Link Badge */}
+                          {(() => {
+                            const stgMedia = currentMedia.filter((m: any) => {
+                              const ms = (m.stage || '').toLowerCase().replace(/[\s-]+/g, '_');
+                              const ss = stage.id.toLowerCase().replace(/[\s-]+/g, '_');
+                              return ms === ss || ms.includes(ss) || ss.includes(ms);
+                            });
+                            if (stgMedia.length === 0) return null;
+                            const vCount = stgMedia.filter((m: any) => m.mediaType === 'video' || m.mimeType?.startsWith('video')).length;
+                            const pCount = stgMedia.length - vCount;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedStageFilter(stage.id);
+                                  setActiveTab('media');
+                                }}
+                                className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#B99A68]/15 hover:bg-[#B99A68] hover:text-[#262421] text-[#B99A68] text-[10px] font-bold border border-[#B99A68]/30 transition-all active:scale-95 shadow-sm"
+                              >
+                                <Camera className="w-3 h-3" />
+                                {pCount > 0 ? `${pCount} Photo${pCount > 1 ? 's' : ''}` : ''}
+                                {vCount > 0 ? ` ${vCount} Video${vCount > 1 ? 's' : ''}` : ''}
+                                <span className="underline ml-0.5">View in Gallery</span>
+                              </button>
+                            );
+                          })()}
+
                           {isCurrent && currentOrder.specialInstructions && (
                             <div className="mt-2 p-2 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-[11px] text-[#292722]">
                               <p className="font-semibold text-[#262421]">Supervisor Note:</p>
@@ -297,161 +328,16 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
           {/* TAB 2: WORKSHOP PHOTOS & VIDEOS */}
           {activeTab === 'media' && (
             <div className="space-y-4">
-              <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421] mb-1">
-                  Workshop Media & Progress Proofs
-                </h3>
-                <p className="text-xs text-[#89847C] mb-3">
-                  Admin-verified HD progress photographs, 4K carpentry videos, and architectural CAD blueprints.
-                </p>
-
-                {currentMedia.length === 0 ? (
-                  <div className="p-8 text-center bg-[#F7F5F0] rounded-xl border border-dashed border-[#EAE2D6]">
-                    <ImageIcon className="w-8 h-8 mx-auto text-[#89847C] opacity-40 mb-2" />
-                    <p className="text-xs font-bold text-[#262421]">No Media Uploaded Yet</p>
-                    <p className="text-[11px] text-[#89847C] mt-1">
-                      Our master craftsman will upload photos and videos as your bespoke piece completes each stage.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Photos Grid */}
-                    {photos.length > 0 && (
-                      <div>
-                        <span className="text-[11px] font-bold text-[#89847C] uppercase tracking-wider block mb-2">
-                          HD Photographs ({photos.length})
-                        </span>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {photos.map((photo: any, index: number) => {
-                            const url = photo.thumbnailUrl || `/api/library/stream/${photo.id}` || photo.url;
-                            return (
-                              <div
-                                key={photo.id || index}
-                                onClick={() => setSelectedPhoto(url)}
-                                className="relative aspect-square rounded-xl overflow-hidden bg-[#262421] border border-[#EAE2D6] cursor-pointer group shadow-sm"
-                              >
-                                <img
-                                  src={url}
-                                  alt={photo.name || `Photo ${index + 1}`}
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                  <span className="text-[10px] text-white font-medium flex items-center gap-1">
-                                    <Eye className="w-3 h-3 text-[#B99A68]" /> View Photo
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Videos */}
-                    {videos.length > 0 && (
-                      <div>
-                        <span className="text-[11px] font-bold text-[#89847C] uppercase tracking-wider block mb-2">
-                          Craftsmanship Videos ({videos.length})
-                        </span>
-                        <div className="space-y-3">
-                          {videos.map((vid: any, index: number) => {
-                            const isPlaying = activeVideoId === (vid.id || `vid_${index}`);
-                            const safeThumb = getSafeThumbnailUrl(vid);
-                            const vidTitle = vid.title || vid.name || `Craftsmanship Video ${index + 1}`;
-
-                            return (
-                              <div
-                                key={vid.id || index}
-                                className="rounded-2xl overflow-hidden bg-black border border-[#EAE2D6] shadow-sm"
-                              >
-                                {isPlaying ? (
-                                  <video
-                                    src={`/api/library/stream/${vid.id}`}
-                                    className="w-full max-h-56 object-cover"
-                                    controls
-                                    autoPlay
-                                    playsInline
-                                  />
-                                ) : (
-                                  <div
-                                    onClick={() => setActiveVideoId(vid.id || `vid_${index}`)}
-                                    className="group relative rounded-2xl overflow-hidden aspect-video bg-[#1C1A18] cursor-pointer"
-                                  >
-                                    <img
-                                      src={safeThumb}
-                                      alt={vidTitle}
-                                      loading="lazy"
-                                      decoding="async"
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3.5">
-                                      <div className="self-end">
-                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 uppercase tracking-wider shadow">
-                                          {vid.stage ? vid.stage.replace(/_/g, ' ') : 'Production Milestone'}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center justify-center">
-                                        <div className="w-12 h-12 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-bold text-white line-clamp-1 drop-shadow">
-                                          {vidTitle}
-                                        </h4>
-                                        <span className="text-[10px] text-[#B99A68] font-bold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-sm">
-                                          Tap to Play
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Documents & Blueprints */}
-                    {documents.length > 0 && (
-                      <div>
-                        <span className="text-[11px] font-bold text-[#89847C] uppercase tracking-wider block mb-2">
-                          Documents & CAD Blueprints ({documents.length})
-                        </span>
-                        <div className="space-y-2">
-                          {documents.map((doc: any) => (
-                            <div
-                              key={doc.id}
-                              className="p-3 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] flex items-center justify-between text-xs"
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <FileText className="w-4 h-4 text-[#B99A68]" />
-                                <span className="font-bold text-[#262421] truncate max-w-[200px]">
-                                  {doc.name || 'Order Blueprint'}
-                                </span>
-                              </div>
-                              <a
-                                href={`/api/library/stream/${doc.id}`}
-                                download={doc.name}
-                                className="p-1.5 rounded-lg bg-white border border-[#EAE2D6] text-[#B99A68]"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <OrderCraftingGallery
+                orderId={currentOrder.id}
+                order={currentOrder}
+                items={orderDetails?.items || []}
+                initialMedia={currentMedia}
+                isAdmin={false}
+                theme="light"
+                selectedStageFilter={selectedStageFilter}
+                onClearStageFilter={() => setSelectedStageFilter(null)}
+              />
             </div>
           )}
 

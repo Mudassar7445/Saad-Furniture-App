@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
-import { orders, orderItems, orderMedia, orderTimelineEvents, payments, users, auditLogs } from '@/lib/db/schema';
+import {
+  orders,
+  orderItems,
+  orderMedia,
+  mediaFiles,
+  mediaOrderAccess,
+  orderTimelineEvents,
+  payments,
+  users,
+  auditLogs,
+} from '@/lib/db/schema';
 import { fcmService } from '@/lib/services/fcm';
 import { sendWebPushNotification } from '@/lib/services/webpush';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 
 export async function GET(
   request: Request,
@@ -32,14 +42,74 @@ export async function GET(
   }
 
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id));
-  const media = await db.select().from(orderMedia).where(eq(orderMedia.orderId, id)).orderBy(desc(orderMedia.uploadedAt));
-  const timeline = await db.select().from(orderTimelineEvents).where(eq(orderTimelineEvents.orderId, id)).orderBy(desc(orderTimelineEvents.createdAt));
-  const orderPayments = await db.select().from(payments).where(eq(payments.orderId, id)).orderBy(desc(payments.createdAt));
+
+  // 1. Fetch direct order media records
+  const directMedia = await db
+    .select()
+    .from(mediaFiles)
+    .where(eq(mediaFiles.orderId, id));
+
+  // 2. Fetch media linked through mediaOrderAccess junction table
+  let linkedMedia: any[] = [];
+  try {
+    const accessRecords = await db
+      .select({ mediaFileId: mediaOrderAccess.mediaFileId })
+      .from(mediaOrderAccess)
+      .where(eq(mediaOrderAccess.orderId, id));
+
+    const accessMediaIds = accessRecords
+      .map((r) => r.mediaFileId)
+      .filter((fileId): fileId is string => Boolean(fileId));
+
+    if (accessMediaIds.length > 0) {
+      linkedMedia = await db
+        .select()
+        .from(mediaFiles)
+        .where(inArray(mediaFiles.id, accessMediaIds));
+    }
+  } catch (junctionErr) {
+    console.warn('Error reading mediaOrderAccess junction:', junctionErr);
+  }
+
+  // Combine and deduplicate by file ID
+  const mediaMap = new Map<string, any>();
+  for (const m of directMedia) mediaMap.set(m.id, m);
+  for (const m of linkedMedia) mediaMap.set(m.id, m);
+
+  let combinedMedia = Array.from(mediaMap.values());
+
+  // Filter for customers: only show published, non-private media
+  if (sessionUser.role === 'customer') {
+    combinedMedia = combinedMedia.filter(
+      (m) =>
+        m.visibility !== 'private' &&
+        m.visibility !== 'admin_only' &&
+        (m.isPublished === 1 || m.isPublished === undefined)
+    );
+  }
+
+  // Sort by uploadedAt descending (newest first)
+  combinedMedia.sort(
+    (a, b) =>
+      new Date(b.uploadedAt || b.createdAt || 0).getTime() -
+      new Date(a.uploadedAt || a.createdAt || 0).getTime()
+  );
+
+  const timeline = await db
+    .select()
+    .from(orderTimelineEvents)
+    .where(eq(orderTimelineEvents.orderId, id))
+    .orderBy(desc(orderTimelineEvents.createdAt));
+  const orderPayments = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.orderId, id))
+    .orderBy(desc(payments.createdAt));
 
   return NextResponse.json({
     order,
     items,
-    media,
+    media: combinedMedia,
     timeline,
     payments: orderPayments,
   });

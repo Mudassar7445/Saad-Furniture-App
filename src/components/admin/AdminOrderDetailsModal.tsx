@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import Link from 'next/link';
 import { getSafeThumbnailUrl } from '@/lib/media/videoThumbnail';
+import { OrderCraftingGallery } from '@/components/orders/OrderCraftingGallery';
 
 interface AdminOrderDetailsModalProps {
   orderId: string | null;
@@ -380,69 +381,18 @@ export const AdminOrderDetailsModal: React.FC<AdminOrderDetailsModalProps> = ({
               </div>
             </div>
 
-            {/* GOOGLE DRIVE WORKSHOP MEDIA REPOSITORY */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#B99A68] font-bold uppercase tracking-wider text-[11px]">
-                  <ImageIcon className="w-4 h-4" /> Google Drive Workshop Media ({media.length})
-                </div>
-              </div>
-
-              {media.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {media.map((m: any, mIdx: number) => (
-                    <div
-                      key={m.id || mIdx}
-                      className="p-2 bg-slate-900 border border-white/10 rounded-xl space-y-1.5 relative group"
-                    >
-                      <div className="aspect-video rounded-lg overflow-hidden bg-black/60 relative">
-                        {m.mediaType === 'video' ? (
-                          <div className="w-full h-full relative">
-                            <img
-                              src={getSafeThumbnailUrl(m)}
-                              alt={m.title}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <div className="w-8 h-8 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
-                                <Play className="w-3.5 h-3.5 fill-slate-950 ml-0.5" />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <img
-                            src={m.thumbnailUrl || m.webViewLink}
-                            alt={m.title}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                        )}
-                        <div className="absolute top-1 left-1 bg-black/80 text-[9px] px-1.5 py-0.5 rounded text-white uppercase font-bold">
-                          {m.stage?.replace('_', ' ')}
-                        </div>
-                      </div>
-                      <span className="font-semibold text-white truncate block">{m.title || m.fileName}</span>
-                      <a
-                        href={m.webViewLink || m.thumbnailUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[10px] text-[#B99A68] hover:underline flex items-center gap-1"
-                      >
-                        <span>Open in Drive</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 bg-slate-900/40 border border-dashed border-white/10 rounded-xl text-center text-slate-500">
-                  No workshop media uploaded to Google Drive for this order yet.
-                </div>
-              )}
-            </div>
+            {/* ORDER CRAFTING GALLERY */}
+            <OrderCraftingGallery
+              orderId={orderId!}
+              order={order}
+              items={items}
+              initialMedia={media}
+              isAdmin={true}
+              onMediaChange={(updated) => {
+                setData((prev: any) => ({ ...prev, media: updated }));
+                if (onRefresh) onRefresh();
+              }}
+            />
 
             <div className="flex justify-end pt-2 border-t border-white/10">
               <Button variant="ghost" onClick={onClose}>
