@@ -21,6 +21,25 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 
+const FURNITURE_PRODUCTION_STAGES = [
+  { id: 'order_placed', label: '1. Order Placed', pct: 6 },
+  { id: 'order_confirmed', label: '2. Order Confirmed', pct: 12 },
+  { id: 'design_measurements', label: '3. Design & Measurements', pct: 18 },
+  { id: 'material_preparation', label: '4. Material Preparation', pct: 25 },
+  { id: 'frame_cutting', label: '5. Frame Cutting & Preparation', pct: 31 },
+  { id: 'frame_assembly', label: '6. Frame Assembly', pct: 38 },
+  { id: 'frame_inspection', label: '7. Frame Inspection', pct: 44 },
+  { id: 'foam_work', label: '8. Foam Work', pct: 50 },
+  { id: 'fabric_cutting_stitching', label: '9. Fabric Cutting & Stitching', pct: 56 },
+  { id: 'upholstery_work', label: '10. Upholstery Work', pct: 65 },
+  { id: 'polishing_finishing', label: '11. Polishing & Finishing', pct: 75 },
+  { id: 'quality_inspection', label: '12. Quality Inspection', pct: 82 },
+  { id: 'ready_for_delivery', label: '13. Ready for Delivery', pct: 88 },
+  { id: 'dispatched', label: '14. Dispatched', pct: 93 },
+  { id: 'out_for_delivery', label: '15. Out for Delivery', pct: 97 },
+  { id: 'delivered', label: '16. Delivered', pct: 100 },
+];
+
 export default function StaffOperationsDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -121,6 +140,7 @@ export default function StaffOperationsDashboard() {
       body: JSON.stringify({
         productionStage: showEditOrder.productionStage,
         productionProgress: Number(showEditOrder.productionProgress),
+        progressDescription: showEditOrder.progressDescription,
         orderStatus: showEditOrder.orderStatus,
         deliveryStatus: showEditOrder.deliveryStatus,
         estimatedDeliveryDate: showEditOrder.estimatedDeliveryDate,
@@ -542,21 +562,25 @@ export default function StaffOperationsDashboard() {
       >
         <form onSubmit={handleUpdateOrder} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 mb-1">Production Stage</label>
+            <label className="block text-slate-300 mb-1">Furniture Production Stage (16-Stage Master Flow)</label>
             <select
-              value={showEditOrder?.productionStage || ''}
-              onChange={(e) =>
-                setShowEditOrder({ ...showEditOrder, productionStage: e.target.value })
-              }
-              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              value={showEditOrder?.productionStage || 'order_placed'}
+              onChange={(e) => {
+                const newStage = e.target.value;
+                const found = FURNITURE_PRODUCTION_STAGES.find((s) => s.id === newStage);
+                setShowEditOrder({
+                  ...showEditOrder,
+                  productionStage: newStage,
+                  productionProgress: found ? found.pct : showEditOrder.productionProgress,
+                });
+              }}
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium"
             >
-              <option value="design_approval">Design Approval</option>
-              <option value="wood_cutting">Timber Cutting</option>
-              <option value="carving_joinery">Carving & Joinery</option>
-              <option value="polishing_finishing">Polishing & Finishing</option>
-              <option value="upholstery">Upholstery</option>
-              <option value="final_inspection">Final Inspection</option>
-              <option value="completed">Completed</option>
+              {FURNITURE_PRODUCTION_STAGES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -574,6 +598,21 @@ export default function StaffOperationsDashboard() {
                 setShowEditOrder({ ...showEditOrder, productionProgress: e.target.value })
               }
               className="w-full accent-[#c5a880]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 mb-1">
+              Artisan Progress Description / Timeline Milestone Note
+            </label>
+            <textarea
+              rows={2}
+              value={showEditOrder?.progressDescription || ''}
+              onChange={(e) =>
+                setShowEditOrder({ ...showEditOrder, progressDescription: e.target.value })
+              }
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500"
+              placeholder="e.g. Mortise and tenon joint assembly completed; moving to frame inspection..."
             />
           </div>
 
@@ -670,10 +709,11 @@ export default function StaffOperationsDashboard() {
               onChange={(e) => setMediaForm({ ...mediaForm, stage: e.target.value })}
               className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
             >
-              <option value="wood_cutting">Timber Cutting</option>
-              <option value="carving_joinery">Carving & Joinery</option>
-              <option value="polishing_finishing">French Polishing</option>
-              <option value="upholstery">Upholstery</option>
+              {FURNITURE_PRODUCTION_STAGES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
             </select>
           </div>
 

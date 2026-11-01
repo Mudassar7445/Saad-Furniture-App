@@ -52,6 +52,25 @@ import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBui
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
 
+export const FURNITURE_PRODUCTION_STAGES = [
+  { id: 'order_placed', label: '1. Order Placed', pct: 6 },
+  { id: 'order_confirmed', label: '2. Order Confirmed', pct: 12 },
+  { id: 'design_measurements', label: '3. Design & Measurements', pct: 18 },
+  { id: 'material_preparation', label: '4. Material Preparation', pct: 25 },
+  { id: 'frame_cutting', label: '5. Frame Cutting & Preparation', pct: 31 },
+  { id: 'frame_assembly', label: '6. Frame Assembly', pct: 38 },
+  { id: 'frame_inspection', label: '7. Frame Inspection', pct: 44 },
+  { id: 'foam_work', label: '8. Foam Work', pct: 50 },
+  { id: 'fabric_cutting_stitching', label: '9. Fabric Cutting & Stitching', pct: 56 },
+  { id: 'upholstery_work', label: '10. Upholstery Work', pct: 65 },
+  { id: 'polishing_finishing', label: '11. Polishing & Finishing', pct: 75 },
+  { id: 'quality_inspection', label: '12. Quality Inspection', pct: 82 },
+  { id: 'ready_for_delivery', label: '13. Ready for Delivery', pct: 88 },
+  { id: 'dispatched', label: '14. Dispatched', pct: 93 },
+  { id: 'out_for_delivery', label: '15. Out for Delivery', pct: 97 },
+  { id: 'delivered', label: '16. Delivered', pct: 100 },
+];
+
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -396,6 +415,7 @@ export default function SuperAdminDashboard() {
       body: JSON.stringify({
         productionStage: showEditOrderProgress.productionStage,
         productionProgress: Number(showEditOrderProgress.productionProgress),
+        progressDescription: showEditOrderProgress.progressDescription,
         orderStatus: showEditOrderProgress.orderStatus,
         deliveryStatus: showEditOrderProgress.deliveryStatus,
         estimatedDeliveryDate: showEditOrderProgress.estimatedDeliveryDate,
@@ -2088,21 +2108,25 @@ export default function SuperAdminDashboard() {
         <form onSubmit={handleUpdateOrderProgress} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 mb-1">Workshop Stage</label>
+              <label className="block text-slate-300 mb-1">Furniture Production Stage (16-Stage Master Flow)</label>
               <select
-                value={showEditOrderProgress?.productionStage || ''}
-                onChange={(e) =>
-                  setShowEditOrderProgress({ ...showEditOrderProgress, productionStage: e.target.value })
-                }
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
+                value={showEditOrderProgress?.productionStage || 'order_placed'}
+                onChange={(e) => {
+                  const newStage = e.target.value;
+                  const found = FURNITURE_PRODUCTION_STAGES.find((s) => s.id === newStage);
+                  setShowEditOrderProgress({
+                    ...showEditOrderProgress,
+                    productionStage: newStage,
+                    productionProgress: found ? found.pct : showEditOrderProgress.productionProgress,
+                  });
+                }}
+                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium"
               >
-                <option value="design_approval">Design & Blueprint Approval</option>
-                <option value="wood_cutting">Precision Timber Cutting</option>
-                <option value="carving_joinery">Hand Carving & Dovetail Joinery</option>
-                <option value="polishing_finishing">French Polishing & Lacquer</option>
-                <option value="upholstery">Bespoke Upholstery & Cushioning</option>
-                <option value="final_inspection">Master QA Final Inspection</option>
-                <option value="completed">Completed & Certified</option>
+                {FURNITURE_PRODUCTION_STAGES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -2121,6 +2145,21 @@ export default function SuperAdminDashboard() {
                 className="w-full accent-[#c5a880] mt-2"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-slate-300 mb-1">
+              Artisan Progress Description / Timeline Milestone Note
+            </label>
+            <textarea
+              rows={2}
+              value={showEditOrderProgress?.progressDescription || ''}
+              onChange={(e) =>
+                setShowEditOrderProgress({ ...showEditOrderProgress, progressDescription: e.target.value })
+              }
+              className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500"
+              placeholder="e.g. Master carpenter has completed joinery; moving to 28-point frame inspection..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -2251,11 +2290,11 @@ export default function SuperAdminDashboard() {
               onChange={(e) => setMediaUploadForm({ ...mediaUploadForm, stage: e.target.value })}
               className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white"
             >
-              <option value="wood_cutting">Timber Cutting</option>
-              <option value="carving_joinery">Hand Carving & Dovetails</option>
-              <option value="polishing_finishing">French Polishing</option>
-              <option value="upholstery">Upholstery & Leather Inlay</option>
-              <option value="final_inspection">Master QA Inspection</option>
+              {FURNITURE_PRODUCTION_STAGES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
             </select>
           </div>
 

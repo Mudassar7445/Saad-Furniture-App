@@ -33,19 +33,24 @@ interface MobileOrderTrackingSheetProps {
   onOpenMedia?: (mediaList: any[], initialIndex?: number) => void;
 }
 
-// Exactly 11 Stages from User Specification
-const ORDER_STAGES = [
-  { id: 'order_received', title: 'Order Received', desc: 'Bespoke custom order specifications logged into master production ledger' },
-  { id: 'order_confirmed', title: 'Order Confirmed', desc: 'Dimensions, timber grade, and fabric selection verified with patron' },
-  { id: 'design_measurements', title: 'Design / Measurements', desc: 'Architectural CAD drafting and scale verification by master craftsmen' },
-  { id: 'material_selection', title: 'Material Selection', desc: 'Seasoned solid wood and premium upholstery textiles reserved' },
-  { id: 'manufacturing_started', title: 'Manufacturing Started', desc: 'Rough milling, precision joinery, and structural frame carving initiated' },
-  { id: 'manufacturing_in_progress', title: 'Manufacturing in Progress', desc: 'Heavy-duty joinery, re-inforcements & carcass assembly' },
-  { id: 'finishing_polish', title: 'Finishing / Polish', desc: 'Multi-coat hand-rubbed Italian lacquer, staining, and protective seal' },
-  { id: 'quality_inspection', title: 'Quality Inspection', desc: 'Strict 28-point artisanal quality, leveling, and durability audit' },
-  { id: 'ready_for_delivery', title: 'Ready for Delivery', desc: 'Corner-guarded padded protective wrap and vehicle dispatch staging' },
-  { id: 'dispatched', title: 'Dispatched', desc: 'Saad Furniture white-glove transport vehicle en route to your delivery address' },
-  { id: 'delivered', title: 'Delivered', desc: 'Unpacked, positioned, leveled, and handover completed to patron satisfaction' },
+// Complete 16-Stage Furniture Manufacturing Workflow
+export const ORDER_STAGES = [
+  { id: 'order_placed', title: 'Order Placed', desc: 'Customer order has been received and logged in master atelier system' },
+  { id: 'order_confirmed', title: 'Order Confirmed', desc: 'Order details, price, timber grade, and specifications confirmed' },
+  { id: 'design_measurements', title: 'Design & Measurements', desc: 'Design, dimensions, blueprint, and customizations finalized' },
+  { id: 'material_preparation', title: 'Material Preparation', desc: 'Wood, MDF, high-resilience foam, fabric, and materials arranged' },
+  { id: 'frame_cutting', title: 'Frame Cutting & Preparation', desc: 'Solid wood frame components being cut, planed, and prepared' },
+  { id: 'frame_assembly', title: 'Frame Assembly', desc: 'Heavy-duty mortise & tenon furniture carcass assembled' },
+  { id: 'frame_inspection', title: 'Frame Inspection', desc: 'Frame structural integrity, joinery, and strength audited' },
+  { id: 'foam_work', title: 'Foam Work', desc: 'Multi-density ergonomic foam cutting, fitting, and cushioning' },
+  { id: 'fabric_cutting_stitching', title: 'Fabric Cutting & Stitching', desc: 'Premium upholstery fabric or leather precision cut and stitched' },
+  { id: 'upholstery_work', title: 'Upholstery Work', desc: 'Fabric, leather, tufting, and webbing fitted onto furniture frame' },
+  { id: 'polishing_finishing', title: 'Polishing & Finishing', desc: 'Multi-coat hand-rubbed Italian lacquer, staining, and deco polish' },
+  { id: 'quality_inspection', title: 'Quality Inspection', desc: 'Rigorous 28-point final inspection, leveling, and finishing audit' },
+  { id: 'ready_for_delivery', title: 'Ready for Delivery', desc: 'Protective padded wrapping and vehicle dispatch staging complete' },
+  { id: 'dispatched', title: 'Dispatched', desc: 'Furniture has left the workshop/showroom transit center' },
+  { id: 'out_for_delivery', title: 'Out for Delivery', desc: 'White-glove delivery van en route to customer destination' },
+  { id: 'delivered', title: 'Delivered', desc: 'Furniture delivered, unpacked, placed, and handover completed' },
 ];
 
 export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> = ({
@@ -81,25 +86,30 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
   const currentPayments = orderDetails?.payments || order.payments || [];
   const currentTimeline = orderDetails?.timeline || [];
 
-  // Determine current active stage index based on order status
-  const normalizedStatus = (currentOrder.status || '').toLowerCase().replace(/[\s_-]+/g, ' ');
+  // Determine current active stage index based on order productionStage or status
+  const rawStage = (currentOrder.productionStage || currentOrder.status || '').toLowerCase().replace(/[\s-]+/g, '_');
   let activeIndex = ORDER_STAGES.findIndex(
     (s) =>
-      s.title.toLowerCase() === normalizedStatus ||
-      s.id.toLowerCase() === normalizedStatus ||
-      normalizedStatus.includes(s.title.toLowerCase())
+      s.id === rawStage ||
+      s.title.toLowerCase().replace(/[\s-]+/g, '_') === rawStage ||
+      rawStage.includes(s.id)
   );
   if (activeIndex < 0) {
-    if (normalizedStatus.includes('deliver')) activeIndex = 10;
-    else if (normalizedStatus.includes('dispatch')) activeIndex = 9;
-    else if (normalizedStatus.includes('ready')) activeIndex = 8;
-    else if (normalizedStatus.includes('inspect')) activeIndex = 7;
-    else if (normalizedStatus.includes('finish') || normalizedStatus.includes('polish')) activeIndex = 6;
-    else if (normalizedStatus.includes('progress')) activeIndex = 5;
-    else if (normalizedStatus.includes('start')) activeIndex = 4;
-    else if (normalizedStatus.includes('material')) activeIndex = 3;
-    else if (normalizedStatus.includes('design')) activeIndex = 2;
-    else if (normalizedStatus.includes('confirm')) activeIndex = 1;
+    if (rawStage.includes('deliver') && !rawStage.includes('out') && !rawStage.includes('ready')) activeIndex = 15;
+    else if (rawStage.includes('out') && rawStage.includes('deliver')) activeIndex = 14;
+    else if (rawStage.includes('dispatch')) activeIndex = 13;
+    else if (rawStage.includes('ready')) activeIndex = 12;
+    else if (rawStage.includes('inspect') || rawStage.includes('quality')) activeIndex = 11;
+    else if (rawStage.includes('polish') || rawStage.includes('finish')) activeIndex = 10;
+    else if (rawStage.includes('upholster')) activeIndex = 9;
+    else if (rawStage.includes('stitch') || rawStage.includes('fabric')) activeIndex = 8;
+    else if (rawStage.includes('foam')) activeIndex = 7;
+    else if (rawStage.includes('frame') && rawStage.includes('inspect')) activeIndex = 6;
+    else if (rawStage.includes('frame') && rawStage.includes('assembl')) activeIndex = 5;
+    else if (rawStage.includes('frame') || rawStage.includes('cut')) activeIndex = 4;
+    else if (rawStage.includes('material')) activeIndex = 3;
+    else if (rawStage.includes('design') || rawStage.includes('measure')) activeIndex = 2;
+    else if (rawStage.includes('confirm')) activeIndex = 1;
     else activeIndex = 0;
   }
 
@@ -217,9 +227,9 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
                 </div>
               </div>
 
-              {/* Exact 11-Stage Progress Tracker */}
+              {/* Exact 16-Stage Progress Tracker */}
               <div className="bg-white p-4 rounded-2xl border border-[#EAE2D6] shadow-sm space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">11-Stage Production Roadmap</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#262421]">16-Stage Master Production Roadmap</h3>
                 <div className="relative pl-6 space-y-5 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#EAE2D6]">
                   {ORDER_STAGES.map((stage, idx) => {
                     const isDone = idx < activeIndex;

@@ -24,6 +24,7 @@ export async function GET(request: Request) {
   const search = searchParams.get('search')?.toLowerCase().trim() || '';
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
+  const isCompact = searchParams.get('compact') === 'true';
 
   const allCustomers = await db
     .select()
@@ -40,6 +41,29 @@ export async function GET(request: Request) {
       const cityMatch = c.city?.toLowerCase().includes(search);
       const addressMatch = c.address?.toLowerCase().includes(search);
       return nameMatch || phoneMatch || emailMatch || cityMatch || addressMatch;
+    });
+  }
+
+  // If compact search is requested (e.g. New Order customer selector), skip heavy orders aggregation
+  if (isCompact) {
+    const compactList = filtered.slice((page - 1) * limit, page * limit).map((cust) => ({
+      id: cust.id,
+      name: cust.name,
+      email: cust.email,
+      phone: cust.phone,
+      address: cust.address,
+      city: cust.city,
+      status: cust.status,
+      customerType: cust.passwordHash && !cust.email?.endsWith('@saadpatron.com') ? 'Registered App Patron' : 'Showroom Patron',
+      isRegistered: Boolean(cust.passwordHash && !cust.email?.endsWith('@saadpatron.com')),
+      createdAt: cust.createdAt,
+    }));
+
+    return NextResponse.json({
+      customers: compactList,
+      total: filtered.length,
+      page,
+      limit,
     });
   }
 
@@ -69,6 +93,8 @@ export async function GET(request: Request) {
       address: cust.address,
       city: cust.city,
       firstBusinessDate: cust.firstBusinessDate || cust.createdAt,
+      customerType: cust.passwordHash && !cust.email?.endsWith('@saadpatron.com') ? 'Registered App Patron' : 'Showroom Patron',
+      isRegistered: Boolean(cust.passwordHash && !cust.email?.endsWith('@saadpatron.com')),
       createdAt: cust.createdAt,
       stats: {
         totalOrders,

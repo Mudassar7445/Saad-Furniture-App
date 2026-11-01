@@ -205,7 +205,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
                   Live Order Milestone Tracker
                 </h3>
                 <span className="text-[10px] text-[#B99A68] font-medium block">
-                  11-Stage Artisan Workshop Monitor
+                  16-Stage Master Workshop Production Monitor
                 </span>
               </div>
             </div>

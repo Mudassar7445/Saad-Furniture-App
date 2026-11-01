@@ -74,6 +74,7 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
   const [localCustomers, setLocalCustomers] = useState<any[]>(customersList || []);
   const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState<boolean>(false);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState<boolean>(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState<boolean>(false);
 
   // New Customer Form
@@ -93,6 +94,33 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
       setLocalCustomers(customersList);
     }
   }, [customersList]);
+
+  // Debounced server-side search across all customers & registered app accounts
+  useEffect(() => {
+    if (!customerSearchTerm.trim()) return;
+    const timer = setTimeout(async () => {
+      try {
+        setCustomerSearchLoading(true);
+        const res = await fetch(`/api/customers?search=${encodeURIComponent(customerSearchTerm.trim())}&compact=true&limit=25`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.customers && Array.isArray(data.customers)) {
+            setLocalCustomers((prev) => {
+              const existingIds = new Set(prev.map((c) => c.id));
+              const newItems = data.customers.filter((c: any) => !existingIds.has(c.id));
+              return [...prev, ...newItems];
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Customer live search failed:', err);
+      } finally {
+        setCustomerSearchLoading(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [customerSearchTerm]);
 
   // Selected customer object
   const selectedCustomer = localCustomers.find((c) => c.id === selectedCustomerId);
@@ -411,20 +439,42 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
 
               {selectedCustomer ? (
                 /* Selected Customer Summary Card */
-                <div className="p-3 bg-slate-900 border border-[#B99A68]/60 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#B99A68]/20 border border-[#B99A68] flex items-center justify-center shrink-0 text-[#B99A68] font-bold text-xs">
+                <div className="p-3.5 bg-slate-900 border border-[#B99A68]/60 rounded-xl flex items-center justify-between gap-3 shadow-md">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-[#B99A68]/20 border border-[#B99A68] flex items-center justify-center shrink-0 text-[#B99A68] font-bold text-xs">
                       {selectedCustomer.name?.charAt(0) || 'P'}
                     </div>
                     <div className="min-w-0">
-                      <div className="font-bold text-white text-xs truncate flex items-center gap-1.5">
+                      <div className="font-bold text-white text-xs truncate flex items-center gap-2">
                         <span>{selectedCustomer.name}</span>
-                        <Badge variant="gold">Active Patron</Badge>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase ${
+                          selectedCustomer.customerType?.includes('Registered') || selectedCustomer.isRegistered
+                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-[#B99A68]/20 text-[#B99A68] border border-[#B99A68]/40'
+                        }`}>
+                          {selectedCustomer.customerType || 'Showroom Patron'}
+                        </span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate flex items-center gap-2 mt-0.5">
-                        <span className="flex items-center gap-0.5"><Phone className="w-2.5 h-2.5 text-[#B99A68]" /> {selectedCustomer.phone || 'No phone'}</span>
-                        {selectedCustomer.city && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-500" /> {selectedCustomer.city}</span>}
+                      <div className="text-[10px] text-slate-300 truncate flex flex-wrap items-center gap-3 mt-1">
+                        <span className="flex items-center gap-1 font-mono text-slate-200">
+                          <Phone className="w-3 h-3 text-[#B99A68]" /> {selectedCustomer.phone || 'No mobile'}
+                        </span>
+                        {selectedCustomer.email && (
+                          <span className="text-slate-400 truncate">
+                            ✉️ {selectedCustomer.email}
+                          </span>
+                        )}
+                        {selectedCustomer.city && (
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <MapPin className="w-3 h-3 text-slate-500" /> {selectedCustomer.city}
+                          </span>
+                        )}
                       </div>
+                      {selectedCustomer.address && (
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          📍 {selectedCustomer.address}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
@@ -434,7 +484,7 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                       setCustomerSearchTerm('');
                       setCustomerDropdownOpen(true);
                     }}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold shrink-0 transition-colors"
+                    className="p-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-semibold shrink-0 transition-colors border border-white/5"
                   >
                     Change
                   </button>
@@ -452,13 +502,21 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                         setCustomerDropdownOpen(true);
                       }}
                       onFocus={() => setCustomerDropdownOpen(true)}
-                      placeholder="Search by name, mobile number, or city..."
+                      placeholder="Search customer by name, phone or email..."
                       className="w-full pl-9 pr-8 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
                     />
+                    {customerSearchLoading && (
+                      <div className="absolute right-8 top-3 text-[#B99A68] animate-spin text-xs">
+                        ⟳
+                      </div>
+                    )}
                     {customerSearchTerm && (
                       <button
                         type="button"
-                        onClick={() => setCustomerSearchTerm('')}
+                        onClick={() => {
+                          setCustomerSearchTerm('');
+                          setCustomerDropdownOpen(false);
+                        }}
                         className="absolute right-2.5 top-3 text-slate-400 hover:text-white"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -467,9 +525,9 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                   </div>
 
                   {customerDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#141822] border border-[#B99A68]/40 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-white/5">
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#141822] border border-[#B99A68]/40 rounded-xl shadow-2xl max-h-64 overflow-y-auto divide-y divide-white/5">
                       {filteredCustomers.length > 0 ? (
-                        filteredCustomers.slice(0, 15).map((cust) => (
+                        filteredCustomers.slice(0, 20).map((cust) => (
                           <div
                             key={cust.id}
                             onClick={() => {
@@ -481,21 +539,31 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                             }}
                             className="p-2.5 hover:bg-white/5 cursor-pointer flex items-center justify-between gap-2 transition-colors"
                           >
-                            <div>
-                              <span className="font-bold text-white block text-xs">{cust.name}</span>
-                              <span className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-xs truncate">{cust.name}</span>
+                                <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase ${
+                                  cust.customerType?.includes('Registered') || cust.isRegistered
+                                    ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30'
+                                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                }`}>
+                                  {cust.customerType || (cust.isRegistered ? 'Registered App Patron' : 'Showroom Patron')}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 font-mono">
                                 <span>📱 {cust.phone || 'N/A'}</span>
-                                {cust.city && <span>📍 {cust.city}</span>}
-                              </span>
+                                {cust.email && <span className="text-slate-500">✉️ {cust.email}</span>}
+                                {cust.city && <span className="text-slate-500">📍 {cust.city}</span>}
+                              </div>
                             </div>
-                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 border-slate-700">
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2.5 border-slate-700 shrink-0">
                               Select
                             </Button>
                           </div>
                         ))
                       ) : (
-                        <div className="p-3 text-center text-slate-400 text-xs">
-                          No matching patrons found for "{customerSearchTerm}"
+                        <div className="p-3.5 text-center text-slate-400 text-xs">
+                          {customerSearchLoading ? 'Searching customer records...' : `No matching customers found for "${customerSearchTerm}"`}
                         </div>
                       )}
 
@@ -504,10 +572,10 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                           setCustomerDropdownOpen(false);
                           setShowAddCustomerModal(true);
                         }}
-                        className="p-2.5 bg-[#B99A68]/10 hover:bg-[#B99A68]/20 cursor-pointer flex items-center justify-center gap-1.5 text-[#B99A68] font-bold text-xs transition-colors"
+                        className="p-3 bg-[#B99A68]/15 hover:bg-[#B99A68]/25 cursor-pointer flex items-center justify-center gap-2 text-[#B99A68] font-bold text-xs transition-colors"
                       >
                         <UserPlus className="w-4 h-4" />
-                        <span>+ Register "{customerSearchTerm || 'New Customer'}" as Patron</span>
+                        <span>+ Add New Customer "{customerSearchTerm || ''}"</span>
                       </div>
                     </div>
                   )}

@@ -88,7 +88,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
       if (imgs && imgs.length > 0 && imgs[0]) {
         return imgs[0];
       }
-    } catch {}
+    } catch { }
     return (
       CATEGORY_DEFAULT_IMAGES[p.category] ||
       'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'
@@ -134,11 +134,10 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
           <button
             key={cat}
             onClick={() => onSelectCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              selectedCategory === cat
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat
                 ? 'bg-[#262421] text-[#F7F5F0] shadow-sm font-bold'
                 : 'bg-[#FFFFFF] text-[#89847C] border border-[#EAE2D6]'
-            }`}
+              }`}
           >
             {cat}
           </button>
@@ -186,12 +185,14 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                 onClick={() => onOpenProductDetail(prod)}
                 className="rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] overflow-hidden mobile-card-shadow flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
               >
-                {/* Image */}
+                {/* Image with high performance lazy loading */}
                 <div className="relative aspect-square bg-[#F7F5F0] overflow-hidden">
                   <img
                     src={getPrimaryImage(prod)}
                     alt={prod.title}
-                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = CATEGORY_DEFAULT_IMAGES[prod.category] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
                     }}
@@ -273,11 +274,10 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                   <button
                     key={s.id}
                     onClick={() => setSortBy(s.id as any)}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border text-left transition-all ${
-                      sortBy === s.id
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border text-left transition-all ${sortBy === s.id
                         ? 'bg-[#262421] text-[#F7F5F0] border-[#262421]'
                         : 'bg-[#F7F5F0] text-[#89847C] border-[#EAE2D6]'
-                    }`}
+                      }`}
                   >
                     {s.label}
                   </button>

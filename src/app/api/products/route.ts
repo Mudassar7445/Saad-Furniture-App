@@ -6,27 +6,71 @@ import { seedDatabase } from '@/lib/db/seed';
 import { desc, eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60; // 60s ISR / Edge cache
 
-export async function GET() {
-  await initializeDatabase();
-  await seedDatabase();
+export async function GET(request: Request) {
+  try {
+    await initializeDatabase();
 
-  const allProducts = await db
-    .select()
-    .from(products)
-    .orderBy(desc(products.createdAt));
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = searchParams.has('limit') ? Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10))) : 0;
 
-  return NextResponse.json(
-    { products: allProducts },
-    {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
+    let query = db
+      .select({
+        id: products.id,
+        title: products.title,
+        sku: products.sku,
+        category: products.category,
+        description: products.description,
+        price: products.price,
+        discountPrice: products.discountPrice,
+        material: products.material,
+        dimensions: products.dimensions,
+        stockQuantity: products.stockQuantity,
+        status: products.status,
+        showroomLocation: products.showroomLocation,
+        featured: products.featured,
+        featuredImage: products.featuredImage,
+        images: products.images,
+        warrantyDetails: products.warrantyDetails,
+        isPublished: products.isPublished,
+        createdAt: products.createdAt,
+      })
+      .from(products);
+
+    let allProducts;
+    if (category && category.toLowerCase() !== 'all') {
+      allProducts = await query
+        .where(eq(products.category, category))
+        .orderBy(desc(products.createdAt));
+    } else {
+      allProducts = await query.orderBy(desc(products.createdAt));
     }
-  );
+
+    const total = allProducts.length;
+    const paginatedProducts = limit > 0 ? allProducts.slice((page - 1) * limit, page * limit) : allProducts;
+
+    const headers = new Headers();
+    headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
+    return NextResponse.json(
+      {
+        products: paginatedProducts,
+        total,
+        page,
+        limit: limit || total,
+      },
+      { headers }
+    );
+  } catch (err: any) {
+    console.error('Products fetch error:', err);
+    return NextResponse.json(
+      { error: err?.message || 'Failed to fetch products' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {

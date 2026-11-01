@@ -31,6 +31,10 @@ import { CheckoutModal } from '@/components/ecommerce/CheckoutModal';
 import { MobileAppShell } from '@/components/mobile/MobileAppShell';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
 
+// In-memory catalog cache to eliminate network delay on repeated views
+let cachedProductsList: any[] | null = null;
+let cachedProductsTime = 0;
+
 export default function ShowroomHomePage() {
   const router = useRouter();
   const { settings } = useShopSettings();
@@ -53,9 +57,9 @@ export default function ShowroomHomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // State: Products & E-Commerce
-  const [products, setProducts] = useState<any[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  // State: Products & E-Commerce (Instant cached initial state)
+  const [products, setProducts] = useState<any[]>(cachedProductsList || []);
+  const [loadingProducts, setLoadingProducts] = useState(!cachedProductsList);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'newest'>('featured');
@@ -106,20 +110,24 @@ export default function ShowroomHomePage() {
     }
   };
 
-  // 2. Fetch products (Always fresh, no browser caching)
-  const fetchProducts = async () => {
+  // 2. Fetch products with in-memory caching
+  const fetchProducts = async (forceFresh = false) => {
+    const isCacheFresh = cachedProductsList && Date.now() - cachedProductsTime < 180000;
+    if (!forceFresh && isCacheFresh && cachedProductsList) {
+      setProducts(cachedProductsList);
+      setLoadingProducts(false);
+      return;
+    }
+
     try {
       setLoadingProducts(true);
-      const res = await fetch(`/api/products?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-        },
-      });
+      const res = await fetch('/api/products');
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || []);
+        const pList = data.products || [];
+        cachedProductsList = pList;
+        cachedProductsTime = Date.now();
+        setProducts(pList);
       }
     } catch (e) {
       console.error(e);
@@ -372,67 +380,68 @@ export default function ShowroomHomePage() {
     return (b.featured || 0) - (a.featured || 0);
   });
 
-  // Render Genuine Luxury Native Mobile App Experience on Mobile Devices
-  if (mounted && isMobile) {
-    return (
-      <MobileAppShell
-        currentUser={currentUser}
-        onRefreshUser={fetchUser}
-        products={products}
-        loadingProducts={loadingProducts}
-        cart={cart}
-        wishlistProductIds={wishlistProductIds}
-        onToggleWishlist={handleToggleWishlist}
-        onAddToCart={(p, opts) =>
-          handleAddToCart({
-            productId: p.id,
-            quantity: opts?.quantity || 1,
-            selectedColour: opts?.fabricColor,
-            selectedDesign: opts?.woodType,
-          })
-        }
-        onUpdateCartQty={handleUpdateCartQty}
-        onRemoveCartItem={handleRemoveCartItem}
-        appliedCoupon={appliedCoupon}
-        onApplyCoupon={async (code) => {
-          const err = await handleApplyCoupon(code);
-          return !err;
-        }}
-        onOrderSuccess={(order) => {
-          fetchCart();
-          fetchUser();
-        }}
-      />
-    );
-  }
-
+  // Unified Responsive Viewport: Renders mobile app shell on mobile/tablets with zero startup flash
   return (
-    <div className="min-h-screen bg-[#0b0d11] text-slate-100 flex flex-col font-sans selection:bg-[#c5a880] selection:text-slate-950">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141824] border border-[#c5a880]/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs animate-bounce">
-          <Sparkles className="w-4 h-4 text-[#c5a880]" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Top Luxury Announcement Banner */}
-      <div className="bg-gradient-to-r from-[#181c26] via-[#241f17] to-[#181c26] border-b border-[#c5a880]/20 py-2 px-4 text-center text-xs text-[#e5caa2] font-medium flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 text-[#c5a880] shrink-0" />
-        <span>
-          Bespoke Royal Collection: Complimentary White-Glove Placement on Orders Over $3,000 | Use Code{' '}
-          <strong className="text-white underline tracking-wider font-bold">SAAD10</strong> for 10% Off
-        </span>
+    <>
+      {/* 1. NATIVE MOBILE APP SHELL (Visible by default on mobile devices with zero flash) */}
+      <div className="block md:hidden min-h-screen bg-[#141210] text-[#F7F5F0]">
+        <MobileAppShell
+          currentUser={currentUser}
+          onRefreshUser={fetchUser}
+          products={products}
+          loadingProducts={loadingProducts}
+          cart={cart}
+          wishlistProductIds={wishlistProductIds}
+          onToggleWishlist={handleToggleWishlist}
+          onAddToCart={(p, opts) =>
+            handleAddToCart({
+              productId: p.id,
+              quantity: opts?.quantity || 1,
+              selectedColour: opts?.fabricColor,
+              selectedDesign: opts?.woodType,
+            })
+          }
+          onUpdateCartQty={handleUpdateCartQty}
+          onRemoveCartItem={handleRemoveCartItem}
+          appliedCoupon={appliedCoupon}
+          onApplyCoupon={async (code) => {
+            const err = await handleApplyCoupon(code);
+            return !err;
+          }}
+          onOrderSuccess={(order) => {
+            fetchCart();
+            fetchUser();
+          }}
+        />
       </div>
 
-      {/* Unified Luxury Header */}
-      <Header
-        cartCount={cart.totalCount}
-        wishlistCount={wishlistProductIds.size}
-        onOpenCart={() => setCartDrawerOpen(true)}
-        onOpenAuth={() => setShowAuthModal(true)}
-        currentUser={currentUser}
-      />
+      {/* 2. LUXURY DESKTOP SHOWROOM (Visible on desktop monitors >= 768px) */}
+      <div className="hidden md:flex min-h-screen bg-[#0b0d11] text-slate-100 flex-col font-sans selection:bg-[#c5a880] selection:text-slate-950">
+        {/* Toast Alert */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-[#141824] border border-[#c5a880]/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs animate-bounce">
+            <Sparkles className="w-4 h-4 text-[#c5a880]" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        {/* Top Luxury Announcement Banner */}
+        <div className="bg-gradient-to-r from-[#181c26] via-[#241f17] to-[#181c26] border-b border-[#c5a880]/20 py-2 px-4 text-center text-xs text-[#e5caa2] font-medium flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-[#c5a880] shrink-0" />
+          <span>
+            Bespoke Royal Collection: Complimentary White-Glove Placement on Orders Over $3,000 | Use Code{' '}
+            <strong className="text-white underline tracking-wider font-bold">SAAD10</strong> for 10% Off
+          </span>
+        </div>
+
+        {/* Unified Luxury Header */}
+        <Header
+          cartCount={cart.totalCount}
+          wishlistCount={wishlistProductIds.size}
+          onOpenCart={() => setCartDrawerOpen(true)}
+          onOpenAuth={() => setShowAuthModal(true)}
+          currentUser={currentUser}
+        />
 
       {/* HERO & SHOWROOM HIGHLIGHT */}
       <section className="relative py-16 lg:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-[#10131a] via-[#0b0d11] to-[#0b0d11]">
@@ -926,6 +935,7 @@ export default function ShowroomHomePage() {
           fetchWishlist();
         }}
       />
-    </div>
+      </div>
+    </>
   );
 }

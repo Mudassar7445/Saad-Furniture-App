@@ -152,18 +152,35 @@ export async function PATCH(
 
   await db.update(orders).set(updates).where(eq(orders.id, id));
 
-  // Determine human-readable stage name
+  // Determine human-readable stage name (16-stage furniture manufacturing workflow)
   const defaultStageLabels: Record<string, string> = {
+    order_placed: 'Order Placed',
     order_confirmed: 'Order Confirmed',
     design_measurements: 'Design & Measurements',
+    material_preparation: 'Material Preparation',
+    frame_cutting: 'Frame Cutting & Preparation',
+    frame_assembly: 'Frame Assembly',
+    frame_inspection: 'Frame Inspection',
+    foam_work: 'Foam Work',
+    fabric_cutting_stitching: 'Fabric Cutting & Stitching',
+    upholstery_work: 'Upholstery Work',
+    polishing_finishing: 'Polishing & Finishing',
+    quality_inspection: 'Quality Inspection',
+    ready_for_delivery: 'Ready for Delivery',
+    dispatched: 'Dispatched',
+    out_for_delivery: 'Out for Delivery',
+    delivered: 'Delivered',
+    // Fallback aliases for legacy orders
+    design_approval: 'Design & Blueprint Approval',
+    wood_cutting: 'Precision Timber Cutting',
+    carving_joinery: 'Hand Carving & Dovetail Joinery',
+    upholstery: 'Bespoke Upholstery & Cushioning',
+    final_inspection: 'Master QA Final Inspection',
+    completed: 'Completed & Certified',
     material_selection: 'Material Selection',
     manufacturing_started: 'Manufacturing Started',
     frame_preparation: 'Frame Preparation',
     foam_upholstery: 'Foam & Upholstery',
-    polishing_finishing: 'Polishing & Finishing',
-    quality_inspection: 'Quality Inspection',
-    ready_for_delivery: 'Ready for Delivery',
-    out_for_delivery: 'Out for Delivery',
     successfully_delivered: 'Successfully Delivered',
   };
 
