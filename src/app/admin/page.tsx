@@ -904,7 +904,7 @@ export default function SuperAdminDashboard() {
                     <DollarSign className="w-4 h-4" /> Gross Revenue
                   </span>
                   <div className="text-3xl font-bold font-serif text-white mt-3">
-                    ${totalFilteredGross.toLocaleString()}
+                    PKR {totalFilteredGross.toLocaleString()}
                   </div>
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     Across {filteredOrders.length} commissions ({dateFilter.replace('_', ' ')})
@@ -916,7 +916,7 @@ export default function SuperAdminDashboard() {
                     <CreditCard className="w-4 h-4" /> Settled Collections
                   </span>
                   <div className="text-3xl font-bold font-serif text-emerald-400 mt-3">
-                    ${totalFilteredCollected.toLocaleString()}
+                    PKR {totalFilteredCollected.toLocaleString()}
                   </div>
                   <span className="text-[11px] text-emerald-500/80 mt-1 block">
                     Deposits & verified installments
@@ -928,7 +928,7 @@ export default function SuperAdminDashboard() {
                     <DollarSign className="w-4 h-4" /> Outstanding Receivables
                   </span>
                   <div className="text-3xl font-bold font-serif text-rose-400 mt-3">
-                    ${totalFilteredOutstanding.toLocaleString()}
+                    PKR {totalFilteredOutstanding.toLocaleString()}
                   </div>
                   <span className="text-[11px] text-rose-500/80 mt-1 block">
                     Balance due prior to dispatch
@@ -1194,15 +1194,15 @@ export default function SuperAdminDashboard() {
                           {cLedger.totalOrders} ({cLedger.activeOrders} active)
                         </td>
                         <td className="p-4 font-bold text-white font-serif text-sm">
-                          ${cLedger.totalBusiness.toLocaleString()}
+                          PKR {cLedger.totalBusiness.toLocaleString()}
                         </td>
                         <td className="p-4 font-bold text-emerald-400 font-serif text-sm">
-                          ${cLedger.totalPaid.toLocaleString()}
+                          PKR {cLedger.totalPaid.toLocaleString()}
                         </td>
                         <td className={`p-4 font-bold font-serif text-sm ${
                           cLedger.outstandingBalance > 0 ? 'text-rose-400' : 'text-emerald-400'
                         }`}>
-                          ${cLedger.outstandingBalance.toLocaleString()}
+                          PKR {cLedger.outstandingBalance.toLocaleString()}
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -1379,11 +1379,11 @@ export default function SuperAdminDashboard() {
                           <span className="text-slate-500"> / {cust.stats?.totalOrders || 0} total</span>
                         </td>
                         <td className="p-4 font-bold text-white">
-                          ${(cust.stats?.totalBusinessAmount || 0).toLocaleString()}
+                          PKR {(cust.stats?.totalBusinessAmount || 0).toLocaleString()}
                         </td>
                         <td className="p-4 font-semibold">
                           <span className={(cust.stats?.remainingBalance || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                            ${(cust.stats?.remainingBalance || 0).toLocaleString()}
+                            PKR {(cust.stats?.remainingBalance || 0).toLocaleString()}
                           </span>
                         </td>
                         <td className="p-4">
@@ -1573,7 +1573,7 @@ export default function SuperAdminDashboard() {
                         <div>
                           <span className="text-xs text-slate-500 block">Retail Price</span>
                           <span className="text-lg font-bold text-[#c5a880]">
-                            ${prod.price?.toLocaleString()}
+                            PKR {prod.price?.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">

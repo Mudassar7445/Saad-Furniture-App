@@ -90,7 +90,7 @@ export async function GET(request: Request) {
 
     const subtotal = parsedItems.reduce((sum, item) => sum + item.totalItemPrice, 0);
     const totalCount = parsedItems.reduce((sum, item) => sum + item.quantity, 0);
-    const deliveryFee = subtotal > 3000 || subtotal === 0 ? 0 : 150; // Complimentary white-glove delivery on orders > $3000
+    const deliveryFee = subtotal > 50000 || subtotal === 0 ? 0 : 3000; // Complimentary white-glove delivery on orders > PKR 50,000
 
     return NextResponse.json({
       cartId: cart.id,

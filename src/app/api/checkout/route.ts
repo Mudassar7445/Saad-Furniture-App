@@ -198,8 +198,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. White-glove delivery fee ($150, complimentary on orders over $3000)
-    const deliveryFee = subtotal > 3000 ? 0 : 150;
+    // 4. White-glove delivery fee (PKR 3,000, complimentary on orders over PKR 50,000)
+    const deliveryFee = subtotal > 50000 ? 0 : 3000;
     const grandTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
 
     // 5. Order IDs & Date Setup
@@ -381,7 +381,7 @@ export async function POST(request: Request) {
       deliveryAddress: `${deliveryInput.address}, ${deliveryInput.city}${deliveryInput.area ? `, ${deliveryInput.area}` : ''}${deliveryInput.postalCode ? ` (${deliveryInput.postalCode})` : ''}`,
       productName: productSummary.length > 250 ? productSummary.substring(0, 247) + '...' : productSummary,
       productCategory: 'Online Store Collection',
-      productDescription: `Online purchase with ${validatedItems.length} curated item(s). Subtotal: $${subtotal}, Delivery: $${deliveryFee}, Discount: $${discountAmount}.`,
+      productDescription: `Online purchase with ${validatedItems.length} curated item(s). Subtotal: PKR ${subtotal.toLocaleString()}, Delivery: PKR ${deliveryFee.toLocaleString()}, Discount: PKR ${discountAmount.toLocaleString()}.`,
       customDesignDetails: validatedItems.map((i) => i.customDetails).join('; '),
       dimensions: 'See individual specifications',
       fabricInfo: 'Masterpiece Atelier Selection',

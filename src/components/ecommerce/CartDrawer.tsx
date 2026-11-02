@@ -94,20 +94,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               {awayFromFreeDelivery > 0 ? (
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-slate-300">
-                    <span>Add <strong className="text-[#e5caa2]">${awayFromFreeDelivery}</strong> more for Complimentary Delivery</span>
-                    <span>${subtotal} / $3000</span>
+                    <span>Add <strong className="text-[#e5caa2]">PKR {awayFromFreeDelivery.toLocaleString()}</strong> more for Complimentary Delivery</span>
+                    <span>PKR {subtotal.toLocaleString()} / PKR 50,000</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-amber-500 to-[#c5a880] rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (subtotal / 3000) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (subtotal / 50000) * 100)}%` }}
                     />
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
-                  <span>You have unlocked Complimentary White-Glove Delivery ($150 Value)!</span>
+                  <span>You have unlocked Complimentary White-Glove Delivery (PKR 3,000 Value)!</span>
                 </div>
               )}
             </div>
@@ -189,11 +189,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                       <div className="text-right">
                         <div className="text-xs font-bold text-[#e5caa2]">
-                          ${item.totalItemPrice?.toLocaleString()}
+                          PKR {item.totalItemPrice?.toLocaleString()}
                         </div>
                         {item.quantity > 1 && (
                           <div className="text-[10px] text-slate-500">
-                            ${item.effectivePrice?.toLocaleString()} each
+                            PKR {item.effectivePrice?.toLocaleString()} each
                           </div>
                         )}
                       </div>
@@ -233,7 +233,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <Check className="w-4 h-4 text-emerald-400" />
                     <div>
                       <span className="font-semibold text-white">Promo: {appliedCoupon.code}</span>
-                      <span className="text-slate-400 ml-1.5">(-${appliedCoupon.discountAmount})</span>
+                      <span className="text-slate-400 ml-1.5">(-PKR {appliedCoupon.discountAmount?.toLocaleString()})</span>
                     </div>
                   </div>
                   <button
@@ -249,12 +249,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="space-y-1.5 text-xs text-slate-300 pt-2 border-t border-white/5">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="text-white font-medium">${subtotal.toLocaleString()}</span>
+                  <span className="text-white font-medium">PKR {subtotal.toLocaleString()}</span>
                 </div>
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-400">
                     <span>Discount ({appliedCoupon.code})</span>
-                    <span>-${appliedCoupon.discountAmount.toLocaleString()}</span>
+                    <span>-PKR {appliedCoupon.discountAmount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -263,14 +263,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     {deliveryFee === 0 ? (
                       <span className="text-emerald-400 font-semibold">FREE</span>
                     ) : (
-                      `$${deliveryFee}`
+                      `PKR ${deliveryFee.toLocaleString()}`
                     )}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-white/10">
                   <span>Total Investment</span>
                   <span className="text-base text-[#e5caa2] font-serif font-bold">
-                    ${finalPayable.toLocaleString()}
+                    PKR {finalPayable.toLocaleString()}
                   </span>
                 </div>
               </div>

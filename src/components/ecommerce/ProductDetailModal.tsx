@@ -255,7 +255,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
             {product.discountPrice && (
               <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg pointer-events-none">
-                Save ${(product.price - product.discountPrice).toLocaleString()}
+                Save PKR ${(product.price - product.discountPrice).toLocaleString()}
               </span>
             )}
             <button
@@ -354,11 +354,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Price section */}
             <div className="flex items-baseline gap-3 pb-3 border-b border-white/10">
               <span className="text-2xl sm:text-3xl font-serif font-bold text-[#e5caa2]">
-                ${effectivePrice.toLocaleString()}
+                PKR {effectivePrice.toLocaleString()}
               </span>
               {product.discountPrice && (
                 <span className="text-base text-slate-500 line-through">
-                  ${product.price.toLocaleString()}
+                  PKR {product.price.toLocaleString()}
                 </span>
               )}
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium ml-auto">

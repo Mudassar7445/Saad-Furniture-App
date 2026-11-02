@@ -422,11 +422,11 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
 
             <div className="flex items-baseline gap-2 pt-1.5">
               <span className="text-2xl font-serif font-black text-[#262421]">
-                ${effectivePrice?.toLocaleString()}
+                PKR {effectivePrice?.toLocaleString()}
               </span>
               {product.discountPrice && (
                 <span className="text-sm text-[#89847C] line-through">
-                  ${product.price?.toLocaleString()}
+                  PKR {product.price?.toLocaleString()}
                 </span>
               )}
             </div>

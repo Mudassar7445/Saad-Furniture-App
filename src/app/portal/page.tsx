@@ -485,7 +485,7 @@ export default function CustomerPortalPage() {
               <DollarSign className="w-3.5 h-3.5 text-[#c5a880]" /> Total Business
             </span>
             <div className="text-2xl font-bold font-serif text-white mt-2">
-              ${(metrics?.totalBusinessAmount || 0).toLocaleString()}
+              PKR {(metrics?.totalBusinessAmount || 0).toLocaleString()}
             </div>
             <span className="text-[10px] text-slate-400 mt-1">Cumulative volume</span>
           </div>
@@ -496,7 +496,7 @@ export default function CustomerPortalPage() {
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Payments Made
             </span>
             <div className="text-2xl font-bold font-serif text-emerald-400 mt-2">
-              ${(metrics?.totalPaymentsMade || 0).toLocaleString()}
+              PKR {(metrics?.totalPaymentsMade || 0).toLocaleString()}
             </div>
             <span className="text-[10px] text-emerald-500/80 mt-1">Settled & verified</span>
           </div>
@@ -513,7 +513,7 @@ export default function CustomerPortalPage() {
             <div className={`text-2xl font-bold font-serif mt-2 ${
               (metrics?.remainingBalance || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'
             }`}>
-              ${(metrics?.remainingBalance || 0).toLocaleString()}
+              PKR {(metrics?.remainingBalance || 0).toLocaleString()}
             </div>
             <span className="text-[10px] opacity-80 mt-1">
               {(metrics?.remainingBalance || 0) > 0 ? 'Due upon dispatch' : 'Fully settled'}
@@ -656,7 +656,7 @@ export default function CustomerPortalPage() {
                             </Badge>
                           </div>
                           <div className="text-xs text-slate-400 mt-2 flex justify-between">
-                            <span>Total: ${ord.totalAmount?.toLocaleString()}</span>
+                            <span>Total: PKR {ord.totalAmount?.toLocaleString()}</span>
                             <span>Progress: {ord.productionProgress}%</span>
                           </div>
                           <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
@@ -968,7 +968,7 @@ export default function CustomerPortalPage() {
                       <div className="grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-xl border border-white/5">
                         <div>
                           <span className="text-[10px] text-slate-500 block">Total Investment</span>
-                          <span className="font-bold text-[#e5caa2]">${ord.totalAmount?.toLocaleString()}</span>
+                          <span className="font-bold text-[#e5caa2]">PKR {ord.totalAmount?.toLocaleString()}</span>
                         </div>
                         <div>
                           <span className="text-[10px] text-slate-500 block">Payment Method</span>
@@ -1054,7 +1054,7 @@ export default function CustomerPortalPage() {
                         <span className="text-[10px] text-[#e5caa2] font-semibold">{item.category}</span>
                         <h4 className="font-serif font-bold text-white text-sm">{item.productTitle}</h4>
                         <div className="text-base font-serif font-bold text-[#e5caa2] mt-1">
-                          ${(item.discountPrice || item.price)?.toLocaleString()}
+                          PKR {(item.discountPrice || item.price)?.toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -1275,11 +1275,11 @@ export default function CustomerPortalPage() {
                           day: 'numeric',
                         })}
                       </td>
-                      <td className="p-4 font-bold text-white">${ord.totalAmount?.toLocaleString()}</td>
-                      <td className="p-4 text-emerald-400 font-semibold">${ord.paidAmount?.toLocaleString()}</td>
+                      <td className="p-4 font-bold text-white">PKR {ord.totalAmount?.toLocaleString()}</td>
+                      <td className="p-4 text-emerald-400 font-semibold">PKR {ord.paidAmount?.toLocaleString()}</td>
                       <td className="p-4 font-semibold">
                         <span className={ord.remainingBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                          ${ord.remainingBalance?.toLocaleString()}
+                          PKR {ord.remainingBalance?.toLocaleString()}
                         </span>
                       </td>
                       <td className="p-4">
@@ -1332,7 +1332,7 @@ export default function CustomerPortalPage() {
                 </p>
               </div>
               <span className="text-xs text-[#c5a880] font-semibold">
-                Total Settled: ${(metrics?.totalPaymentsMade || 0).toLocaleString()}
+                Total Settled: PKR {(metrics?.totalPaymentsMade || 0).toLocaleString()}
               </span>
             </div>
 
@@ -1363,7 +1363,7 @@ export default function CustomerPortalPage() {
                       <td className="p-4">{p.paymentMethod}</td>
                       <td className="p-4">{p.paymentType}</td>
                       <td className="p-4 font-bold text-emerald-400 text-sm">
-                        ${p.amount?.toLocaleString()}
+                        PKR {p.amount?.toLocaleString()}
                       </td>
                       <td className="p-4">
                         <Badge variant="green">Verified & Cleared</Badge>
@@ -1477,7 +1477,7 @@ export default function CustomerPortalPage() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute top-3 right-3">
-                            <Badge variant="gold">${priceVal.toLocaleString()}</Badge>
+                            <Badge variant="gold">PKR {priceVal.toLocaleString()}</Badge>
                           </div>
                         </div>
 

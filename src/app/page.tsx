@@ -761,7 +761,7 @@ export default function ShowroomHomePage() {
                       </span>
                       {prod.discountPrice && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#c5a880] text-slate-950 shadow-md">
-                          SAVE ${(prod.price - prod.discountPrice).toLocaleString()}
+                          SAVE PKR ${(prod.price - prod.discountPrice).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -843,11 +843,11 @@ export default function ShowroomHomePage() {
                         </span>
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-lg font-serif font-bold text-[#e5caa2]">
-                            ${effectivePrice.toLocaleString()}
+                            PKR {effectivePrice.toLocaleString()}
                           </span>
                           {prod.discountPrice && (
                             <span className="text-[11px] text-slate-500 line-through">
-                              ${prod.price.toLocaleString()}
+                              PKR {prod.price.toLocaleString()}
                             </span>
                           )}
                         </div>
@@ -950,7 +950,7 @@ export default function ShowroomHomePage() {
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900 border border-white/5">
                 <span className="text-slate-400 block text-[10px]">Total Investment</span>
-                <span className="text-white font-medium">${trackedOrder.totalAmount?.toLocaleString()}</span>
+                <span className="text-white font-medium">PKR {trackedOrder.totalAmount?.toLocaleString()}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900 border border-white/5">
                 <span className="text-slate-400 block text-[10px]">Estimated Delivery</span>

@@ -223,7 +223,7 @@ export async function GET(
           </td>
           <td>${payment.paymentType}</td>
           <td>${payment.transactionReference || 'Standard Settlement'}</td>
-          <td style="text-align: right; font-weight: 700; font-size: 16px;">$${payment.amount.toLocaleString()}</td>
+          <td style="text-align: right; font-weight: 700; font-size: 16px;">PKR ${payment.amount.toLocaleString()}</td>
         </tr>
       </tbody>
     </table>
@@ -231,21 +231,21 @@ export async function GET(
     <div class="total-box">
       <div class="row">
         <span>Order Total:</span>
-        <span>$${(order?.totalAmount || 0).toLocaleString()}</span>
+        <span>PKR ${(order?.totalAmount || 0).toLocaleString()}</span>
       </div>
       <div class="row">
         <span>Total Payments to Date:</span>
-        <span style="color: #15803d; font-weight: 600;">$${(order?.paidAmount || 0).toLocaleString()}</span>
+        <span style="color: #15803d; font-weight: 600;">PKR ${(order?.paidAmount || 0).toLocaleString()}</span>
       </div>
       <div class="row">
         <span>Outstanding Balance:</span>
         <span style="color: ${(order?.remainingBalance || 0) > 0 ? '#b91c1c' : '#15803d'}; font-weight: 600;">
-          $${(order?.remainingBalance || 0).toLocaleString()}
+          PKR ${(order?.remainingBalance || 0).toLocaleString()}
         </span>
       </div>
       <div class="highlight-row">
         <span>This Payment:</span>
-        <span style="color: #b4975a;">$${payment.amount.toLocaleString()}</span>
+        <span style="color: #b4975a;">PKR ${payment.amount.toLocaleString()}</span>
       </div>
     </div>
 

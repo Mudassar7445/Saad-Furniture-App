@@ -186,7 +186,7 @@ export async function PATCH(request: Request) {
             id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
             userId: order.customerId,
             title: `Payment Verified: Order #${order.orderNumber}`,
-            message: `Your bank transfer receipt of $${order.totalAmount} has been verified and officially approved.`,
+            message: `Your bank transfer receipt of ₨${Number(order.totalAmount).toLocaleString()} has been verified and officially approved.`,
             type: 'payment_received',
             relatedOrderId: order.id,
             isRead: 0,

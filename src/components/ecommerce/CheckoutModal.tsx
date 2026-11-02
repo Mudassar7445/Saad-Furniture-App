@@ -250,7 +250,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Investment Total:</span>
-                <span className="font-bold text-white">${orderConfirmed.totalAmount?.toLocaleString()}</span>
+                <span className="font-bold text-white">PKR {orderConfirmed.totalAmount?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Payment Status:</span>
@@ -522,7 +522,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                       <div className="text-right">
                         <span className="font-bold text-[#e5caa2]">
-                          ${item.totalItemPrice?.toLocaleString()}
+                          PKR {item.totalItemPrice?.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -532,12 +532,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="p-4 rounded-xl bg-slate-900/90 border border-white/10 text-xs space-y-2">
                   <div className="flex justify-between text-slate-300">
                     <span>Subtotal</span>
-                    <span className="text-white font-medium">${subtotal.toLocaleString()}</span>
+                    <span className="text-white font-medium">PKR {subtotal.toLocaleString()}</span>
                   </div>
                   {appliedCoupon && (
                     <div className="flex justify-between text-emerald-400">
                       <span>Promotional Discount ({appliedCoupon.code})</span>
-                      <span>-${discountAmount.toLocaleString()}</span>
+                      <span>-PKR {discountAmount.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-slate-300">
@@ -546,14 +546,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       {deliveryFee === 0 ? (
                         <span className="text-emerald-400 font-bold">Complimentary (FREE)</span>
                       ) : (
-                        `$${deliveryFee}`
+                        `PKR ${deliveryFee.toLocaleString()}`
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-white/10">
                     <span>Final Payable Amount</span>
                     <span className="text-base text-[#e5caa2] font-serif font-bold">
-                      ${grandTotal.toLocaleString()}
+                      PKR {grandTotal.toLocaleString()}
                     </span>
                   </div>
                 </div>

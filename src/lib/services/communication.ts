@@ -17,7 +17,7 @@ export class CommunicationService {
   private formatTemplate(type: string, vars: Record<string, string | number> = {}): { subject: string; body: string } {
     const customerName = vars.customerName || 'Valued Patron';
     const orderNumber = vars.orderNumber || '';
-    const currency = vars.currency || '$';
+    const currency = vars.currency || 'PKR ';
 
     switch (type) {
       case 'order_confirmation':

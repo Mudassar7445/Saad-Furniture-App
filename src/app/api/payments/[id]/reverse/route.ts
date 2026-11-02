@@ -93,7 +93,7 @@ export async function POST(request: Request, context: RouteParams) {
       id: `tl_${Date.now()}_rev`,
       orderId: payment.orderId,
       title: `Payment Reversal: Receipt #${payment.paymentNumber}`,
-      description: `Payment of $${payment.amount.toLocaleString()} was reversed by ${sessionUser.name}. Reason: ${reversalReason.trim()}. Updated balance: $${newRemainingBalance.toLocaleString()}.`,
+      description: `Payment of PKR ${payment.amount.toLocaleString()} was reversed by ${sessionUser.name}. Reason: ${reversalReason.trim()}. Updated balance: PKR ${newRemainingBalance.toLocaleString()}.`,
       stage: order.productionStage,
       eventType: 'payment',
       performedBy: sessionUser.name,
@@ -106,7 +106,7 @@ export async function POST(request: Request, context: RouteParams) {
       userId: sessionUser.id,
       userName: sessionUser.name,
       action: 'PAYMENT_REVERSAL',
-      details: `Reversed payment #${payment.paymentNumber} ($${payment.amount}) on order ${order.orderNumber}. Reason: ${reversalReason.trim()}`,
+      details: `Reversed payment #${payment.paymentNumber} (PKR ${payment.amount}) on order ${order.orderNumber}. Reason: ${reversalReason.trim()}`,
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       createdAt: now,
     });
@@ -115,7 +115,7 @@ export async function POST(request: Request, context: RouteParams) {
     await fcmService.sendNotification({
       userId: payment.customerId,
       title: `Financial Adjustment: Receipt #${payment.paymentNumber}`,
-      message: `A payment reversal of $${payment.amount.toLocaleString()} was processed. Reason: ${reversalReason.trim()}. Outstanding balance is now $${newRemainingBalance.toLocaleString()}.`,
+      message: `A payment reversal of PKR ${payment.amount.toLocaleString()} was processed. Reason: ${reversalReason.trim()}. Outstanding balance is now PKR ${newRemainingBalance.toLocaleString()}.`,
       type: 'payment_received',
       relatedOrderId: order.id,
     });

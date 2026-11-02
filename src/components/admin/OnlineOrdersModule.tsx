@@ -149,7 +149,7 @@ export const OnlineOrdersModule: React.FC = () => {
             Verified Revenue
           </span>
           <span className="text-2xl font-bold font-serif text-emerald-400">
-            ${totalRevenue.toLocaleString()}
+            PKR {totalRevenue.toLocaleString()}
           </span>
           <span className="text-[10px] text-emerald-500/80 block">Cleared digital funds</span>
         </div>
@@ -255,7 +255,7 @@ export const OnlineOrdersModule: React.FC = () => {
 
                     {/* Amount */}
                     <td className="p-4 font-bold text-white">
-                      ${ord.totalAmount?.toLocaleString()}
+                      PKR {ord.totalAmount?.toLocaleString()}
                     </td>
 
                     {/* Payment Method */}
@@ -296,8 +296,8 @@ export const OnlineOrdersModule: React.FC = () => {
                           ord.orderStatus === 'delivered'
                             ? 'green'
                             : ord.orderStatus === 'in_production'
-                            ? 'gold'
-                            : 'neutral'
+                              ? 'gold'
+                              : 'neutral'
                         }
                       >
                         {ord.orderStatus?.replace('_', ' ')}
@@ -339,7 +339,7 @@ export const OnlineOrdersModule: React.FC = () => {
           isOpen={Boolean(activeReceiptOrder)}
           onClose={() => setActiveReceiptOrder(null)}
           title={`Review Bank Transfer: Order #${activeReceiptOrder.orderNumber}`}
-          subtitle={`Patron: ${activeReceiptOrder.customerName} • Total: $${activeReceiptOrder.totalAmount?.toLocaleString()}`}
+          subtitle={`Patron: ${activeReceiptOrder.customerName} • Total: PKR ${activeReceiptOrder.totalAmount?.toLocaleString()}`}
           maxWidth="lg"
         >
           <div className="space-y-4 text-slate-100 text-xs">
@@ -365,7 +365,7 @@ export const OnlineOrdersModule: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-slate-400">Claimed Amount:</span>
                     <span className="font-bold text-emerald-400">
-                      ${activeReceiptOrder.bankReceipt.amountPaid?.toLocaleString()}
+                      PKR {activeReceiptOrder.bankReceipt.amountPaid?.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -412,7 +412,7 @@ export const OnlineOrdersModule: React.FC = () => {
                     className="font-bold flex items-center gap-1.5 shadow-lg shadow-[#c5a880]/20"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Approve & Credit Ledger ($ {activeReceiptOrder.totalAmount?.toLocaleString()})</span>
+                    <span>Approve & Credit Ledger (PKR {activeReceiptOrder.totalAmount?.toLocaleString()})</span>
                   </Button>
                 </div>
               </div>

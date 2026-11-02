@@ -193,7 +193,7 @@ export const MobileHomeScreen: React.FC<MobileHomeScreenProps> = ({
               Artisan Solid Wood Collection
             </h2>
             <p className="text-[11px] text-[#EAE2D6] leading-relaxed">
-              Complimentary White-Glove Placement on orders over $3,000.
+              Complimentary White-Glove Placement on orders over PKR 50,000.
             </p>
             <div className="pt-2">
               <button

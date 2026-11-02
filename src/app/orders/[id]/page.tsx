@@ -1199,13 +1199,13 @@ export default function OrderDetailsPage() {
                 <div className="flex justify-between py-1.5 border-b border-white/5">
                   <span className="text-slate-400">Total Order Price:</span>
                   <span className="text-white font-serif font-bold text-base">
-                    ${order.totalAmount?.toLocaleString()}
+                    PKR {order.totalAmount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-white/5">
                   <span className="text-slate-400">Advance Payment Paid:</span>
                   <span className="text-emerald-400 font-bold">
-                    ${order.paidAmount?.toLocaleString()}
+                    PKR {order.paidAmount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-white/5">
@@ -1215,7 +1215,7 @@ export default function OrderDetailsPage() {
                       order.remainingBalance > 0 ? 'text-rose-400' : 'text-emerald-400'
                     }`}
                   >
-                    ${order.remainingBalance?.toLocaleString()}
+                    PKR {order.remainingBalance?.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -1256,7 +1256,7 @@ export default function OrderDetailsPage() {
                       </div>
                       <div className="text-right flex flex-col items-end">
                         <span className={`font-bold block ${isRev ? 'line-through text-slate-500' : 'text-emerald-400'}`}>
-                          ${p.amount?.toLocaleString()}
+                          PKR {p.amount?.toLocaleString()}
                         </span>
                         <div className="flex items-center gap-2 mt-0.5">
                           <a
@@ -1825,7 +1825,7 @@ export default function OrderDetailsPage() {
           isOpen={!!reversalPaymentTarget}
           onClose={() => setReversalPaymentTarget(null)}
           title="Reverse Payment Transaction"
-          subtitle={`Reversing Receipt #${reversalPaymentTarget.paymentNumber} ($${reversalPaymentTarget.amount?.toLocaleString()})`}
+          subtitle={`Reversing Receipt #${reversalPaymentTarget.paymentNumber} (PKR ${reversalPaymentTarget.amount?.toLocaleString()})`}
           maxWidth="md"
         >
           <form onSubmit={handleReversePayment} className="space-y-4 text-xs">

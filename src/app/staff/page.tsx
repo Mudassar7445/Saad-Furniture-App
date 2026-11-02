@@ -510,11 +510,11 @@ export default function StaffOperationsDashboard() {
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white font-serif">{ord.orderNumber}</span>
                       <span className="text-xs text-rose-400 font-bold">
-                        Bal: ${ord.remainingBalance?.toLocaleString()}
+                        Bal: PKR {ord.remainingBalance?.toLocaleString()}
                       </span>
                     </div>
                     <span className="text-xs text-slate-300 block mt-1">{ord.customerName}</span>
-                    <span className="text-[11px] text-slate-500">Total: ${ord.totalAmount?.toLocaleString()}</span>
+                    <span className="text-[11px] text-slate-500">Total: PKR {ord.totalAmount?.toLocaleString()}</span>
                   </div>
 
                   <button
@@ -544,7 +544,7 @@ export default function StaffOperationsDashboard() {
                   <div>Stock: <span className="text-emerald-400 font-bold">{prod.stockQuantity} units</span></div>
                 </div>
                 <div className="text-base font-bold text-[#c5a880] pt-2 border-t border-white/5">
-                  ${prod.price?.toLocaleString()}
+                  PKR {prod.price?.toLocaleString()}
                 </div>
               </div>
             ))}
