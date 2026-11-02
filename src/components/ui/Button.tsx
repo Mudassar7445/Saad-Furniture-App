@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'gold' | 'secondary' | 'outline' | 'danger' | 'ghost';
+  variant?: 'gold' | 'dark' | 'secondary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   children: React.ReactNode;
@@ -27,16 +28,17 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const variantStyles = {
-    gold: 'bg-gradient-to-r from-[#B99A68] to-[#9E8050] text-[#0B0D11] font-bold hover:brightness-105 shadow-md shadow-[#B99A68]/20 active:scale-[0.98]',
+    gold: 'bg-gradient-to-r from-[#D4AF37] via-[#B99A68] to-[#9E8050] text-[#0B0D11] font-bold hover:brightness-105 shadow-md shadow-[#B99A68]/20 active:scale-[0.98]',
+    dark: 'bg-[#1C1A18] text-white font-bold hover:bg-black shadow-md shadow-black/20 active:scale-[0.98]',
     secondary: 'bg-stone-200 text-stone-900 hover:bg-stone-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 active:scale-[0.98]',
     outline: 'border border-[#B99A68]/60 text-stone-800 dark:text-[#E5CAA2] hover:bg-[#B99A68]/10 hover:border-[#B99A68] active:scale-[0.98]',
-    danger: 'bg-red-100 text-red-900 border border-red-300 dark:bg-red-950/60 dark:border-red-500/40 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60 active:scale-[0.98]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]',
     ghost: 'text-stone-700 dark:text-slate-300 hover:text-stone-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-[0.98]',
   };
 
   return (
     <button
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      className={cn(baseStyles, sizeStyles[size], variantStyles[variant], className)}
       disabled={disabled || loading}
       {...props}
     >

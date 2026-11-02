@@ -255,7 +255,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
             {product.discountPrice && (
               <span className="absolute top-3 left-3 bg-[#c5a880] text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full shadow-lg pointer-events-none">
-                Save PKR ${(product.price - product.discountPrice).toLocaleString()}
+                Save PKR {(product.price - product.discountPrice).toLocaleString()}
               </span>
             )}
             <button

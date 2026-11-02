@@ -649,8 +649,9 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
               </div>
 
               <Button
+                variant="dark"
                 onClick={onClose}
-                className="w-full bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold rounded-2xl h-11 text-xs"
+                className="w-full bg-[#1C1A18] hover:bg-black text-white font-serif font-bold rounded-2xl h-11 text-xs shadow-md"
               >
                 Done
               </Button>
@@ -673,6 +674,7 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
 
             {step < 3 ? (
               <Button
+                variant="dark"
                 onClick={() => {
                   if (step === 1 && (!name.trim() || !phone.trim() || !email.trim())) {
                     setError('Please complete all contact fields');
@@ -685,19 +687,20 @@ export const MobileCheckoutSheet: React.FC<MobileCheckoutSheetProps> = ({
                   setError(null);
                   setStep((s) => (s + 1) as any);
                 }}
-                className="flex-1 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-1.5 shadow"
+                className="flex-1 bg-[#1C1A18] hover:bg-black text-white font-serif font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
               >
-                <span>Continue</span>
-                <ArrowRight className="w-4 h-4" />
+                <span className="text-white font-bold tracking-wide">Continue</span>
+                <ArrowRight className="w-4 h-4 text-[#E5CAA2]" />
               </Button>
             ) : (
               <Button
+                variant="dark"
                 onClick={handleSubmitOrder}
                 disabled={loading}
-                className="flex-1 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-1.5 shadow-lg"
+                className="flex-1 bg-[#1C1A18] hover:bg-black text-white font-serif font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>{loading ? 'Processing Order...' : 'Confirm & Place Order'}</span>
+                <Sparkles className="w-4 h-4 text-[#E5CAA2]" />
+                <span className="text-white font-bold">{loading ? 'Processing Order...' : 'Confirm & Place Order'}</span>
               </Button>
             )}
           </div>

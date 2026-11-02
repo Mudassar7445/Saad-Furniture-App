@@ -74,8 +74,9 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
           Sign in to your private account to view real-time 11-stage workshop tracking, progress videos, and verified invoices.
         </p>
         <Button
+          variant="dark"
           onClick={onOpenAuth}
-          className="mt-6 w-full max-w-xs bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold rounded-xl h-11 text-xs shadow-md"
+          className="mt-6 w-full max-w-xs bg-[#1C1A18] hover:bg-black text-white font-serif font-bold rounded-xl h-11 text-xs shadow-md"
         >
           Sign In to Access Orders
         </Button>
@@ -167,8 +168,9 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
               : 'You haven’t commissioned any furniture pieces yet. Browse our handcrafted showroom masterpieces.'}
           </p>
           <Button
+            variant="dark"
             onClick={onExploreShop}
-            className="bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white text-xs font-bold rounded-xl h-10 px-5 shadow-sm"
+            className="bg-[#1C1A18] hover:bg-black text-white text-xs font-bold rounded-xl h-10 px-5 shadow-sm"
           >
             Explore Showroom Catalog
           </Button>

@@ -374,8 +374,9 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
 
           <div className="mt-5 space-y-2">
             <Button
+              variant="dark"
               onClick={onOpenAuth}
-              className="w-full bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold rounded-xl h-11 text-xs shadow-md"
+              className="w-full bg-[#1C1A18] hover:bg-black text-white font-serif font-bold rounded-xl h-11 text-xs shadow-md"
             >
               Sign In / Create Account
             </Button>
@@ -1042,8 +1043,9 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
                 </Button>
                 <Button
                   type="submit"
+                  variant="dark"
                   disabled={savingProfile}
-                  className="flex-1 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-bold text-xs rounded-xl h-10 shadow-md"
+                  className="flex-1 bg-[#1C1A18] hover:bg-black text-white font-bold text-xs rounded-xl h-10 shadow-md"
                 >
                   {savingProfile ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -1124,8 +1126,9 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
                 </Button>
                 <Button
                   type="submit"
+                  variant="dark"
                   disabled={savingPassword}
-                  className="flex-1 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-bold text-xs rounded-xl h-10 shadow-md"
+                  className="flex-1 bg-[#1C1A18] hover:bg-black text-white font-bold text-xs rounded-xl h-10 shadow-md"
                 >
                   {savingPassword ? 'Updating...' : 'Update Password'}
                 </Button>
@@ -1209,8 +1212,9 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
                 </Button>
                 <Button
                   type="submit"
+                  variant="dark"
                   disabled={savingAddress}
-                  className="flex-1 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-bold text-xs rounded-xl h-10 shadow-md"
+                  className="flex-1 bg-[#1C1A18] hover:bg-black text-white font-bold text-xs rounded-xl h-10 shadow-md"
                 >
                   {savingAddress ? 'Saving...' : 'Add Address'}
                 </Button>

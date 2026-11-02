@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ShieldCheck,
   Truck,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -77,13 +76,13 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#B99A68]" />
               <h2 className="text-base font-serif font-bold text-[#262421]">Shopping Bag</h2>
-              <span className="text-xs bg-[#262421] text-[#B99A68] px-2 py-0.5 rounded-full font-bold">
+              <span className="text-xs bg-[#1C1A18] text-white px-2 py-0.5 rounded-full font-bold">
                 {cart.totalCount}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-[#F7F5F0] flex items-center justify-center text-[#89847C] hover:text-[#262421]"
+              className="w-8 h-8 rounded-full bg-[#F7F5F0] flex items-center justify-center text-[#89847C] hover:text-[#262421] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -101,8 +100,9 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
               Explore our master-crafted luxury collections and add your desired pieces.
             </p>
             <Button
+              variant="dark"
               onClick={onClose}
-              className="mt-5 bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white text-xs font-bold rounded-xl h-10 px-6 font-serif"
+              className="mt-5 bg-[#1C1A18] hover:bg-black text-white text-xs font-bold rounded-xl h-10 px-6 font-serif shadow-md"
             >
               Browse Masterpieces
             </Button>
@@ -111,69 +111,91 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
             {/* Cart Items List */}
             <div className="space-y-3">
-              {cart.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white p-3 rounded-2xl border border-[#EAE2D6] flex gap-3 shadow-sm"
-                >
-                  <div className="w-20 h-20 rounded-xl bg-[#F7F5F0] overflow-hidden border border-[#EAE2D6] shrink-0">
-                    <img
-                      src={
-                        item.productImageUrl ||
-                        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80'
-                      }
-                      alt={item.productName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+              {cart.items.map((item) => {
+                const itemImg =
+                  item.productImageUrl ||
+                  item.primaryImage ||
+                  item.image ||
+                  (item.images && item.images[0]) ||
+                  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80';
+                const itemTitle = item.productName || item.productTitle || item.title || 'Handcrafted Luxury Piece';
+                const itemPrice = item.unitPrice ?? item.effectivePrice ?? item.price ?? 0;
+                const itemWood = item.woodType || item.selectedDesign || '';
+                const itemColour = item.fabricColor || item.selectedColour || '';
 
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between gap-1">
-                        <h4 className="text-xs font-serif font-bold text-[#262421] line-clamp-1">
-                          {item.productName}
-                        </h4>
-                        <button
-                          onClick={() => onRemoveItem(item.id)}
-                          className="text-[#89847C] hover:text-red-600 p-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      {(item.woodType || item.fabricColor) && (
-                        <p className="text-[10px] text-[#89847C] truncate mt-0.5">
-                          {item.woodType} {item.fabricColor ? `• ${item.fabricColor}` : ''}
-                        </p>
-                      )}
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white p-3 rounded-2xl border border-[#EAE2D6] flex gap-3 shadow-sm"
+                  >
+                    <div className="w-20 h-20 rounded-xl bg-[#F7F5F0] overflow-hidden border border-[#EAE2D6] shrink-0">
+                      <img
+                        src={itemImg}
+                        alt={itemTitle}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
 
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs font-bold text-[#262421]">
-                        ₨{(item.unitPrice || item.price || 0).toLocaleString()}
-                      </span>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="text-xs font-serif font-bold text-[#262421] line-clamp-1">
+                            {itemTitle}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveItem(item.id)}
+                            className="text-[#89847C] hover:text-red-600 p-1 cursor-pointer"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        {(itemWood || itemColour) && (
+                          <p className="text-[10px] text-[#89847C] truncate mt-0.5">
+                            {itemWood} {itemColour ? `• ${itemColour}` : ''}
+                          </p>
+                        )}
+                      </div>
 
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center gap-2 bg-[#F7F5F0] px-2 py-1 rounded-lg border border-[#EAE2D6]">
-                        <button
-                          onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="w-5 h-5 rounded flex items-center justify-center text-[#262421] active:bg-[#EAE2D6]"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold text-[#262421] min-w-[14px] text-center">
-                          {item.quantity}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs font-bold text-[#262421]">
+                          ₨{itemPrice.toLocaleString()}
                         </span>
-                        <button
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          className="w-5 h-5 rounded flex items-center justify-center text-[#262421] active:bg-[#EAE2D6]"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center gap-1 bg-[#F7F5F0] p-1 rounded-xl border border-[#EAE2D6]">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdateQuantity(item.id, Math.max(1, item.quantity - 1));
+                            }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#1C1A18] hover:bg-[#EAE2D6] active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </button>
+                          <span className="text-xs font-bold text-[#1C1A18] min-w-[24px] text-center select-none font-mono">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdateQuantity(item.id, item.quantity + 1);
+                            }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#1C1A18] hover:bg-[#EAE2D6] active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Promo Coupon Code */}
@@ -190,11 +212,15 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
                   className="flex-1 px-3 py-1.5 bg-[#F7F5F0] rounded-xl border border-[#EAE2D6] text-xs font-mono uppercase focus:outline-none focus:border-[#B99A68]"
                 />
                 <Button
+                  variant="dark"
+                  type="button"
                   onClick={handleApply}
                   disabled={applying || !couponInput.trim()}
-                  className="bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white text-xs font-bold rounded-xl h-8 px-4"
+                  className="bg-[#1C1A18] text-white hover:bg-black disabled:bg-stone-200 disabled:text-stone-400 text-xs font-bold rounded-xl h-8 px-4"
                 >
-                  Apply
+                  <span className={couponInput.trim() ? "text-white font-bold" : "text-stone-500 font-bold"}>
+                    {applying ? 'Applying...' : 'Apply'}
+                  </span>
                 </Button>
               </div>
               {couponError && <p className="text-[10px] text-red-600">{couponError}</p>}
@@ -228,7 +254,7 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
               </div>
               <div className="pt-2 border-t border-[#F7F5F0] flex justify-between text-sm font-bold text-[#262421]">
                 <span>Total Amount</span>
-                <span className="font-serif text-[#B99A68]">₨{finalTotal.toLocaleString()}</span>
+                <span className="font-serif font-bold text-[#9E8050] text-base">₨{finalTotal.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -238,11 +264,12 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
         {cart.items.length > 0 && (
           <div className="p-4 bg-white border-t border-[#EAE2D6] shrink-0">
             <Button
+              variant="dark"
               onClick={onProceedToCheckout}
-              className="w-full bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold text-sm h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-[#1C1A18] hover:bg-black text-white font-serif font-bold text-sm h-12 rounded-2xl flex items-center justify-center gap-2 shadow-xl active:scale-98 transition-all"
             >
-              <span>Proceed to Luxury Checkout</span>
-              <ArrowRight className="w-4 h-4" />
+              <span className="text-white font-bold tracking-wide">Proceed to Luxury Checkout</span>
+              <ArrowRight className="w-4 h-4 text-[#E5CAA2]" />
             </Button>
             <p className="text-[10px] text-[#89847C] text-center mt-2 flex items-center justify-center gap-1">
               <ShieldCheck className="w-3 h-3 text-[#B99A68]" /> 100% Guaranteed Saad Furniture Atelier Authenticity
@@ -253,4 +280,3 @@ export const MobileCartSheet: React.FC<MobileCartSheetProps> = ({
     </div>
   );
 };
-

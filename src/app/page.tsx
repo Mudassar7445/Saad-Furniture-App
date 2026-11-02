@@ -205,12 +205,29 @@ export default function ShowroomHomePage() {
     }
   };
 
+  // 3. Persistent Cart Session Helper
+  const getCartSessionToken = () => {
+    if (typeof window === 'undefined') return '';
+    let token = localStorage.getItem('saad_cart_session');
+    if (!token) {
+      token = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem('saad_cart_session', token);
+    }
+    return token;
+  };
+
   // 3. Fetch Cart
   const fetchCart = async () => {
     try {
-      const res = await fetch('/api/cart');
+      const sessionToken = getCartSessionToken();
+      const res = await fetch(`/api/cart?sessionToken=${sessionToken}`, {
+        headers: { 'x-cart-session': sessionToken },
+      });
       if (res.ok) {
         const data = await res.json();
+        if (data.sessionToken && typeof window !== 'undefined') {
+          localStorage.setItem('saad_cart_session', data.sessionToken);
+        }
         setCart({
           items: data.items || [],
           subtotal: data.subtotal || 0,
@@ -270,12 +287,20 @@ export default function ShowroomHomePage() {
     customNotes?: string;
   }) => {
     try {
+      const sessionToken = getCartSessionToken();
       const res = await fetch('/api/cart', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(opts),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cart-session': sessionToken,
+        },
+        body: JSON.stringify({ ...opts, sessionToken }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.sessionToken && typeof window !== 'undefined') {
+          localStorage.setItem('saad_cart_session', data.sessionToken);
+        }
         await fetchCart();
         triggerToast('Item added to your shopping cart!');
       }
@@ -297,25 +322,83 @@ export default function ShowroomHomePage() {
   };
 
   const handleUpdateCartQty = async (itemId: string, newQty: number) => {
+    // 1. Instant optimistic state update for 0ms response time
+    setCart((prev) => {
+      let updatedItems: any[];
+      if (newQty <= 0) {
+        updatedItems = prev.items.filter((i) => i.id !== itemId);
+      } else {
+        updatedItems = prev.items.map((i) => {
+          if (i.id === itemId) {
+            const unitPrice = i.effectivePrice || i.unitPrice || i.price || 0;
+            return {
+              ...i,
+              quantity: newQty,
+              totalItemPrice: unitPrice * newQty,
+            };
+          }
+          return i;
+        });
+      }
+      const subtotal = updatedItems.reduce((s, i) => s + (i.totalItemPrice || 0), 0);
+      const totalCount = updatedItems.reduce((s, i) => s + (i.quantity || 0), 0);
+      const deliveryFee = subtotal > 50000 || subtotal === 0 ? 0 : 3000;
+      return {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalCount,
+        deliveryFee,
+        grandTotal: subtotal + deliveryFee,
+      };
+    });
+
+    // 2. Persist to server
     try {
+      const sessionToken = getCartSessionToken();
       await fetch('/api/cart', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, quantity: newQty }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cart-session': sessionToken,
+        },
+        body: JSON.stringify({ itemId, quantity: newQty, sessionToken }),
       });
       await fetchCart();
     } catch (e) {
       console.error(e);
+      await fetchCart();
     }
   };
 
   const handleRemoveCartItem = async (itemId: string) => {
+    // Optimistic removal
+    setCart((prev) => {
+      const updatedItems = prev.items.filter((i) => i.id !== itemId);
+      const subtotal = updatedItems.reduce((s, i) => s + (i.totalItemPrice || 0), 0);
+      const totalCount = updatedItems.reduce((s, i) => s + (i.quantity || 0), 0);
+      const deliveryFee = subtotal > 50000 || subtotal === 0 ? 0 : 3000;
+      return {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalCount,
+        deliveryFee,
+        grandTotal: subtotal + deliveryFee,
+      };
+    });
+
     try {
-      await fetch(`/api/cart?itemId=${itemId}`, { method: 'DELETE' });
+      const sessionToken = getCartSessionToken();
+      await fetch(`/api/cart?itemId=${itemId}&sessionToken=${sessionToken}`, {
+        method: 'DELETE',
+        headers: { 'x-cart-session': sessionToken },
+      });
       await fetchCart();
       triggerToast('Item removed from cart.');
     } catch (e) {
       console.error(e);
+      await fetchCart();
     }
   };
 
@@ -508,8 +591,9 @@ export default function ShowroomHomePage() {
               handleAddToCart({
                 productId: p.id,
                 quantity: opts?.quantity || 1,
-                selectedColour: opts?.fabricColor,
-                selectedDesign: opts?.woodType,
+                selectedColour: opts?.selectedColour || opts?.fabricColor,
+                selectedDesign: opts?.selectedDesign || opts?.woodType,
+                customNotes: opts?.customNotes,
               })
             }
             onUpdateCartQty={handleUpdateCartQty}
@@ -761,7 +845,7 @@ export default function ShowroomHomePage() {
                       </span>
                       {prod.discountPrice && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#c5a880] text-slate-950 shadow-md">
-                          SAVE PKR ${(prod.price - prod.discountPrice).toLocaleString()}
+                          SAVE PKR {(prod.price - prod.discountPrice).toLocaleString()}
                         </span>
                       )}
                     </div>

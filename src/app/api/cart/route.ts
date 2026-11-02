@@ -26,10 +26,11 @@ async function getOrCreateCart(userId?: string, sessionToken?: string) {
   if (!cart) {
     const cartId = `cart_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
+    const token = sessionToken || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     await db.insert(shoppingCarts).values({
       id: cartId,
       userId: userId || null,
-      sessionToken: sessionToken || `sess_${Math.random().toString(36).substring(2, 9)}`,
+      sessionToken: token,
       createdAt: now,
       updatedAt: now,
     });
@@ -79,11 +80,25 @@ export async function GET(request: Request) {
         imageList = [];
       }
       const unitPrice = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.productPrice;
+      const primaryImg = (imageList && imageList.length > 0 && imageList[0])
+        ? imageList[0]
+        : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop';
+
       return {
         ...item,
         images: imageList,
-        primaryImage: imageList[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop',
+        primaryImage: primaryImg,
+        productImageUrl: primaryImg,
+        image: primaryImg,
+        productTitle: item.productTitle,
+        productName: item.productTitle,
+        title: item.productTitle,
         effectivePrice: unitPrice,
+        unitPrice: unitPrice,
+        price: unitPrice,
+        productPrice: item.productPrice,
+        woodType: item.selectedDesign || '',
+        fabricColor: item.selectedColour || '',
         totalItemPrice: unitPrice * item.quantity,
       };
     });
@@ -112,7 +127,8 @@ export async function POST(request: Request) {
     await initializeDatabase();
     const sessionUser = await getSessionUser();
     const body = await request.json();
-    const { productId, quantity = 1, selectedColour, selectedDesign, customNotes, sessionToken } = body;
+    const sessionToken = body.sessionToken || request.headers.get('x-cart-session') || undefined;
+    const { productId, quantity = 1, selectedColour, selectedDesign, customNotes } = body;
 
     if (!productId) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -160,7 +176,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, message: 'Added to cart successfully' });
+    return NextResponse.json({ success: true, sessionToken: cart.sessionToken, message: 'Added to cart successfully' });
   } catch (error: any) {
     console.error('Cart POST error:', error);
     return NextResponse.json({ error: error?.message || 'Failed to add item to cart' }, { status: 500 });
@@ -202,7 +218,7 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url);
     const itemId = url.searchParams.get('itemId');
     const clear = url.searchParams.get('clear');
-    const sessionToken = url.searchParams.get('sessionToken') || undefined;
+    const sessionToken = url.searchParams.get('sessionToken') || request.headers.get('x-cart-session') || undefined;
 
     const cart = await getOrCreateCart(sessionUser?.id, sessionToken);
 
@@ -222,4 +238,3 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to remove from cart' }, { status: 500 });
   }
 }
-

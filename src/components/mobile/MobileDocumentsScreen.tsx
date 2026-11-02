@@ -137,7 +137,7 @@ export const MobileDocumentsScreen: React.FC = () => {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all border ${
                 isActive
-                  ? 'bg-[#262421] text-[#B99A68] border-[#262421] font-bold shadow-sm'
+                  ? 'bg-[#1C1A18] text-white border-[#1C1A18] font-bold shadow-sm'
                   : 'bg-white text-[#89847C] border-[#EAE2D6] hover:text-[#262421]'
               }`}
             >
@@ -272,10 +272,11 @@ export const MobileDocumentsScreen: React.FC = () => {
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button
+                    variant="dark"
                     onClick={() => setSelectedDoc(doc)}
-                    className="bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white rounded-xl text-xs font-bold px-3 py-1.5 h-8 flex items-center gap-1"
+                    className="bg-[#1C1A18] text-white hover:bg-black rounded-xl text-xs font-bold px-3 py-1.5 h-8 flex items-center gap-1 shadow-sm"
                   >
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-3.5 h-3.5 text-[#E5CAA2]" />
                     <span>View</span>
                   </Button>
                   {doc.downloadAllowed !== false && (
