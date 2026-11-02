@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
 import { pushSubscriptions, notificationEvents, users } from '@/lib/db/schema';
 import { queueNotificationEvent, processPendingNotificationEvents } from '@/lib/services/webpush';
-import { desc, eq, count, sql } from 'drizzle-orm';
+import { desc, eq, count, sql, inArray } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,11 +28,56 @@ export async function GET(req: NextRequest) {
     const subscribedCustomersCount = Number(distinctUsersResult[0]?.distinctUsers || 0);
 
     // 3. Outbox events list
-    const events = await db
+    const rawEvents = await db
       .select()
       .from(notificationEvents)
       .orderBy(desc(notificationEvents.createdAt))
-      .limit(50);
+      .limit(60);
+
+    // 4. Enrich events with Customer Identity & Device count telemetry
+    const targetUserIds = Array.from(
+      new Set(rawEvents.map((e) => e.targetUserId).filter((id) => id && id !== 'all'))
+    );
+
+    let userMap = new Map<string, any>();
+    let userSubCountMap = new Map<string, number>();
+
+    if (targetUserIds.length > 0) {
+      try {
+        const foundUsers = await db
+          .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+          .from(users)
+          .where(inArray(users.id, targetUserIds));
+
+        for (const u of foundUsers) {
+          userMap.set(u.id, u);
+          if (u.email) userMap.set(u.email, u);
+          if (u.phone) userMap.set(u.phone, u);
+        }
+
+        const allSubs = await db.select({ userId: pushSubscriptions.userId }).from(pushSubscriptions);
+        for (const s of allSubs) {
+          userSubCountMap.set(s.userId, (userSubCountMap.get(s.userId) || 0) + 1);
+        }
+      } catch (enrichErr) {
+        console.warn('Enriching events warning:', enrichErr);
+      }
+    }
+
+    const events = rawEvents.map((evt) => {
+      const u = userMap.get(evt.targetUserId);
+      const devices = evt.targetUserId === 'all'
+        ? registeredDevicesCount
+        : (userSubCountMap.get(evt.targetUserId) || (u ? (userSubCountMap.get(u.id) || userSubCountMap.get(u.email) || userSubCountMap.get(u.phone) || 0) : 0));
+
+      return {
+        ...evt,
+        customerName: u?.name || (evt.targetUserId === 'all' ? 'All Subscribed Patrons' : 'Patron Account'),
+        customerEmail: u?.email || (evt.targetUserId !== 'all' ? evt.targetUserId : null),
+        customerPhone: u?.phone || null,
+        activeDevicesCount: devices,
+      };
+    });
 
     return NextResponse.json({
       registeredDevicesCount,
@@ -117,4 +162,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

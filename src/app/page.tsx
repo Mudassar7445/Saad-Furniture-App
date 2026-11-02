@@ -495,7 +495,7 @@ export default function ShowroomHomePage() {
     <>
       {/* 1. NATIVE MOBILE APP SHELL (Visible by default on mobile devices with zero flash) */}
       {(!mounted || isMobile) && (
-        <div className="block md:hidden min-h-screen bg-[#141210] text-[#F7F5F0]">
+        <div className="block md:hidden min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
           <MobileAppShell
             currentUser={currentUser}
             onRefreshUser={fetchUser}

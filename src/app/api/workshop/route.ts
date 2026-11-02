@@ -192,10 +192,11 @@ export async function POST(request: Request) {
       try {
         await sendWebPushNotification({
           userId: 'all',
-          title: 'Saad Furniture — New Workshop Video',
+          title: '🎬 New Workshop Craftsmanship Media',
           message: `${record.title}: New master craftsmanship footage has been published in the atelier.`,
           url: '/workshop',
-          type: 'announcement',
+          type: 'workshop_update',
+          category: 'workshop',
         });
       } catch (pushErr) {
         console.warn('Push dispatch note:', pushErr);

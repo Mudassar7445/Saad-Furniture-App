@@ -122,13 +122,14 @@ export async function POST(request: Request) {
       createdAt: now,
     });
 
-    // 4. Notify customer
+    // 4. Notify customer via Real-time Web Push & In-app
     await fcmService.sendNotification({
       userId: order.customerId,
-      title: `Payment Acknowledged: Receipt #${paymentNumber}`,
-      message: `We have received your payment of $${numericAmount.toLocaleString()} for order ${order.orderNumber}. Remaining balance: $${newRemainingBalance.toLocaleString()}.`,
+      title: `💳 Payment Acknowledged: Receipt #${paymentNumber}`,
+      message: `We have received your payment of ₨${numericAmount.toLocaleString()} for order #${order.orderNumber}. Remaining balance: ₨${newRemainingBalance.toLocaleString()}.`,
       type: 'payment_received',
       relatedOrderId: orderId,
+      url: `/orders/${orderId}`,
     });
 
     // 4b. Dispatch electronic receipt via Email / SMS

@@ -49,24 +49,24 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div
-        className={`relative w-full ${widthClasses[maxWidth]} bg-[#141822] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden z-10 my-8`}
+        className={`relative w-full ${widthClasses[maxWidth]} bg-white dark:bg-[#141822] text-stone-900 dark:text-white border border-stone-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-10 my-8`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-white/5 bg-[#171c27]">
+        <div className="flex items-start justify-between p-5 border-b border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-[#171c27]">
           <div>
-            <h3 className="text-lg font-bold text-white tracking-wide">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
+            <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-wide">{title}</h3>
+            {subtitle && <p className="text-xs text-stone-500 dark:text-slate-400 mt-1">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-1 rounded-lg text-stone-500 dark:text-slate-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200 dark:hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,4 +78,3 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
-

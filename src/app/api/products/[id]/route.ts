@@ -89,13 +89,13 @@ export async function PUT(
     createdAt: new Date().toISOString(),
   });
 
-  if (body.title || body.price || body.discountPrice || body.featuredImage) {
+  if (body.title || body.price || body.discountPrice || body.featuredImage || body.images || body.category) {
     queueNotificationEvent({
       type: 'product_update',
       title: '🏷️ Catalog Update: ' + (body.title || 'Collection Update'),
       message: body.discountPrice
         ? `Special promotional pricing now available for ${body.title || 'this piece'}.`
-        : `Details have been updated for ${body.title || 'this handcrafted piece'}.`,
+        : `Details or media have been updated for ${body.title || 'this handcrafted piece'}.`,
       category: 'products',
       targetUserId: 'all',
       url: `/?product=${id}`,

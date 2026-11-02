@@ -34,10 +34,15 @@ import {
   ArrowUpRight,
   Bell,
   RefreshCw,
+  Download,
+  Smartphone,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useShopSettings } from '@/lib/settings/useShopSettings';
+import { useTheme } from '@/components/theme/ThemeProvider';
 import { PremiumSettingsView } from '@/components/settings/PremiumSettingsView';
 
 interface MobileProfileScreenProps {
@@ -90,6 +95,48 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
   const [newAddressStreet, setNewAddressStreet] = useState('');
   const [newAddressCity, setNewAddressCity] = useState('');
   const [savingAddress, setSavingAddress] = useState(false);
+
+  const { theme, setTheme } = useTheme();
+
+  // Notification Preferences
+  const [notifPrefs, setNotifPrefs] = useState({
+    orderProgress: 1,
+    productUpdates: 1,
+    workshopUpdates: 1,
+    announcements: 1,
+  });
+
+  useEffect(() => {
+    fetch('/api/notifications/preferences')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.preferences) {
+          setNotifPrefs({
+            orderProgress: data.preferences.orderProgress ?? 1,
+            productUpdates: data.preferences.productUpdates ?? 1,
+            workshopUpdates: data.preferences.workshopUpdates ?? 1,
+            announcements: data.preferences.announcements ?? 1,
+          });
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  const toggleNotifPref = async (key: keyof typeof notifPrefs) => {
+    const nextVal = notifPrefs[key] === 1 ? 0 : 1;
+    const updated = { ...notifPrefs, [key]: nextVal };
+    setNotifPrefs(updated);
+    try {
+      await fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      showToast('success', 'Notification preferences updated.');
+    } catch {
+      showToast('error', 'Failed to save preference.');
+    }
+  };
 
   // Alerts
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -380,11 +427,10 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
       {/* Toast Alert */}
       {feedback && (
         <div
-          className={`fixed top-4 right-4 left-4 z-50 p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs border animate-fadeIn ${
-            feedback.type === 'success'
+          className={`fixed top-4 right-4 left-4 z-50 p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs border animate-fadeIn ${feedback.type === 'success'
               ? 'bg-[#262421] text-[#B99A68] border-[#B99A68]'
               : 'bg-red-950 text-red-200 border-red-500/50'
-          }`}
+            }`}
         >
           {feedback.type === 'success' ? (
             <CheckCircle2 className="w-4 h-4 text-[#B99A68] shrink-0" />
@@ -456,9 +502,8 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           <div className="bg-white/5 p-2 rounded-xl">
             <span className="text-[8px] text-[#89847C] block uppercase font-bold">Balance</span>
             <span
-              className={`text-xs font-bold font-serif ${
-                overview.remainingBalance > 0 ? 'text-amber-400' : 'text-emerald-400'
-              }`}
+              className={`text-xs font-bold font-serif ${overview.remainingBalance > 0 ? 'text-amber-400' : 'text-emerald-400'
+                }`}
             >
               {overview.remainingBalance > 0
                 ? `₨${((overview.remainingBalance || 0) / 1000).toFixed(0)}k`
@@ -492,11 +537,10 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         <button
           type="button"
           onClick={() => setProfileView('profile')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            profileView === 'profile'
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${profileView === 'profile'
               ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
               : 'text-[#89847C] hover:text-[#262421]'
-          }`}
+            }`}
         >
           <User className="w-3.5 h-3.5" />
           <span>Profile & Balance</span>
@@ -504,11 +548,10 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         <button
           type="button"
           onClick={() => setProfileView('settings')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            profileView === 'settings'
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${profileView === 'settings'
               ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
               : 'text-[#89847C] hover:text-[#262421]'
-          }`}
+            }`}
         >
           <Settings className="w-3.5 h-3.5" />
           <span>Settings & App Lock 🔒</span>
@@ -524,314 +567,397 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         />
       ) : (
         <>
-      {/* 3. CUSTOMER BALANCE & FINANCIAL DETAILS CARD */}
-      <div className="bg-white rounded-3xl border border-[#EAE2D6] p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-[#F7F5F0] text-[#B99A68]">
-              <Wallet className="w-4 h-4" />
+          {/* 3. CUSTOMER BALANCE & FINANCIAL DETAILS CARD */}
+          <div className="bg-white rounded-3xl border border-[#EAE2D6] p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#F7F5F0] text-[#B99A68]">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-[#262421] uppercase tracking-wider font-serif">
+                    Account Balance & Ledger
+                  </h3>
+                  <span className="text-[10px] text-[#89847C]">Verified Financial Statement</span>
+                </div>
+              </div>
+              {overview.remainingBalance === 0 ? (
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                  All Orders Paid
+                </Badge>
+              ) : (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                  Outstanding Balance
+                </Badge>
+              )}
             </div>
-            <div>
-              <h3 className="text-xs font-bold text-[#262421] uppercase tracking-wider font-serif">
-                Account Balance & Ledger
-              </h3>
-              <span className="text-[10px] text-[#89847C]">Verified Financial Statement</span>
-            </div>
-          </div>
-          {overview.remainingBalance === 0 ? (
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
-              All Orders Paid
-            </Badge>
-          ) : (
-            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
-              Outstanding Balance
-            </Badge>
-          )}
-        </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-          <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-            <span className="text-[10px] text-[#89847C] block font-medium">Total Orders Value</span>
-            <span className="text-sm font-bold text-[#262421] font-serif mt-0.5 block">
-              ₨{(overview.totalOrderAmount || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-            <span className="text-[10px] text-[#89847C] block font-medium">Total Verified Payments</span>
-            <span className="text-sm font-bold text-emerald-700 font-serif mt-0.5 block">
-              ₨{(overview.totalPaid || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-            <span className="text-[10px] text-[#89847C] block font-medium">Advance Deposits</span>
-            <span className="text-sm font-bold text-[#B99A68] font-serif mt-0.5 block">
-              ₨{(overview.advancePayments || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-            <span className="text-[10px] text-[#89847C] block font-medium">Remaining Due</span>
-            <span
-              className={`text-sm font-bold font-serif mt-0.5 block ${
-                overview.remainingBalance > 0 ? 'text-amber-700' : 'text-emerald-700'
-              }`}
-            >
-              {overview.remainingBalance > 0
-                ? `₨${overview.remainingBalance.toLocaleString()}`
-                : '₨0 (Clear)'}
-            </span>
-          </div>
-        </div>
-
-        {/* Payment History Accordion */}
-        {payments.length > 0 && (
-          <div className="pt-2 border-t border-[#F7F5F0]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-[#262421]">Recent Verified Receipts</span>
-              <span className="text-[10px] text-[#89847C]">{payments.length} Transaction(s)</span>
-            </div>
-            <div className="space-y-2">
-              {payments.slice(0, 3).map((p: any) => (
-                <div
-                  key={p.id}
-                  className="p-2.5 bg-[#F7F5F0] rounded-xl flex items-center justify-between text-xs border border-[#EAE2D6]"
+            <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
+                <span className="text-[10px] text-[#89847C] block font-medium">Total Orders Value</span>
+                <span className="text-sm font-bold text-[#262421] font-serif mt-0.5 block">
+                  ₨{(overview.totalOrderAmount || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
+                <span className="text-[10px] text-[#89847C] block font-medium">Total Verified Payments</span>
+                <span className="text-sm font-bold text-emerald-700 font-serif mt-0.5 block">
+                  ₨{(overview.totalPaid || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
+                <span className="text-[10px] text-[#89847C] block font-medium">Advance Deposits</span>
+                <span className="text-sm font-bold text-[#B99A68] font-serif mt-0.5 block">
+                  ₨{(overview.advancePayments || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
+                <span className="text-[10px] text-[#89847C] block font-medium">Remaining Due</span>
+                <span
+                  className={`text-sm font-bold font-serif mt-0.5 block ${overview.remainingBalance > 0 ? 'text-amber-700' : 'text-emerald-700'
+                    }`}
                 >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-[#262421]">{p.paymentNumber}</span>
-                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.2 rounded">
-                        {p.status}
+                  {overview.remainingBalance > 0
+                    ? `₨${overview.remainingBalance.toLocaleString()}`
+                    : '₨0 (Clear)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment History Accordion */}
+            {payments.length > 0 && (
+              <div className="pt-2 border-t border-[#F7F5F0]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-[#262421]">Recent Verified Receipts</span>
+                  <span className="text-[10px] text-[#89847C]">{payments.length} Transaction(s)</span>
+                </div>
+                <div className="space-y-2">
+                  {payments.slice(0, 3).map((p: any) => (
+                    <div
+                      key={p.id}
+                      className="p-2.5 bg-[#F7F5F0] rounded-xl flex items-center justify-between text-xs border border-[#EAE2D6]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-[#262421]">{p.paymentNumber}</span>
+                          <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.2 rounded">
+                            {p.status}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#89847C] block mt-0.5">
+                          {p.paymentMethod} • {new Date(p.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <span className="font-bold text-[#262421] font-serif">
+                        ₨{(p.amount || 0).toLocaleString()}
                       </span>
                     </div>
-                    <span className="text-[10px] text-[#89847C] block mt-0.5">
-                      {p.paymentMethod} • {new Date(p.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <span className="font-bold text-[#262421] font-serif">
-                    ₨{(p.amount || 0).toLocaleString()}
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. COMPLETE PROFILE DASHBOARD SECTIONS */}
+          <div className="bg-white rounded-3xl border border-[#EAE2D6] divide-y divide-[#F7F5F0] shadow-sm overflow-hidden">
+            {/* Section 1: Personal Information */}
+            <button
+              onClick={() => setShowEditProfile(true)}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-[#B99A68]" />
+                <div>
+                  <span className="text-xs font-bold text-[#262421] block">Personal Information</span>
+                  <span className="text-[10px] text-[#89847C] block">
+                    {currentUser.name} • {currentUser.phone || 'Add phone'}
                   </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 4. COMPLETE PROFILE DASHBOARD SECTIONS */}
-      <div className="bg-white rounded-3xl border border-[#EAE2D6] divide-y divide-[#F7F5F0] shadow-sm overflow-hidden">
-        {/* Section 1: Personal Information */}
-        <button
-          onClick={() => setShowEditProfile(true)}
-          className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <User className="w-4 h-4 text-[#B99A68]" />
-            <div>
-              <span className="text-xs font-bold text-[#262421] block">Personal Information</span>
-              <span className="text-[10px] text-[#89847C] block">
-                {currentUser.name} • {currentUser.phone || 'Add phone'}
-              </span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[#89847C]" />
-        </button>
-
-        {/* Section 2: My Orders */}
-        <button
-          onClick={onNavigateToOrders}
-          className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Package className="w-4 h-4 text-[#B99A68]" />
-            <div>
-              <span className="text-xs font-bold text-[#262421] block">My Orders & Live Tracking</span>
-              <span className="text-[10px] text-[#89847C] block">
-                {overview.activeOrders} active commission(s) in workshop
-              </span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[#89847C]" />
-        </button>
-
-        {/* Section 3: Saved Delivery Addresses */}
-        <div className="p-3.5 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MapPin className="w-4 h-4 text-[#B99A68]" />
-              <span className="text-xs font-bold text-[#262421]">Saved Delivery Addresses</span>
-            </div>
-            <button
-              onClick={() => setShowAddAddress(true)}
-              className="text-[11px] font-bold text-[#B99A68] flex items-center gap-1 hover:underline"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add New</span>
-            </button>
-          </div>
-          <div className="pl-7 space-y-1.5">
-            <div className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]">
-              <div className="min-w-0 pr-2">
-                <span className="font-bold text-[#262421] block text-[11px]">Primary Address</span>
-                <span className="text-[10px] text-[#89847C] block truncate">
-                  {currentUser.address || 'No primary address configured'}
-                  {currentUser.city ? `, ${currentUser.city}` : ''}
-                </span>
               </div>
-              <button
-                onClick={() => setShowEditProfile(true)}
-                className="text-[10px] font-bold text-[#B99A68] shrink-0"
-              >
-                Edit
-              </button>
-            </div>
-            {addresses.map((addr: any) => (
-              <div
-                key={addr.id}
-                className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]"
-              >
-                <div className="min-w-0 pr-2">
-                  <span className="font-bold text-[#262421] block text-[11px]">{addr.label || 'Address'}</span>
-                  <span className="text-[10px] text-[#89847C] block truncate">
-                    {addr.addressLine}, {addr.city}
+              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+            </button>
+
+            {/* Section 2: My Orders */}
+            <button
+              onClick={onNavigateToOrders}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Package className="w-4 h-4 text-[#B99A68]" />
+                <div>
+                  <span className="text-xs font-bold text-[#262421] block">My Orders & Live Tracking</span>
+                  <span className="text-[10px] text-[#89847C] block">
+                    {overview.activeOrders} active commission(s) in workshop
                   </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+            </button>
+
+            {/* Section 3: Saved Delivery Addresses */}
+            <div className="p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-4 h-4 text-[#B99A68]" />
+                  <span className="text-xs font-bold text-[#262421]">Saved Delivery Addresses</span>
                 </div>
                 <button
-                  onClick={() => handleDeleteAddress(addr.id)}
-                  className="text-slate-400 hover:text-red-500 p-1"
+                  onClick={() => setShowAddAddress(true)}
+                  className="text-[11px] font-bold text-[#B99A68] flex items-center gap-1 hover:underline"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add New</span>
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 4: Saved Wishlist */}
-        <button
-          onClick={onNavigateToWishlist}
-          className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Heart className="w-4 h-4 text-[#B99A68]" />
-            <div>
-              <span className="text-xs font-bold text-[#262421] block">Saved Wishlist</span>
-              <span className="text-[10px] text-[#89847C] block">
-                {overview.wishlistCount || 0} saved masterpiece(s)
-              </span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[#89847C]" />
-        </button>
-
-        {/* Section 5: Showroom Catalogues & Documents */}
-        {onNavigateToDocuments && (
-          <button
-            onClick={onNavigateToDocuments}
-            className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-[#B99A68]" />
-              <div>
-                <span className="text-xs font-bold text-[#262421] block">
-                  Catalogues & Digital Library
-                </span>
-                <span className="text-[10px] text-[#89847C] block">
-                  Official 2026 furniture collections & warranty cards
-                </span>
+              <div className="pl-7 space-y-1.5">
+                <div className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]">
+                  <div className="min-w-0 pr-2">
+                    <span className="font-bold text-[#262421] block text-[11px]">Primary Address</span>
+                    <span className="text-[10px] text-[#89847C] block truncate">
+                      {currentUser.address || 'No primary address configured'}
+                      {currentUser.city ? `, ${currentUser.city}` : ''}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowEditProfile(true)}
+                    className="text-[10px] font-bold text-[#B99A68] shrink-0"
+                  >
+                    Edit
+                  </button>
+                </div>
+                {addresses.map((addr: any) => (
+                  <div
+                    key={addr.id}
+                    className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <span className="font-bold text-[#262421] block text-[11px]">{addr.label || 'Address'}</span>
+                      <span className="text-[10px] text-[#89847C] block truncate">
+                        {addr.addressLine}, {addr.city}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAddress(addr.id)}
+                      className="text-slate-400 hover:text-red-500 p-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-[#89847C]" />
-          </button>
-        )}
 
-        {/* Section 6: Change Password / Settings */}
-        <button
-          onClick={() => setProfileView('settings')}
-          className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Lock className="w-4 h-4 text-[#B99A68]" />
-            <div>
-              <span className="text-xs font-bold text-[#262421] block">Security, PIN & App Lock</span>
-              <span className="text-[10px] text-[#89847C] block">Configure Biometrics, PIN & Password</span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[#89847C]" />
-        </button>
-
-        {/* Mobile Background Push Notifications Alert Card */}
-        <div className="p-3.5 m-2 rounded-2xl bg-gradient-to-r from-[#262421] via-[#262421] to-[#1C1A18] text-white border border-[#B99A68]/40 shadow-sm space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#B99A68]/20 border border-[#B99A68]/40 flex items-center justify-center text-[#B99A68]">
-                <Bell className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-white block">Mobile Push Notifications</span>
-                <span className="text-[10px] text-[#EAE2D6]/80 block">Receive alerts even when in other apps</span>
-              </div>
-            </div>
+            {/* Section 4: Saved Wishlist */}
             <button
-              type="button"
-              onClick={handleTestPushNotification}
-              disabled={testingPush}
-              className="px-2.5 py-1.5 rounded-xl bg-[#B99A68] text-[#262421] text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm flex items-center gap-1"
+              onClick={onNavigateToWishlist}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
             >
-              {testingPush ? 'Testing...' : 'Test Alert 🔔'}
+              <div className="flex items-center gap-3">
+                <Heart className="w-4 h-4 text-[#B99A68]" />
+                <div>
+                  <span className="text-xs font-bold text-[#262421] block">Saved Wishlist</span>
+                  <span className="text-[10px] text-[#89847C] block">
+                    {overview.wishlistCount || 0} saved masterpiece(s)
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+            </button>
+
+            {/* Section 5: Showroom Catalogues & Documents */}
+            {onNavigateToDocuments && (
+              <button
+                onClick={onNavigateToDocuments}
+                className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className="w-4 h-4 text-[#B99A68]" />
+                  <div>
+                    <span className="text-xs font-bold text-[#262421] block">
+                      Catalogues & Digital Library
+                    </span>
+                    <span className="text-[10px] text-[#89847C] block">
+                      Official 2026 furniture collections & warranty cards
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#89847C]" />
+              </button>
+            )}
+
+            {/* Section 6: Change Password / Settings */}
+            <button
+              onClick={() => setProfileView('settings')}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Lock className="w-4 h-4 text-[#B99A68]" />
+                <div>
+                  <span className="text-xs font-bold text-[#262421] block">Security, PIN & App Lock</span>
+                  <span className="text-[10px] text-[#89847C] block">Configure Biometrics, PIN & Password</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+            </button>
+
+            {/* PWA App Installation Card */}
+            <div className="p-3.5 m-2 rounded-2xl bg-white dark:bg-[#1a1e27] border border-[#EAE2D6] dark:border-white/10 shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#B99A68]/15 text-[#B99A68] flex items-center justify-center">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#1C1A18] dark:text-white block">Install Saad Furniture App</span>
+                    <span className="text-[10px] text-[#89847C] dark:text-slate-400 block">Home screen icon, offline catalog & alerts</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.triggerPwaInstall) {
+                      window.triggerPwaInstall();
+                    } else {
+                      alert('To install, tap your browser menu (⋮) and select "Add to Home Screen".');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-[#B99A68] text-[#0B0D11] text-xs font-bold hover:brightness-105 active:scale-95 transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Install</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Theme Preferences Card */}
+            <div className="p-3.5 m-2 rounded-2xl bg-white dark:bg-[#1a1e27] border border-[#EAE2D6] dark:border-white/10 shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#B99A68]/15 text-[#B99A68] flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#1C1A18] dark:text-white block">Display Theme</span>
+                    <span className="text-[10px] text-[#89847C] dark:text-slate-400 block">High-contrast certified palette</span>
+                  </div>
+                </div>
+                <div className="flex bg-[#F7F5F0] dark:bg-black/30 p-1 rounded-xl border border-[#EAE2D6] dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${theme === 'light' ? 'bg-white dark:bg-white/20 text-[#1C1A18] shadow-xs' : 'text-[#89847C]'
+                      }`}
+                  >
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${theme === 'dark' ? 'bg-[#262421] text-[#E5CAA2] shadow-xs' : 'text-[#89847C]'
+                      }`}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Background Push Notifications & Category Preferences Card */}
+            <div className="p-3.5 m-2 rounded-2xl bg-gradient-to-r from-[#262421] via-[#262421] to-[#1C1A18] text-white border border-[#B99A68]/40 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#B99A68]/20 border border-[#B99A68]/40 flex items-center justify-center text-[#B99A68]">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">Push Alert Preferences</span>
+                    <span className="text-[10px] text-[#EAE2D6]/80 block">Receive live milestones even when closed</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestPushNotification}
+                  disabled={testingPush}
+                  className="px-2.5 py-1.5 rounded-xl bg-[#B99A68] text-[#0B0D11] text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                >
+                  {testingPush ? 'Testing...' : 'Test Alert 🔔'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 pt-1 text-xs">
+                {[
+                  { key: 'orderProgress', label: 'Order Stages' },
+                  { key: 'workshopUpdates', label: 'Workshop Media' },
+                  { key: 'productUpdates', label: 'Catalog Updates' },
+                  { key: 'announcements', label: 'Announcements' },
+                ].map(({ key, label }) => {
+                  const isEnabled = notifPrefs[key as keyof typeof notifPrefs] === 1;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleNotifPref(key as keyof typeof notifPrefs)}
+                      className={`p-2 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isEnabled
+                          ? 'bg-[#B99A68]/20 border-[#B99A68]/50 text-white'
+                          : 'bg-white/5 border-white/5 text-stone-400'
+                        }`}
+                    >
+                      <span className="text-[11px] font-medium">{label}</span>
+                      <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-[#B99A68]' : 'bg-stone-500'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section 7: Showroom Concierge & Support */}
+            <div className="p-3.5 space-y-2 border-t border-[#EAE2D6]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-[#262421] block truncate">
+                    {settings.displayName || 'Saad Showroom & Workshop Concierge'}
+                  </span>
+                  <span className="text-[10px] text-[#89847C] block truncate">
+                    {settings.completeAddress || 'Sheikh-U-Pura Road Near Imtiaz Mega Mall, Faisalabad'}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <a
+                  href={`https://wa.me/${(settings.whatsappNumber || '+923130207445').replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2.5 rounded-xl bg-[#128C7E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span className="truncate">WhatsApp: {settings.whatsappNumber || '+92 313-0207445'}</span>
+                </a>
+                <a
+                  href={`tel:${(settings.primaryPhone || '+923007207445').replace(/\s+/g, '')}`}
+                  className="p-2.5 rounded-xl bg-[#262421] text-[#B99A68] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span className="truncate">Call: {settings.primaryPhone || '+92 300 7207445'}</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Section 8: Sign Out */}
+            <button
+              onClick={onLogout}
+              className="w-full p-3.5 flex items-center justify-between text-left text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <LogOut className="w-4 h-4 text-red-500" />
+                <span className="text-xs font-bold">Sign Out from Patron Account</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-red-400" />
             </button>
           </div>
-          <p className="text-[10px] text-stone-300 leading-tight">
-            When our artisans update your furniture carving stage or upload workshop photos, your phone will ring and show status alerts immediately.
-          </p>
-        </div>
-
-        {/* Section 7: Showroom Concierge & Support */}
-        <div className="p-3.5 space-y-2 border-t border-[#EAE2D6]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center shrink-0">
-              <PhoneCall className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold text-[#262421] block truncate">
-                {settings.displayName || 'Saad Showroom & Workshop Concierge'}
-              </span>
-              <span className="text-[10px] text-[#89847C] block truncate">
-                {settings.completeAddress || 'Sheikh-U-Pura Road Near Imtiaz Mega Mall, Faisalabad'}
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <a
-              href={`https://wa.me/${(settings.whatsappNumber || '+923130207445').replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="p-2.5 rounded-xl bg-[#128C7E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span className="truncate">WhatsApp: {settings.whatsappNumber || '+92 313-0207445'}</span>
-            </a>
-            <a
-              href={`tel:${(settings.primaryPhone || '+923007207445').replace(/\s+/g, '')}`}
-              className="p-2.5 rounded-xl bg-[#262421] text-[#B99A68] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span className="truncate">Call: {settings.primaryPhone || '+92 300 7207445'}</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Section 8: Sign Out */}
-        <button
-          onClick={onLogout}
-          className="w-full p-3.5 flex items-center justify-between text-left text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <LogOut className="w-4 h-4 text-red-500" />
-            <span className="text-xs font-bold">Sign Out from Patron Account</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-red-400" />
-        </button>
-      </div>
-      </>
+        </>
       )}
 
       {/* EDIT PROFILE MODAL */}

@@ -411,11 +411,22 @@ export function AdminNotificationsModule() {
                         )}
                       </td>
 
-                      <td className="py-3 px-4 whitespace-nowrap text-slate-400 text-[11px]">
+                      <td className="py-3 px-4 whitespace-nowrap text-slate-300 text-[11px]">
                         {evt.targetUserId === 'all' ? (
-                          <span className="text-emerald-400 font-medium">All Patrons</span>
+                          <div>
+                            <span className="text-emerald-400 font-medium block">All Patrons</span>
+                            <span className="text-[10px] text-slate-400">Broadcast</span>
+                          </div>
                         ) : (
-                          <span className="font-mono">{evt.targetUserId}</span>
+                          <div>
+                            <span className="font-bold text-white block">{(evt as any).customerName || 'Patron Account'}</span>
+                            <span className="font-mono text-[10px] text-slate-400 block truncate max-w-[180px]">
+                              {(evt as any).customerEmail || (evt as any).customerPhone || evt.targetUserId}
+                            </span>
+                            <span className="text-[9px] text-[#B99A68] block mt-0.5">
+                              {(evt as any).activeDevicesCount ?? 0} active device{((evt as any).activeDevicesCount === 1 ? '' : 's')}
+                            </span>
+                          </div>
                         )}
                       </td>
 

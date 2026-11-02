@@ -1,13 +1,15 @@
 import { db } from '../db';
 import { notifications } from '../db/schema';
+import { queueNotificationEvent, NotificationCategory } from './webpush';
 
 export interface PushNotificationPayload {
-  userId: string; // Specific user ID or 'all' for announcements
+  userId: string; // Specific customer ID, email, or 'all' for announcements
   title: string;
   message: string;
   type: 'order_update' | 'payment_received' | 'stage_completed' | 'announcement' | 'system' | 'delivery_update' | 'media_uploaded' | 'product_update';
   relatedOrderId?: string;
   fcmToken?: string;
+  url?: string;
 }
 
 export class FCMNotificationService {
@@ -22,31 +24,68 @@ export class FCMNotificationService {
   public getStatus() {
     return {
       configured: this.isConfigured,
-      gateway: 'Firebase Cloud Messaging (FCM HTTP v1)',
-      status: this.isConfigured ? 'Active' : 'Simulation Mode (In-App Delivery Active)',
+      gateway: 'Web Push (VAPID) & FCM Gateway',
+      status: 'Active (Real Web Push & In-App Outbox)',
     };
   }
 
   /**
-   * Dispatches push notification and records into the in-app notifications database
+   * Dispatches push notification to customer devices and records into the in-app notification center database
    */
   public async sendNotification(payload: PushNotificationPayload) {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
 
     // 1. Save to in-app notification center database
-    await db.insert(notifications).values({
-      id,
-      userId: payload.userId,
-      title: payload.title,
-      message: payload.message,
-      type: payload.type,
-      relatedOrderId: payload.relatedOrderId || null,
-      isRead: 0,
-      createdAt: now,
-    });
+    try {
+      await db.insert(notifications).values({
+        id,
+        userId: payload.userId,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        relatedOrderId: payload.relatedOrderId || null,
+        isRead: 0,
+        createdAt: now,
+      });
+    } catch (dbErr) {
+      console.warn('In-app notification save warning:', dbErr);
+    }
 
-    // 2. If FCM server key is configured, push to Google Firebase FCM
+    // 2. Queue and dispatch real Web Push Notification via Outbox
+    try {
+      let category: NotificationCategory = 'orders';
+      if (payload.type === 'product_update') {
+        category = 'products';
+      } else if (payload.type === 'media_uploaded') {
+        category = 'workshop';
+      } else if (payload.type === 'announcement' || payload.type === 'system') {
+        category = 'announcements';
+      }
+
+      const deepLinkUrl = payload.url || (payload.relatedOrderId ? `/orders/${payload.relatedOrderId}` : '/');
+
+      await queueNotificationEvent({
+        type:
+          payload.type === 'product_update'
+            ? 'product_update'
+            : payload.type === 'media_uploaded'
+            ? 'workshop_update'
+            : payload.type === 'stage_completed'
+            ? 'order_progress'
+            : 'order_status',
+        category,
+        title: payload.title,
+        message: payload.message,
+        url: deepLinkUrl,
+        targetUserId: payload.userId,
+        relatedId: payload.relatedOrderId,
+      });
+    } catch (pushErr) {
+      console.warn('Web push queuing warning:', pushErr);
+    }
+
+    // 3. If FCM server key is configured, push to Google Firebase FCM legacy endpoint
     if (this.isConfigured && payload.fcmToken) {
       try {
         await fetch('https://fcm.googleapis.com/fcm/send', {
@@ -78,4 +117,3 @@ export class FCMNotificationService {
 }
 
 export const fcmService = new FCMNotificationService();
-

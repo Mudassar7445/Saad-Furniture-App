@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth/jwt';
 import { db, initializeDatabase } from '@/lib/db';
 import { orders, orderItems, payments, orderTimelineEvents, users, auditLogs, mediaFiles } from '@/lib/db/schema';
 import { fcmService } from '@/lib/services/fcm';
+import { queueNotificationEvent } from '@/lib/services/webpush';
 import { eq, desc, inArray } from 'drizzle-orm';
 
 export async function GET() {
@@ -312,17 +313,19 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Send Notification to Customer
+    // 5. Send Centralized Real-time Web Push & In-App Notification to Customer
     try {
-      await fcmService.sendNotification({
-        userId: customerId,
-        title: `Order Confirmed: ${orderNumber}`,
-        message: `Your bespoke furniture commission (${orderNumber}) featuring ${processedItems.length} items has been confirmed and entered production.`,
-        type: 'order_update',
-        relatedOrderId: orderId,
+      await queueNotificationEvent({
+        type: 'order_status',
+        category: 'orders',
+        title: 'New Order Created',
+        message: `Your furniture order #${orderNumber} has been successfully created. Tap to view your order details.`,
+        url: `/orders/${orderId}`,
+        targetUserId: customerId,
+        relatedId: orderId,
       });
     } catch (notifErr) {
-      console.warn('Notification send warning:', notifErr);
+      console.warn('Customer push notification dispatch warning:', notifErr);
     }
 
     // 6. Audit log

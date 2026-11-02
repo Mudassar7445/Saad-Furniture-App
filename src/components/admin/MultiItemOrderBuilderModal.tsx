@@ -159,7 +159,7 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
 
     const nameMatch = c.name?.toLowerCase().includes(term);
     const rawPhoneMatch = c.phone?.toLowerCase().includes(term);
-    const normalizedPhoneMatch = cleanSearchDigits.length >= 3 && cleanCustDigits.includes(cleanSearchDigits);
+    const normalizedPhoneMatch = cleanSearchDigits.length >= 2 && cleanCustDigits.includes(cleanSearchDigits);
     const emailMatch = c.email?.toLowerCase().includes(term);
     const cityMatch = c.city?.toLowerCase().includes(term);
     const addressMatch = c.address?.toLowerCase().includes(term);
@@ -487,7 +487,7 @@ export const MultiItemOrderBuilderModal: React.FC<MultiItemOrderBuilderModalProp
                     onFocus={() => {
                       setCustomerDropdownOpen(true);
                     }}
-                    placeholder="Search by customer name, phone number or email..."
+                    placeholder="Search patron by name, or last 4-5 digits of mobile number..."
                     className="w-full pl-9 pr-16 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68] text-xs transition-colors"
                   />
                   <div className="absolute right-2.5 flex items-center gap-1">

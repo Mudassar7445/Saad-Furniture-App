@@ -55,6 +55,7 @@ import { MultiItemOrderBuilderModal } from '@/components/admin/MultiItemOrderBui
 import { ProductMediaUploadModal } from '@/components/admin/ProductMediaUploadModal';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
 import { AdminNotificationsModule } from '@/components/admin/AdminNotificationsModule';
+import { AdminOrderManagementModule } from '@/components/admin/AdminOrderManagementModule';
 import { PremiumSettingsView } from '@/components/settings/PremiumSettingsView';
 
 export const FURNITURE_PRODUCTION_STAGES = [
@@ -200,6 +201,20 @@ export default function SuperAdminDashboard() {
   const [newPasswordVal, setNewPasswordVal] = useState('');
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') || params.get('module');
+      if (tab) {
+        const validModules = [
+          'overview', 'online_orders', 'orders', 'deliveries', 'ledger', 'inquiries',
+          'customers', 'staff', 'products', 'notifications', 'settings', 'activity',
+          'shop_profile', 'media_library', 'cloud_storage', 'workshop', 'payment_settings', 'sale_codes'
+        ];
+        if (validModules.includes(tab)) {
+          setActiveModule(tab as any);
+        }
+      }
+    }
     checkAuthAndLoad();
   }, []);
 
@@ -592,13 +607,13 @@ export default function SuperAdminDashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Executive Overview', icon: Layers },
+    { id: 'orders', label: 'Order Management', icon: Package, count: ordersList.length },
     { id: 'online_orders', label: 'Online Store Orders', icon: ShoppingBag, count: ordersList.filter((o) => o.orderType === 'online').length },
     { id: 'workshop', label: 'Workshop Media Manager', icon: Film },
     { id: 'sale_codes', label: 'Sale Code Management', icon: Tag },
     { id: 'payment_settings', label: 'Payment & Bank Accounts', icon: CreditCard },
     { id: 'media_library', label: 'Media & Documents Library', icon: Folder },
     { id: 'cloud_storage', label: 'Cloud Media Storage', icon: HardDrive },
-    { id: 'orders', label: 'Showroom Commissions', icon: Package, count: ordersList.filter((o) => o.orderType !== 'online').length },
     { id: 'deliveries', label: 'Logistics & Deliveries', icon: Truck, count: deliveriesList.length },
     { id: 'ledger', label: 'Financial Ledgers', icon: CreditCard, count: ledgersData?.customers?.length || 0 },
     { id: 'inquiries', label: 'Custom Inquiries', icon: Send, count: inquiriesList.filter((i) => i.status === 'pending').length },
@@ -677,6 +692,9 @@ export default function SuperAdminDashboard() {
                   onClick={() => {
                     setActiveModule(item.id as any);
                     setSidebarOpen(false);
+                    if (typeof window !== 'undefined') {
+                      window.history.replaceState(null, '', item.id === 'orders' ? '/admin/orders' : `/admin?tab=${item.id}`);
+                    }
                   }}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
@@ -984,147 +1002,15 @@ export default function SuperAdminDashboard() {
           );
         })()}
 
-        {/* 2. MODULE: ORDER MANAGEMENT */}
+        {/* 2. MODULE: ORDER MANAGEMENT CENTER */}
         {activeModule === 'orders' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-serif font-bold text-white">All Showroom & Custom Commissions</h2>
-              <Button variant="gold" size="sm" onClick={() => setShowCreateOrder(true)}>
-                <Plus className="w-4 h-4 mr-1.5" />
-                Create New Order
-              </Button>
-            </div>
-
-            <div className="bg-[#141822] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#181d28] text-slate-400 uppercase tracking-wider">
-                    <tr>
-                      <th className="p-4">Order #</th>
-                      <th className="p-4">Patron</th>
-                      <th className="p-4">Stage & Progress</th>
-                      <th className="p-4">Delivery Status</th>
-                      <th className="p-4">Total</th>
-                      <th className="p-4">Balance</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-300">
-                    {ordersList.map((ord) => (
-                      <tr key={ord.id} className="hover:bg-white/[0.02]">
-                        <td className="p-4 font-bold text-white font-serif">
-                          <Link href={`/orders/${ord.id}`} className="hover:text-[#c5a880] underline transition-colors">
-                            {ord.orderNumber}
-                          </Link>
-                          {ord.isDelayed === 1 && (
-                            <span className="block text-[9px] text-amber-400 font-sans font-bold">⚠️ DELAY NOTICE</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          <span className="font-semibold text-white block">{ord.customerName}</span>
-                          <span className="text-[11px] text-slate-500">{ord.productName || ord.customerEmail}</span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium capitalize text-[#e5caa2]">
-                              {ord.productionStage?.replace('_', ' ')}
-                            </span>
-                            <span className="font-bold text-white">({ord.productionProgress}%)</span>
-                          </div>
-                          <div className="w-32 bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-[#c5a880] to-[#e5caa2] h-full rounded-full"
-                              style={{ width: `${ord.productionProgress}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <Badge
-                            variant={
-                              ord.deliveryStatus === 'delivered'
-                                ? 'green'
-                                : ord.deliveryStatus === 'dispatched'
-                                ? 'blue'
-                                : 'neutral'
-                            }
-                          >
-                            {ord.deliveryStatus}
-                          </Badge>
-                          {ord.estimatedDeliveryDate && (
-                            <span className="block text-[10px] text-slate-500 mt-0.5">
-                              ETA: {new Date(ord.estimatedDeliveryDate).toLocaleDateString()}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 font-bold text-white">${ord.totalAmount?.toLocaleString()}</td>
-                        <td className="p-4 font-semibold">
-                          <span className={ord.remainingBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                            ${ord.remainingBalance?.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
-                          {/* Quick Multi-Item Dossier Modal */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrderForView(ord.id)}
-                            className="p-1.5 rounded-lg bg-[#c5a880]/20 hover:bg-[#c5a880] text-[#e5caa2] hover:text-slate-950 transition-colors inline-block"
-                            title="Quick Multi-Item Commission Modal"
-                          >
-                            <Layers className="w-4 h-4" />
-                          </button>
-
-                          {/* Dedicated Order Details Page */}
-                          <Link
-                            href={`/orders/${ord.id}`}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#c5a880] text-slate-300 hover:text-slate-950 transition-colors inline-block"
-                            title="Open Separate Order Details Page & Visual Timeline"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
-
-                          {/* Update progress */}
-                          <button
-                            onClick={() => setShowEditOrderProgress(ord)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#c5a880] hover:text-slate-950 text-slate-200 transition-colors"
-                            title="Update Manufacturing & Delivery Progress"
-                          >
-                            <Clock className="w-4 h-4" />
-                          </button>
-
-                          {/* Upload Media (Photo/Video) */}
-                          <button
-                            onClick={() => setShowUploadMedia(ord)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-200 transition-colors"
-                            title="Upload Workshop Photograph or Video"
-                          >
-                            <UploadCloud className="w-4 h-4" />
-                          </button>
-
-                          {/* Record Payment */}
-                          <button
-                            onClick={() => setShowRecordPayment(ord)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 transition-colors"
-                            title="Record Payment / Installment"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                          </button>
-
-                          {/* Delete Order */}
-                          <button
-                            onClick={() => handleDeleteOrder(ord.id, ord.orderNumber)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 transition-colors"
-                            title="Delete Order"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <AdminOrderManagementModule
+            orders={ordersList}
+            customers={customersList}
+            products={productsList}
+            staff={staffList}
+            onRefresh={refreshAllData}
+          />
         )}
 
         {/* 2b. MODULE: LOGISTICS & DELIVERIES (SECTION 5) */}

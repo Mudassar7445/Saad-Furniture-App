@@ -27,7 +27,7 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
   cartCount = 0,
 }) => {
   const handleTabClick = (tabId: MobileTab) => {
-    // Subtle haptic feedback
+    // Subtle haptic feedback on supported Android devices
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(6);
@@ -46,13 +46,15 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
     <nav
       role="navigation"
       aria-label="Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#131722] border-t border-[#EAE2D6] dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:hidden select-none"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#131722] border-t border-[#EAE2D6] dark:border-white/10 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.6)] md:hidden select-none box-border"
       style={{
-        paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)',
-        height: 'calc(60px + max(env(safe-area-inset-bottom, 8px), 8px))',
+        boxSizing: 'border-box',
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
+        paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px))',
       }}
     >
-      <div className="grid grid-cols-5 h-full w-full max-w-md mx-auto items-center">
+      <div className="grid grid-cols-5 w-full max-w-md mx-auto items-center px-1 pt-2 pb-1">
         {NAV_ITEMS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -63,7 +65,7 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
               key={tab.id}
               type="button"
               onClick={() => handleTabClick(tab.id)}
-              className="w-full h-full flex flex-col items-center justify-center relative touch-manipulation cursor-pointer"
+              className="w-full flex flex-col items-center justify-center py-1 relative touch-manipulation cursor-pointer group"
               aria-label={tab.label}
               aria-selected={isActive}
             >
@@ -72,14 +74,14 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
                 <Icon
                   className={`w-5 h-5 stroke-[2] transition-colors duration-150 ${
                     isActive
-                      ? 'text-[#B99A68] dark:text-[#B99A68]'
-                      : 'text-[#89847C] dark:text-[#89847C]'
+                      ? 'text-[#B99A68] dark:text-[#E5CAA2]'
+                      : 'text-[#89847C] dark:text-[#94A3B8] group-hover:text-stone-900 dark:group-hover:text-white'
                   }`}
                 />
 
                 {/* Fixed Stationary Badge */}
                 {badgeCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[15px] h-3.5 px-0.5 rounded-full bg-[#B99A68] text-[#131722] text-[8px] font-black flex items-center justify-center border border-[#FFFFFF] dark:border-[#131722] shadow-xs pointer-events-none">
+                  <span className="absolute -top-1 -right-2 min-w-[15px] h-3.5 px-1 rounded-full bg-[#B99A68] text-[#131722] text-[8px] font-black flex items-center justify-center border border-white dark:border-[#131722] shadow-xs pointer-events-none">
                     {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
@@ -87,10 +89,10 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
 
               {/* Stationary Text Label */}
               <span
-                className={`text-[10px] tracking-tight mt-1 transition-colors duration-150 leading-none ${
+                className={`text-[10.5px] tracking-tight mt-1 transition-colors duration-150 leading-tight block text-center truncate w-full px-0.5 ${
                   isActive
-                    ? 'text-[#B99A68] dark:text-[#B99A68] font-bold'
-                    : 'text-[#89847C] dark:text-[#89847C] font-medium'
+                    ? 'text-[#B99A68] dark:text-[#E5CAA2] font-bold'
+                    : 'text-[#89847C] dark:text-[#94A3B8] font-medium group-hover:text-stone-900 dark:group-hover:text-white'
                 }`}
               >
                 {tab.label}

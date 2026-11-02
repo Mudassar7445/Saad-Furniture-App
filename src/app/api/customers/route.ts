@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
       const rawPhoneMatch = c.phone?.toLowerCase().includes(cleanSearch);
       const cleanPhoneDigits = (c.phone || '').replace(/[^0-9]/g, '');
-      const normalizedPhoneMatch = cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits);
+      const normalizedPhoneMatch = cleanSearchDigits.length >= 2 && cleanPhoneDigits.includes(cleanSearchDigits);
 
       return nameMatch || rawPhoneMatch || normalizedPhoneMatch || emailMatch || cityMatch || addressMatch;
     });

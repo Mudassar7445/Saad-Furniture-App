@@ -402,7 +402,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       />
 
       {/* 2. Main Screen View Area with Persistent Offstage Stack (Zero Redrawing / Reloading) */}
-      <main className="flex-1 px-4 pt-3 pb-24 max-w-md mx-auto w-full">
+      <main className="flex-1 px-4 pt-3 pb-28 max-w-md mx-auto w-full">
         {/* Tab 1: Home Screen */}
         <div className={activeTab === 'home' ? 'block' : 'hidden'} aria-hidden={activeTab !== 'home'}>
           <div className={activeTab === 'home' ? (navDirection === 'forward' ? 'page-transition-forward' : 'page-transition-backward') : ''}>

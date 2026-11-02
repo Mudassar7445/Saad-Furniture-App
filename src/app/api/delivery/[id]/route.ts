@@ -162,13 +162,14 @@ export async function PATCH(request: Request, context: RouteParams) {
         createdAt: now,
       });
 
-      // 5. Send Push Notification
+      // 5. Send Real-time Web Push & In-App Notification
       await fcmService.sendNotification({
         userId: delivery.customerId,
-        title: `Delivery Milestone: ${stageName}`,
-        message: `Your order #${order ? order.orderNumber : ''} has reached the stage: ${stageName}.`,
+        title: `🚚 Delivery Milestone: ${stageName}`,
+        message: `Your order #${order ? order.orderNumber : ''} has reached the stage: ${stageName}. Tap to track delivery live.`,
         type: 'delivery_update',
         relatedOrderId: delivery.orderId,
+        url: `/orders/${delivery.orderId}`,
       });
 
       // 6. Send SMS/Email communication if Dispatched or Delivered

@@ -18,7 +18,7 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#B99A68]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
   const sizeStyles = {
     sm: 'px-3 py-1.5 text-xs',
@@ -27,11 +27,11 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const variantStyles = {
-    gold: 'bg-gradient-to-r from-[#c5a880] to-[#b09065] text-slate-950 font-semibold hover:from-[#d5b991] hover:to-[#c1a176] shadow-sm shadow-[#c5a880]/20 active:scale-[0.98]',
-    secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-[0.98]',
-    outline: 'border border-[#c5a880]/40 text-[#c5a880] hover:bg-[#c5a880]/10 hover:border-[#c5a880] active:scale-[0.98]',
-    danger: 'bg-red-950/60 border border-red-500/40 text-red-300 hover:bg-red-900/60 active:scale-[0.98]',
-    ghost: 'text-slate-400 hover:text-white hover:bg-white/5 active:scale-[0.98]',
+    gold: 'bg-gradient-to-r from-[#B99A68] to-[#9E8050] text-[#0B0D11] font-bold hover:brightness-105 shadow-md shadow-[#B99A68]/20 active:scale-[0.98]',
+    secondary: 'bg-stone-200 text-stone-900 hover:bg-stone-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 active:scale-[0.98]',
+    outline: 'border border-[#B99A68]/60 text-stone-800 dark:text-[#E5CAA2] hover:bg-[#B99A68]/10 hover:border-[#B99A68] active:scale-[0.98]',
+    danger: 'bg-red-100 text-red-900 border border-red-300 dark:bg-red-950/60 dark:border-red-500/40 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60 active:scale-[0.98]',
+    ghost: 'text-stone-700 dark:text-slate-300 hover:text-stone-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-[0.98]',
   };
 
   return (
@@ -54,4 +54,3 @@ export const Button: React.FC<ButtonProps> = ({
     </button>
   );
 };
-

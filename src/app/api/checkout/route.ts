@@ -20,6 +20,7 @@ import {
   paymentGatewaysConfig,
 } from '@/lib/db/schema';
 import { CommunicationService } from '@/lib/services/communication';
+import { queueNotificationEvent } from '@/lib/services/webpush';
 import bcrypt from 'bcryptjs';
 import { eq, inArray } from 'drizzle-orm';
 
@@ -524,27 +525,26 @@ export async function POST(request: Request) {
         relatedOrderId: orderId,
       });
 
-      await db.insert(notifications).values({
-        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        userId: customerId,
+      // Real-time Push Notification to customer device
+      await queueNotificationEvent({
+        type: 'order_status',
+        category: 'orders',
         title: `Order Confirmed: #${orderNumber}`,
-        message: `Your online order for ${productSummary} has been received. Track manufacturing and delivery in real-time.`,
-        type: 'order_update',
-        relatedOrderId: orderId,
-        isRead: 0,
-        createdAt: now,
+        message: `Your order for ${productSummary} has been received. Tap to track manufacturing in real-time.`,
+        url: `/orders/${orderId}`,
+        targetUserId: customerId,
+        relatedId: orderId,
       });
 
       // B. To Super Admin
-      await db.insert(notifications).values({
-        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        userId: 'admin@saadfurniture.com',
+      await queueNotificationEvent({
+        type: 'order_status',
+        category: 'orders',
         title: `New Online Order Placed: #${orderNumber}`,
-        message: `Patron ${customerName} ordered ${productSummary}. Total: $${grandTotal} [${paymentMethod.toUpperCase()} - ${paymentStatus}].`,
-        type: 'order_update',
-        relatedOrderId: orderId,
-        isRead: 0,
-        createdAt: now,
+        message: `Patron ${customerName} ordered ${productSummary}. Total: ₨${grandTotal.toLocaleString()} [${paymentMethod.toUpperCase()}].`,
+        url: `/admin`,
+        targetUserId: 'all',
+        relatedId: orderId,
       });
     } catch (notifErr) {
       console.warn('Notification dispatch non-blocking error:', notifErr);

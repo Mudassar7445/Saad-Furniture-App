@@ -166,6 +166,14 @@ export async function PATCH(
     colourInfo,
     quantity,
     totalAmount,
+    customerName,
+    customerPhone,
+    customerEmail,
+    deliveryAddress,
+    discount,
+    deliveryCharges,
+    subtotal,
+    items,
   } = body;
 
   const now = new Date().toISOString();
@@ -176,6 +184,95 @@ export async function PATCH(
   let progressChanged = false;
   let deliveryChanged = false;
   let delayChanged = false;
+  let itemsUpdated = false;
+
+  if (customerName !== undefined) updates.customerName = customerName;
+  if (customerPhone !== undefined) updates.customerPhone = customerPhone;
+  if (customerEmail !== undefined) updates.customerEmail = customerEmail;
+  if (deliveryAddress !== undefined) updates.deliveryAddress = deliveryAddress;
+
+  // Multi-Item updates and financial recalculation
+  if (Array.isArray(items) && items.length > 0) {
+    itemsUpdated = true;
+    let calculatedSubtotal = 0;
+    const processedItems: Array<{
+      id: string;
+      orderId: string;
+      productId: string | null;
+      productTitle: string;
+      skuSnapshot: string;
+      quantity: number;
+      unit: string;
+      unitPrice: number;
+      discount: number;
+      totalPrice: number;
+      lineTotal: number;
+      customDetails?: string | null;
+      specifications?: string | null;
+      customizationDetails?: string | null;
+      createdAt: string;
+    }> = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const qty = Math.max(1, Number(it.quantity) || 1);
+      const price = Math.max(0, Number(it.unitPrice ?? it.price) || 0);
+      const itDisc = Math.max(0, Number(it.discount) || 0);
+      const lineTotal = Math.max(0, qty * price - itDisc);
+      calculatedSubtotal += lineTotal;
+
+      processedItems.push({
+        id: it.id && !it.id.startsWith('new_') && !it.id.startsWith('item_temp_')
+          ? it.id
+          : `item_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        orderId: id,
+        productId: it.productId || null,
+        productTitle: it.productTitle || it.title || it.name || 'Bespoke Furniture Piece',
+        skuSnapshot: it.skuSnapshot || it.sku || `SF-ITEM-${100 + i}`,
+        quantity: qty,
+        unit: it.unit || 'pcs',
+        unitPrice: price,
+        discount: itDisc,
+        totalPrice: lineTotal,
+        lineTotal,
+        customDetails: it.customDetails || null,
+        specifications: it.specifications
+          ? typeof it.specifications === 'string'
+            ? it.specifications
+            : JSON.stringify(it.specifications)
+          : null,
+        customizationDetails: it.customizationDetails || null,
+        createdAt: it.createdAt || now,
+      });
+    }
+
+    // Safely replace existing items
+    await db.delete(orderItems).where(eq(orderItems.orderId, id));
+    await db.insert(orderItems).values(processedItems);
+
+    const orderDiscount = discount !== undefined ? Math.max(0, Number(discount) || 0) : (order.discount || 0);
+    const orderDeliveryCharges = deliveryCharges !== undefined ? Math.max(0, Number(deliveryCharges) || 0) : (order.deliveryCharges || 0);
+    const calculatedGrandTotal = Math.max(0, calculatedSubtotal - orderDiscount + orderDeliveryCharges);
+
+    updates.subtotal = calculatedSubtotal;
+    updates.discount = orderDiscount;
+    updates.deliveryCharges = orderDeliveryCharges;
+    updates.totalAmount = calculatedGrandTotal;
+    updates.remainingBalance = Math.max(0, calculatedGrandTotal - (order.paidAmount || 0));
+
+    // Summary description and quantity
+    updates.productName =
+      processedItems.length === 1
+        ? processedItems[0].productTitle
+        : `${processedItems[0].productTitle} (+${processedItems.length - 1} other pieces)`;
+    updates.quantity = processedItems.reduce((acc, it) => acc + it.quantity, 0);
+  } else if (totalAmount !== undefined) {
+    updates.totalAmount = Number(totalAmount);
+    if (discount !== undefined) updates.discount = Number(discount);
+    if (deliveryCharges !== undefined) updates.deliveryCharges = Number(deliveryCharges);
+    if (subtotal !== undefined) updates.subtotal = Number(subtotal);
+    updates.remainingBalance = Math.max(0, Number(totalAmount) - (order.paidAmount || 0));
+  }
 
   if (orderStatus && orderStatus !== order.orderStatus) {
     updates.orderStatus = orderStatus;
@@ -363,6 +460,36 @@ export async function PATCH(
     });
   }
 
+  if (itemsUpdated) {
+    await db.insert(orderTimelineEvents).values({
+      id: `tl_${Date.now()}_items`,
+      orderId: id,
+      title: 'Order Items & Financial Breakdown Updated',
+      description: `Administration updated order line items and specifications. New commission total: PKR ${(updates.totalAmount as number || order.totalAmount)?.toLocaleString()}.`,
+      stage: (productionStage || order.productionStage) as string,
+      eventType: 'financial',
+      performedBy: `${sessionUser.name} (${sessionUser.role})`,
+      createdAt: now,
+    });
+
+    await fcmService.sendNotification({
+      userId: order.customerId,
+      title: `Order Specifications Updated: ${order.orderNumber}`,
+      message: `Your commission specifications and line items have been updated by administration.`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
+
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `🛋️ Saad Furniture: Order #${order.orderNumber}`,
+      message: `Your bespoke commission specifications have been updated. Tap to inspect.`,
+      url: `/orders/${id}`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
+  }
+
   // Audit log
   await db.insert(auditLogs).values({
     id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -375,6 +502,13 @@ export async function PATCH(
   });
 
   return NextResponse.json({ success: true, message: 'Order updated successfully.' });
+}
+
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  return PATCH(request, context);
 }
 
 export async function DELETE(

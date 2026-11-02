@@ -456,6 +456,21 @@ export async function POST(
       createdAt: now,
     });
 
+    // Notify customer
+    if (visibility !== 'private') {
+      try {
+        await sendWebPushNotification({
+          userId: order.customerId,
+          title: `📸 New Crafting Update — Order #${order.orderNumber}`,
+          message: `Artisan uploaded new ${mediaType} for stage [${stage}]. Tap to view.`,
+          url: `/orders/${id}`,
+          type: 'media_uploaded',
+          relatedOrderId: id,
+          category: 'orders',
+        });
+      } catch (e) {}
+    }
+
     return NextResponse.json({
       success: true,
       uploaded: [mediaRecord],

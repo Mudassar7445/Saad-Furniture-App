@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 import { db } from '../db';
-import { pushSubscriptions, notifications, notificationEvents, notificationPreferences } from '../db/schema';
+import { pushSubscriptions, notifications, notificationEvents, notificationPreferences, users } from '../db/schema';
 import { eq, and, lte, or, inArray } from 'drizzle-orm';
 
 // Production VAPID Keys for Saad Furniture PWA & Mobile Web Push
@@ -31,7 +31,7 @@ export interface QueueEventPayload {
   url?: string;
   icon?: string;
   badge?: string;
-  targetUserId?: string; // Specific user ID or 'all'
+  targetUserId?: string; // Specific customer ID, email, phone or 'all'
   relatedId?: string;
 }
 
@@ -74,7 +74,12 @@ export async function queueNotificationEvent(payload: QueueEventPayload) {
         userId: targetUser,
         title: payload.title,
         message: payload.message,
-        type: payload.type === 'new_product' || payload.type === 'product_update' ? 'product_update' : payload.type === 'workshop_update' ? 'media_uploaded' : 'order_update',
+        type:
+          payload.type === 'new_product' || payload.type === 'product_update'
+            ? 'product_update'
+            : payload.type === 'workshop_update'
+            ? 'media_uploaded'
+            : 'order_update',
         relatedOrderId: payload.relatedId || null,
         isRead: 0,
         createdAt: now,
@@ -136,27 +141,50 @@ export async function processPendingNotificationEvents(): Promise<{ processed: n
         // Query eligible push subscriptions
         let subs: any[] = [];
         if (evt.targetUserId !== 'all') {
+          // Robust Customer Identity Lookup: Match by ID, Email, or Phone
+          const targetIds: string[] = [evt.targetUserId];
+          try {
+            const [matchedUser] = await db
+              .select({ id: users.id, email: users.email, phone: users.phone })
+              .from(users)
+              .where(
+                or(
+                  eq(users.id, evt.targetUserId),
+                  eq(users.email, evt.targetUserId),
+                  eq(users.phone, evt.targetUserId)
+                )
+              )
+              .limit(1);
+
+            if (matchedUser) {
+              if (matchedUser.id) targetIds.push(matchedUser.id);
+              if (matchedUser.email) targetIds.push(matchedUser.email);
+              if (matchedUser.phone) targetIds.push(matchedUser.phone);
+            }
+          } catch {}
+
+          const uniqueTargetIds = Array.from(new Set(targetIds.filter(Boolean)));
+
           subs = await db
             .select()
             .from(pushSubscriptions)
-            .where(eq(pushSubscriptions.userId, evt.targetUserId));
+            .where(inArray(pushSubscriptions.userId, uniqueTargetIds));
         } else {
-          // All subscribers: Filter by category preference if configured
+          // All subscribers: Filter by category preference if customer opted out
           subs = await db.select().from(pushSubscriptions);
 
-          // Category filter check against notificationPreferences
           try {
             const prefs = await db.select().from(notificationPreferences);
             const optOutUserIds = new Set<string>();
 
             for (const p of prefs) {
-              if (evt.category === 'products' && (!p.newProducts || !p.productUpdates)) {
+              if (evt.category === 'products' && p.newProducts === 0 && p.productUpdates === 0) {
                 optOutUserIds.add(p.userId);
-              } else if (evt.category === 'workshop' && !p.workshopUpdates) {
+              } else if (evt.category === 'workshop' && p.workshopUpdates === 0) {
                 optOutUserIds.add(p.userId);
-              } else if (evt.category === 'orders' && !p.orderProgress) {
+              } else if (evt.category === 'orders' && p.orderProgress === 0) {
                 optOutUserIds.add(p.userId);
-              } else if (evt.category === 'announcements' && !p.announcements) {
+              } else if (evt.category === 'announcements' && p.announcements === 0) {
                 optOutUserIds.add(p.userId);
               }
             }
@@ -176,6 +204,9 @@ export async function processPendingNotificationEvents(): Promise<{ processed: n
               completedAt: new Date().toISOString(),
               sentCount: 0,
               failedCount: 0,
+              lastError: evt.targetUserId !== 'all'
+                ? `Customer (${evt.targetUserId}) has no active registered push devices.`
+                : 'No active push subscriptions found in database.',
             })
             .where(eq(notificationEvents.id, evt.id));
           continue;
@@ -218,7 +249,7 @@ export async function processPendingNotificationEvents(): Promise<{ processed: n
               });
               return true;
             } catch (pushErr: any) {
-              // Auto-prune dead/unregistered subscriptions (404 / 410)
+              // Auto-prune dead/expired subscriptions (404 / 410)
               if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
                 try {
                   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
@@ -244,7 +275,7 @@ export async function processPendingNotificationEvents(): Promise<{ processed: n
               sentCount: sent,
               failedCount: failed,
               completedAt: new Date().toISOString(),
-              lastError: failed > 0 ? `${failed} subscriptions unreachable` : null,
+              lastError: failed > 0 ? `${failed} subscriptions failed delivery` : null,
             })
             .where(eq(notificationEvents.id, evt.id));
         } else {
