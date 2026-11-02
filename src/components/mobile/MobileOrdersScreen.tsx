@@ -15,7 +15,6 @@ import {
   Layers,
   FileText,
   Calendar,
-  DollarSign,
   Tag,
   RefreshCw,
 } from 'lucide-react';
@@ -66,20 +65,19 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
   if (!currentUser) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center select-none animate-fadeIn">
-        <div className="w-16 h-16 rounded-2xl bg-[#262421] text-[#B99A68] flex items-center justify-center mb-4 shadow-inner border border-[#B99A68]/30">
+        <div className="w-16 h-16 rounded-2xl bg-[#171719] text-[#D6B36A] flex items-center justify-center mb-4 shadow-inner border border-[#D6B36A]/40">
           <Package className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-serif font-bold text-[#262421]">Patron Order Portfolio</h2>
-        <p className="text-xs text-[#89847C] mt-2 max-w-xs leading-relaxed">
-          Sign in to your private account to view real-time 11-stage workshop tracking, progress videos, and verified invoices.
+        <h2 className="text-xl font-serif font-bold text-white">Patron Order Portfolio</h2>
+        <p className="text-xs text-[#A5A5A5] mt-2 max-w-xs leading-relaxed">
+          Sign in to your private account to view real-time 16-stage workshop tracking, progress videos, and verified invoices.
         </p>
-        <Button
-          variant="dark"
+        <button
           onClick={onOpenAuth}
-          className="mt-6 w-full max-w-xs bg-[#1C1A18] hover:bg-black text-white font-serif font-bold rounded-xl h-11 text-xs shadow-md"
+          className="mt-6 w-full max-w-xs bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] font-serif font-black rounded-xl h-11 text-xs shadow-md active:scale-95 transition-all cursor-pointer"
         >
           Sign In to Access Orders
-        </Button>
+        </button>
       </div>
     );
   }
@@ -106,16 +104,19 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
   });
 
   return (
-    <div className="space-y-4 pb-20 select-none animate-fadeIn">
+    <div className="space-y-4 pb-20 select-none animate-fadeIn text-white">
       {/* Header & Subtitle */}
       <div className="flex items-center justify-between px-1 pt-1">
         <div>
-          <h1 className="text-xl font-serif font-bold text-[#262421]">My Orders & Commissions</h1>
-          <p className="text-xs text-[#89847C]">Track bespoke manufacturing and white-glove delivery</p>
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 bg-[#D6B36A] rounded-full inline-block" />
+            <h1 className="text-xl font-serif font-bold text-white">My Orders & Commissions</h1>
+          </div>
+          <p className="text-xs text-[#C5C5C5] pl-3 mt-0.5">Track bespoke manufacturing and white-glove delivery</p>
         </div>
         <button
           onClick={fetchOrders}
-          className="p-2 rounded-xl bg-white border border-[#EAE2D6] text-[#89847C] hover:text-[#262421]"
+          className="p-2 rounded-xl bg-[#171719] border border-[#2D2D30] text-[#C5C5C5] hover:text-white cursor-pointer active:scale-95 transition-transform"
           title="Refresh Orders"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -123,15 +124,15 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 p-1 bg-white rounded-2xl border border-[#EAE2D6] shadow-sm">
+      <div className="flex gap-2 p-1 bg-[#171719] rounded-2xl border border-[#2D2D30] shadow-sm">
         {(['all', 'active', 'completed', 'cancelled'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilterTab(tab)}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl capitalize transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-xl capitalize transition-all cursor-pointer ${
               filterTab === tab
-                ? 'bg-[#262421] text-[#B99A68] shadow-sm'
-                : 'text-[#89847C] hover:text-[#262421]'
+                ? 'bg-[#D6B36A] text-[#0B0B0D] shadow-sm font-black'
+                : 'text-[#A5A5A5] hover:text-white'
             }`}
           >
             {tab === 'all' ? `All (${orders.length})` : tab}
@@ -141,13 +142,13 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#89847C]" />
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A5A5A5]" />
         <input
           type="text"
           placeholder="Search by order #, piece name, or category..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white rounded-2xl border border-[#EAE2D6] text-xs text-[#292722] placeholder:text-[#89847C] focus:outline-none focus:border-[#B99A68] shadow-sm"
+          className="w-full pl-10 pr-4 py-2.5 bg-[#171719] rounded-2xl border border-[#2D2D30] text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A] shadow-sm"
         />
       </div>
 
@@ -155,25 +156,24 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-36 bg-white rounded-3xl border border-[#EAE2D6] animate-pulse" />
+            <div key={i} className="h-36 bg-[#222222] rounded-3xl border border-[#2D2D30] animate-pulse" />
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="p-8 text-center bg-white rounded-3xl border border-[#EAE2D6] shadow-sm space-y-3">
-          <Package className="w-12 h-12 mx-auto text-[#89847C] opacity-30" />
-          <p className="text-sm font-serif font-bold text-[#262421]">No orders found</p>
-          <p className="text-xs text-[#89847C] max-w-xs mx-auto">
+        <div className="p-8 text-center bg-[#222222] rounded-3xl border border-[#2D2D30] shadow-sm space-y-3">
+          <Package className="w-12 h-12 mx-auto text-[#D6B36A] opacity-40" />
+          <p className="text-sm font-serif font-bold text-white">No orders found</p>
+          <p className="text-xs text-[#A5A5A5] max-w-xs mx-auto">
             {filterTab !== 'all'
               ? `You currently do not have any ${filterTab} furniture orders.`
               : 'You haven’t commissioned any furniture pieces yet. Browse our handcrafted showroom masterpieces.'}
           </p>
-          <Button
-            variant="dark"
+          <button
             onClick={onExploreShop}
-            className="bg-[#1C1A18] hover:bg-black text-white text-xs font-bold rounded-xl h-10 px-5 shadow-sm"
+            className="bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] text-xs font-black rounded-xl h-10 px-5 shadow-sm active:scale-95 transition-all cursor-pointer"
           >
             Explore Showroom Catalog
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="space-y-3.5">
@@ -191,105 +191,82 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
               <div
                 key={order.id}
                 onClick={() => setSelectedOrder(order)}
-                className="bg-white p-4 rounded-3xl border border-[#EAE2D6] shadow-sm hover:border-[#B99A68] transition-all cursor-pointer space-y-3"
+                className="bg-[#222222] p-4 rounded-3xl border border-[#2D2D30] shadow-md hover:border-[#D6B36A]/60 transition-all cursor-pointer space-y-3"
               >
                 {/* Header row: Order ID, Type & Status */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#262421] text-[#B99A68]">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#171719] text-[#D6B36A] border border-[#2D2D30]">
                       #{order.orderNumber || order.id?.slice(0, 8).toUpperCase()}
                     </span>
-                    <span className="text-[10px] bg-[#F7F5F0] text-[#89847C] px-2 py-0.5 rounded-md font-semibold">
+                    <span className="text-[10px] text-[#A5A5A5] uppercase tracking-wider font-semibold">
                       {orderTypeLabel}
                     </span>
                   </div>
-                  <Badge
-                    variant="gold"
-                    className={`text-[10px] uppercase font-bold ${
+
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
                       isDelivered
-                        ? 'border-emerald-600 text-emerald-700 bg-emerald-50'
+                        ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                         : isCancelled
-                        ? 'border-red-500 text-red-600 bg-red-50'
-                        : 'border-[#B99A68] text-[#B99A68] bg-[#F7F5F0]'
+                        ? 'bg-rose-950/60 border-rose-500/40 text-rose-300'
+                        : 'bg-[#D6B36A]/20 border-[#D6B36A]/40 text-[#D6B36A]'
                     }`}
                   >
-                    {order.status || 'Manufacturing'}
-                  </Badge>
+                    {order.status || 'In Production'}
+                  </span>
                 </div>
 
-                {/* Main Product Info */}
-                <div className="flex gap-3">
-                  <div className="w-16 h-16 rounded-2xl bg-[#F7F5F0] overflow-hidden border border-[#EAE2D6] shrink-0">
-                    <img
-                      src={
-                        order.productImageUrl ||
-                        order.imageUrl ||
-                        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80'
-                      }
-                      alt={order.productName || 'Order'}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-serif font-bold text-[#262421] truncate">
-                      {order.productName || 'Artisanal Bespoke Order'}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[10px] text-[#89847C] mt-0.5">
-                      <span>{order.productCategory || 'Custom Furniture'}</span>
-                      <span>•</span>
-                      <span>
-                        {new Date(order.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                {/* Main Piece Title & Details */}
+                <div>
+                  <h3 className="font-serif font-bold text-sm text-white line-clamp-1">
+                    {order.productName || 'Bespoke Atelier Commission'}
+                  </h3>
+                  <div className="flex items-center gap-3 text-xs text-[#A5A5A5] mt-1">
+                    {order.productCategory && (
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-[#D6B36A]" /> {order.productCategory}
                       </span>
-                    </div>
-
-                    {/* Price, Paid, Balance Breakdown */}
-                    <div className="grid grid-cols-3 gap-1 mt-2 text-center bg-[#F7F5F0] p-1.5 rounded-xl border border-[#EAE2D6]">
-                      <div>
-                        <span className="text-[8px] text-[#89847C] uppercase font-bold block">Total</span>
-                        <span className="text-[11px] font-bold text-[#262421] font-serif">
-                          ₨{(order.totalAmount || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[8px] text-[#89847C] uppercase font-bold block">Paid</span>
-                        <span className="text-[11px] font-bold text-emerald-700 font-serif">
-                          ₨{(order.paidAmount || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[8px] text-[#89847C] uppercase font-bold block">Balance</span>
-                        <span
-                          className={`text-[11px] font-bold font-serif ${
-                            order.remainingBalance > 0 ? 'text-amber-700' : 'text-emerald-700'
-                          }`}
-                        >
-                          {order.remainingBalance > 0 ? `₨${order.remainingBalance.toLocaleString()}` : 'Paid'}
-                        </span>
-                      </div>
-                    </div>
+                    )}
+                    {order.woodType && (
+                      <span className="flex items-center gap-1">
+                        <Layers className="w-3 h-3 text-[#D6B36A]" /> {order.woodType}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Footer with delivery date & view details button */}
-                <div className="pt-2 border-t border-[#F7F5F0] flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] text-[#89847C]">
-                    <Calendar className="w-3.5 h-3.5 text-[#B99A68]" />
-                    <span>
-                      {order.expectedCompletionDate
-                        ? `Est: ${order.expectedCompletionDate}`
-                        : 'Workshop Active'}
+                {/* Progress bar indication */}
+                {!isCancelled && (
+                  <div className="space-y-1.5 pt-1 border-t border-[#2D2D30]">
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span className="text-[#C5C5C5] flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-[#D6B36A]" />
+                        <strong className="text-white capitalize">
+                          {order.productionStage?.replace(/_/g, ' ') || 'Wood Selection & Blueprint'}
+                        </strong>
+                      </span>
+                      <span className="text-[10px] text-[#A5A5A5]">16-Stage Atelier Tracking</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer: Date, Price & View Tracking */}
+                <div className="pt-2 border-t border-[#2D2D30] flex items-center justify-between">
+                  <div className="text-xs">
+                    <span className="text-[10px] text-[#A5A5A5] block">Total Contract</span>
+                    <span className="font-serif font-black text-[#D6B36A] text-sm">
+                      PKR {Number(order.totalAmount || 0).toLocaleString()}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#B99A68]">
-                    <span>View 11-Stage Progress</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs font-bold text-[#D6B36A] hover:underline"
+                  >
+                    <span>Track 16 Stages</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -297,7 +274,7 @@ export const MobileOrdersScreen: React.FC<MobileOrdersScreenProps> = ({
         </div>
       )}
 
-      {/* Tracking Modal Sheet */}
+      {/* Selected Order Detailed Tracking Sheet */}
       {selectedOrder && (
         <MobileOrderTrackingSheet
           order={selectedOrder}

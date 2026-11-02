@@ -473,7 +473,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#0b0d11] flex flex-col font-sans select-none antialiased transition-colors duration-200">
+    <div className="min-h-screen bg-[#0B0B0D] text-white flex flex-col font-sans select-none antialiased">
       {/* 1. Mobile Luxury Sticky Header */}
       <MobileTopBar
         currentUser={currentUser}
@@ -707,23 +707,23 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => setShowExitModal(false)}
         >
           <div
-            className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#131722] rounded-3xl p-6 text-center shadow-2xl border border-[#EAE2D6] dark:border-white/10 relative transform scale-100 transition-all"
+            className="w-full max-w-sm bg-[#171719] rounded-3xl p-6 text-center shadow-2xl border border-[#D6B36A]/40 relative transform scale-100 transition-all text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Saad Crest / Exit Icon */}
-            <div className="w-16 h-16 mx-auto rounded-full bg-[#B99A68]/15 text-[#B99A68] flex items-center justify-center mb-4 ring-8 ring-[#B99A68]/5">
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#D6B36A]/20 text-[#D6B36A] flex items-center justify-center mb-4 ring-8 ring-[#D6B36A]/5">
               <Sparkles className="w-8 h-8 stroke-[1.8]" />
             </div>
 
-            <h2 className="font-serif text-xl font-black text-[#262421] dark:text-[#F1F5F9] tracking-tight">
+            <h2 className="font-serif text-xl font-black text-white tracking-tight">
               Exit Saad Furniture?
             </h2>
 
-            <p className="text-xs text-[#89847C] dark:text-[#94A3B8] mt-2 mb-6 leading-relaxed">
+            <p className="text-xs text-[#C5C5C5] mt-2 mb-6 leading-relaxed">
               Are you sure you want to leave? Your luxury cart, custom selections and wishlist will be securely preserved.
             </p>
 
@@ -731,7 +731,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               <button
                 type="button"
                 onClick={() => setShowExitModal(false)}
-                className="w-full py-3.5 px-4 rounded-xl bg-[#262421] dark:bg-[#B99A68] text-[#F7F5F0] dark:text-[#131722] font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 rounded-xl bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] font-black text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 Stay in App
               </button>
@@ -739,7 +739,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmExit}
-                className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-[#89847C] dark:text-[#94A3B8] hover:text-rose-500 dark:hover:text-rose-400 active:scale-95 transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-[#A5A5A5] hover:text-rose-400 active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Exit App

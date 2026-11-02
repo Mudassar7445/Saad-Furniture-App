@@ -75,14 +75,36 @@ export async function GET(request: Request) {
     const parsedItems = items.map((item) => {
       let imageList: string[] = [];
       try {
-        imageList = JSON.parse(item.images || '[]');
+        if (Array.isArray(item.images)) {
+          imageList = item.images;
+        } else if (typeof item.images === 'string') {
+          const trimmed = item.images.trim();
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            imageList = JSON.parse(trimmed);
+          } else if (trimmed.includes(',')) {
+            imageList = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+          } else if (trimmed.startsWith('http')) {
+            imageList = [trimmed];
+          }
+        }
       } catch {
         imageList = [];
       }
-      const unitPrice = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.productPrice;
-      const primaryImg = (imageList && imageList.length > 0 && imageList[0])
-        ? imageList[0]
-        : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop';
+      if (imageList.length === 0 && typeof item.images === 'string' && item.images.startsWith('http')) {
+        imageList = [item.images.trim()];
+      }
+
+      const unitPrice =
+        item.discountPrice && Number(item.discountPrice) > 0
+          ? Number(item.discountPrice)
+          : (item.productPrice && Number(item.productPrice) > 0 ? Number(item.productPrice) : 0);
+
+      const primaryImg =
+        imageList && imageList.length > 0 && imageList[0]
+          ? imageList[0]
+          : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop';
+
+      const title = item.productTitle || 'Handcrafted Luxury Piece';
 
       return {
         ...item,
@@ -90,9 +112,9 @@ export async function GET(request: Request) {
         primaryImage: primaryImg,
         productImageUrl: primaryImg,
         image: primaryImg,
-        productTitle: item.productTitle,
-        productName: item.productTitle,
-        title: item.productTitle,
+        productTitle: title,
+        productName: title,
+        title: title,
         effectivePrice: unitPrice,
         unitPrice: unitPrice,
         price: unitPrice,

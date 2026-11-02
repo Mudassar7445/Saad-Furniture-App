@@ -279,14 +279,101 @@ export default function ShowroomHomePage() {
   };
 
   // Cart Operations
-  const handleAddToCart = async (opts: {
-    productId: string;
-    quantity: number;
-    selectedColour?: string;
-    selectedDesign?: string;
-    customNotes?: string;
-  }) => {
+  const handleAddToCart = async (itemOrOpts: any, maybeOptions?: any) => {
     try {
+      const productId =
+        itemOrOpts?.productId ||
+        maybeOptions?.productId ||
+        itemOrOpts?.id ||
+        maybeOptions?.id;
+
+      if (!productId) {
+        console.error('handleAddToCart called without valid product ID:', itemOrOpts, maybeOptions);
+        return;
+      }
+
+      const quantity = Math.max(1, Number(maybeOptions?.quantity || itemOrOpts?.quantity || 1));
+      const selectedColour = maybeOptions?.selectedColour || itemOrOpts?.selectedColour || itemOrOpts?.colour || 'Standard';
+      const selectedDesign = maybeOptions?.selectedDesign || itemOrOpts?.selectedDesign || itemOrOpts?.design || 'Classic';
+      const customNotes = maybeOptions?.customNotes || itemOrOpts?.customNotes;
+
+      // Instant optimistic state update for 0ms frame response
+      const matchedProd =
+        products.find((p) => p.id === productId) ||
+        (typeof itemOrOpts === 'object' && itemOrOpts.title ? itemOrOpts : null);
+
+      if (matchedProd) {
+        let pImages: string[] = [];
+        try {
+          if (Array.isArray(matchedProd.images)) pImages = matchedProd.images;
+          else if (typeof matchedProd.images === 'string') {
+            const trimmed = matchedProd.images.trim();
+            if (trimmed.startsWith('[') && trimmed.endsWith(']')) pImages = JSON.parse(trimmed);
+            else if (trimmed.includes(',')) pImages = trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+            else if (trimmed.startsWith('http')) pImages = [trimmed];
+          }
+        } catch {
+          pImages = typeof matchedProd.images === 'string' && matchedProd.images.startsWith('http') ? [matchedProd.images] : [];
+        }
+        if (matchedProd.featuredImage && !pImages.includes(matchedProd.featuredImage)) {
+          pImages.unshift(matchedProd.featuredImage);
+        }
+        const unitPrice =
+          matchedProd.discountPrice && Number(matchedProd.discountPrice) > 0
+            ? Number(matchedProd.discountPrice)
+            : Number(matchedProd.price || 0);
+
+        const pImg =
+          pImages[0] ||
+          matchedProd.primaryImage ||
+          matchedProd.image ||
+          'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop';
+
+        setCart((prev) => {
+          const existingIdx = prev.items.findIndex((i) => i.productId === productId);
+          let newItems = [...prev.items];
+          if (existingIdx >= 0) {
+            const cur = newItems[existingIdx];
+            const newQty = cur.quantity + quantity;
+            newItems[existingIdx] = {
+              ...cur,
+              quantity: newQty,
+              totalItemPrice: unitPrice * newQty,
+            };
+          } else {
+            newItems.push({
+              id: `item_${Date.now()}`,
+              productId,
+              productTitle: matchedProd.title || 'Handcrafted Luxury Piece',
+              productName: matchedProd.title || 'Handcrafted Luxury Piece',
+              title: matchedProd.title || 'Handcrafted Luxury Piece',
+              unitPrice,
+              price: unitPrice,
+              effectivePrice: unitPrice,
+              quantity,
+              totalItemPrice: unitPrice * quantity,
+              primaryImage: pImg,
+              productImageUrl: pImg,
+              image: pImg,
+              selectedColour,
+              selectedDesign,
+              customNotes,
+            });
+          }
+          const subtotal = newItems.reduce((s, i) => s + (i.totalItemPrice || 0), 0);
+          const totalCount = newItems.reduce((s, i) => s + (i.quantity || 0), 0);
+          const deliveryFee = subtotal > 50000 || subtotal === 0 ? 0 : 3000;
+          return {
+            ...prev,
+            items: newItems,
+            subtotal,
+            totalCount,
+            deliveryFee,
+            grandTotal: subtotal + deliveryFee,
+          };
+        });
+      }
+
       const sessionToken = getCartSessionToken();
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -294,29 +381,32 @@ export default function ShowroomHomePage() {
           'Content-Type': 'application/json',
           'x-cart-session': sessionToken,
         },
-        body: JSON.stringify({ ...opts, sessionToken }),
+        body: JSON.stringify({
+          productId,
+          quantity,
+          selectedColour,
+          selectedDesign,
+          customNotes,
+          sessionToken,
+        }),
       });
+
       if (res.ok) {
         const data = await res.json();
         if (data.sessionToken && typeof window !== 'undefined') {
           localStorage.setItem('saad_cart_session', data.sessionToken);
         }
         await fetchCart();
-        triggerToast('Item added to your shopping cart!');
+        triggerToast('Item added to your shopping bag!');
       }
     } catch (e) {
       console.error(e);
+      await fetchCart();
     }
   };
 
-  const handleBuyNow = async (opts: {
-    productId: string;
-    quantity: number;
-    selectedColour?: string;
-    selectedDesign?: string;
-    customNotes?: string;
-  }) => {
-    await handleAddToCart(opts);
+  const handleBuyNow = async (itemOrOpts: any, maybeOptions?: any) => {
+    await handleAddToCart(itemOrOpts, maybeOptions);
     setDetailProduct(null);
     setCheckoutModalOpen(true);
   };

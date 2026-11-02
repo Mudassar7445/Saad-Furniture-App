@@ -1,5 +1,5 @@
 // Service Worker for Saad Furniture PWA & Mobile Web Push Notifications
-const CACHE_NAME = 'saad-furniture-pwa-v8';
+const CACHE_NAME = 'saad-furniture-pwa-v10';
 
 // Core asset cache for instant 0ms offline experience
 const STATIC_ASSETS = [

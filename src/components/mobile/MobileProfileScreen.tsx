@@ -443,12 +443,12 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
       )}
 
       {/* 1. PROFILE HEADER CARD */}
-      <div className="bg-[#262421] p-5 rounded-3xl text-white shadow-md border border-[#B99A68]/30 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-44 h-44 bg-[#B99A68]/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-[#171719] p-5 rounded-3xl text-white shadow-xl border border-[#2D2D30] relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-44 h-44 bg-[#D6B36A]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#1C1A18] border border-[#B99A68]/50 flex items-center justify-center shrink-0 shadow-inner p-1">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#0B0B0D] border border-[#D6B36A]/50 flex items-center justify-center shrink-0 shadow-inner p-1">
               {currentUser.avatarUrl && !currentUser.avatarUrl.includes('placeholder') ? (
                 <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-full h-full object-cover rounded-xl" />
               ) : (
@@ -462,12 +462,12 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-serif font-bold text-white truncate">{currentUser.name}</h2>
-                <Badge className="bg-[#B99A68]/20 text-[#B99A68] border border-[#B99A68]/40 text-[9px] font-bold uppercase shrink-0">
+                <Badge className="bg-[#1D2B44] text-[#8BB4F8] border border-[#2E456E] text-[9px] font-bold uppercase shrink-0">
                   {isSuperAdmin ? 'Super Admin' : isStaff ? 'Staff' : 'Patron'}
                 </Badge>
               </div>
-              <p className="text-[11px] text-[#89847C] truncate mt-0.5">{currentUser.email}</p>
-              <div className="flex items-center gap-2 mt-1 text-[10px] text-[#B99A68] font-mono">
+              <p className="text-[11px] text-[#C5C5C5] truncate mt-0.5">{currentUser.email}</p>
+              <div className="flex items-center gap-2 mt-1 text-[10px] text-[#D6B36A] font-mono">
                 <span>ID: #{currentUser.id ? currentUser.id.slice(0, 8).toUpperCase() : 'VIP'}</span>
                 <span>•</span>
                 <span>Since {new Date(currentUser.createdAt || Date.now()).getFullYear()}</span>
@@ -477,7 +477,7 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
 
           <button
             onClick={() => setShowEditProfile(true)}
-            className="p-2 rounded-xl bg-white/10 hover:bg-[#B99A68] hover:text-[#262421] text-white transition-colors shrink-0"
+            className="p-2 rounded-xl bg-white/10 hover:bg-[#D6B36A] hover:text-[#0B0B0D] text-white transition-colors shrink-0 cursor-pointer"
             title="Edit Profile"
           >
             <Edit className="w-4 h-4" />
@@ -485,26 +485,27 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         </div>
 
         {/* 2. ACCOUNT OVERVIEW NUMBERS */}
-        <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-white/10 text-center relative z-10">
-          <div className="bg-white/5 p-2 rounded-xl">
-            <span className="text-[8px] text-[#89847C] block uppercase font-bold">Total Orders</span>
+        <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-[#2D2D30] text-center relative z-10">
+          <div className="bg-[#222222] border border-[#2D2D30] p-2 rounded-xl">
+            <span className="text-[8px] text-[#A5A5A5] block uppercase font-bold">Total Orders</span>
             <span className="text-xs font-bold text-white font-serif">{overview.totalOrders}</span>
           </div>
-          <div className="bg-white/5 p-2 rounded-xl">
-            <span className="text-[8px] text-[#89847C] block uppercase font-bold">Active</span>
-            <span className="text-xs font-bold text-[#B99A68] font-serif">{overview.activeOrders}</span>
+          <div className="bg-[#222222] border border-[#2D2D30] p-2 rounded-xl">
+            <span className="text-[8px] text-[#A5A5A5] block uppercase font-bold">Active</span>
+            <span className="text-xs font-bold text-[#D6B36A] font-serif">{overview.activeOrders}</span>
           </div>
-          <div className="bg-white/5 p-2 rounded-xl">
-            <span className="text-[8px] text-[#89847C] block uppercase font-bold">Total Spent</span>
+          <div className="bg-[#222222] border border-[#2D2D30] p-2 rounded-xl">
+            <span className="text-[8px] text-[#A5A5A5] block uppercase font-bold">Total Spent</span>
             <span className="text-xs font-bold text-white font-serif">
               ₨{((overview.totalPaid || 0) / 1000).toFixed(0)}k
             </span>
           </div>
-          <div className="bg-white/5 p-2 rounded-xl">
-            <span className="text-[8px] text-[#89847C] block uppercase font-bold">Balance</span>
+          <div className="bg-[#222222] border border-[#2D2D30] p-2 rounded-xl">
+            <span className="text-[8px] text-[#A5A5A5] block uppercase font-bold">Balance</span>
             <span
-              className={`text-xs font-bold font-serif ${overview.remainingBalance > 0 ? 'text-amber-400' : 'text-emerald-400'
-                }`}
+              className={`text-xs font-bold font-serif ${
+                overview.remainingBalance > 0 ? 'text-[#D6B36A]' : 'text-emerald-400'
+              }`}
             >
               {overview.remainingBalance > 0
                 ? `₨${((overview.remainingBalance || 0) / 1000).toFixed(0)}k`
@@ -518,30 +519,31 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
       {(isSuperAdmin || isStaff) && (
         <div
           onClick={() => router.push('/admin')}
-          className="bg-white p-3.5 rounded-2xl border-2 border-[#B99A68] shadow-sm flex items-center justify-between cursor-pointer hover:bg-[#F7F5F0] transition-colors"
+          className="bg-[#171719] p-3.5 rounded-2xl border-2 border-[#D6B36A] shadow-md flex items-center justify-between cursor-pointer hover:bg-[#222222] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#222222] text-[#D6B36A] flex items-center justify-center border border-[#2D2D30]">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-[#262421] font-serif">Super Admin Dashboard</h3>
-              <p className="text-[10px] text-[#89847C]">Open executive command center</p>
+              <h3 className="text-xs font-bold text-white font-serif">Super Admin Dashboard</h3>
+              <p className="text-[10px] text-[#C5C5C5]">Open executive command center</p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-[#B99A68]" />
+          <ChevronRight className="w-4 h-4 text-[#D6B36A]" />
         </div>
       )}
 
       {/* 2.5 TAB SWITCHER: PROFILE & BALANCE vs ADVANCED SETTINGS */}
-      <div className="flex bg-[#EAE2D6]/60 p-1 rounded-2xl border border-[#EAE2D6] shadow-sm">
+      <div className="flex bg-[#171719] p-1 rounded-2xl border border-[#2D2D30] shadow-sm">
         <button
           type="button"
           onClick={() => setProfileView('profile')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${profileView === 'profile'
-              ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
-              : 'text-[#89847C] hover:text-[#262421]'
-            }`}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            profileView === 'profile'
+              ? 'bg-[#222222] text-white border border-[#2D2D30] shadow-md'
+              : 'text-[#A5A5A5] hover:text-white'
+          }`}
         >
           <User className="w-3.5 h-3.5" />
           <span>Profile & Balance</span>
@@ -549,10 +551,11 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
         <button
           type="button"
           onClick={() => setProfileView('settings')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${profileView === 'settings'
-              ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
-              : 'text-[#89847C] hover:text-[#262421]'
-            }`}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            profileView === 'settings'
+              ? 'bg-[#222222] text-white border border-[#2D2D30] shadow-md'
+              : 'text-[#A5A5A5] hover:text-white'
+          }`}
         >
           <Settings className="w-3.5 h-3.5" />
           <span>Settings & App Lock 🔒</span>
@@ -569,54 +572,55 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
       ) : (
         <>
           {/* 3. CUSTOMER BALANCE & FINANCIAL DETAILS CARD */}
-          <div className="bg-white rounded-3xl border border-[#EAE2D6] p-4 shadow-sm space-y-3">
+          <div className="bg-[#171719] rounded-3xl border border-[#2D2D30] p-4 shadow-xl space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-[#F7F5F0] text-[#B99A68]">
+                <div className="p-2 rounded-xl bg-[#222222] text-[#D6B36A] border border-[#2D2D30]">
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#262421] uppercase tracking-wider font-serif">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-serif">
                     Account Balance & Ledger
                   </h3>
-                  <span className="text-[10px] text-[#89847C]">Verified Financial Statement</span>
+                  <span className="text-[10px] text-[#C5C5C5]">Verified Financial Statement</span>
                 </div>
               </div>
               {overview.remainingBalance === 0 ? (
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                <Badge className="bg-emerald-950/70 text-emerald-300 border-emerald-500/40 text-[10px] font-bold">
                   All Orders Paid
                 </Badge>
               ) : (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                <Badge className="bg-[#222222] text-[#D6B36A] border border-[#D6B36A]/40 text-[10px] font-bold">
                   Outstanding Balance
                 </Badge>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-                <span className="text-[10px] text-[#89847C] block font-medium">Total Orders Value</span>
-                <span className="text-sm font-bold text-[#262421] font-serif mt-0.5 block">
+              <div className="p-3 bg-[#222222] rounded-2xl border border-[#2D2D30]">
+                <span className="text-[10px] text-[#A5A5A5] block font-medium">Total Orders Value</span>
+                <span className="text-sm font-bold text-white font-serif mt-0.5 block">
                   ₨{(overview.totalOrderAmount || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-                <span className="text-[10px] text-[#89847C] block font-medium">Total Verified Payments</span>
-                <span className="text-sm font-bold text-emerald-700 font-serif mt-0.5 block">
+              <div className="p-3 bg-[#222222] rounded-2xl border border-[#2D2D30]">
+                <span className="text-[10px] text-[#A5A5A5] block font-medium">Total Verified Payments</span>
+                <span className="text-sm font-bold text-emerald-400 font-serif mt-0.5 block">
                   ₨{(overview.totalPaid || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-                <span className="text-[10px] text-[#89847C] block font-medium">Advance Deposits</span>
-                <span className="text-sm font-bold text-[#B99A68] font-serif mt-0.5 block">
+              <div className="p-3 bg-[#222222] rounded-2xl border border-[#2D2D30]">
+                <span className="text-[10px] text-[#A5A5A5] block font-medium">Advance Deposits</span>
+                <span className="text-sm font-bold text-[#D6B36A] font-serif mt-0.5 block">
                   ₨{(overview.advancePayments || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="p-3 bg-[#F7F5F0] rounded-2xl border border-[#EAE2D6]">
-                <span className="text-[10px] text-[#89847C] block font-medium">Remaining Due</span>
+              <div className="p-3 bg-[#222222] rounded-2xl border border-[#2D2D30]">
+                <span className="text-[10px] text-[#A5A5A5] block font-medium">Remaining Due</span>
                 <span
-                  className={`text-sm font-bold font-serif mt-0.5 block ${overview.remainingBalance > 0 ? 'text-amber-700' : 'text-emerald-700'
-                    }`}
+                  className={`text-sm font-bold font-serif mt-0.5 block ${
+                    overview.remainingBalance > 0 ? 'text-[#E5A862]' : 'text-emerald-400'
+                  }`}
                 >
                   {overview.remainingBalance > 0
                     ? `₨${overview.remainingBalance.toLocaleString()}`
@@ -627,29 +631,29 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
 
             {/* Payment History Accordion */}
             {payments.length > 0 && (
-              <div className="pt-2 border-t border-[#F7F5F0]">
+              <div className="pt-2 border-t border-[#2D2D30]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-[#262421]">Recent Verified Receipts</span>
-                  <span className="text-[10px] text-[#89847C]">{payments.length} Transaction(s)</span>
+                  <span className="text-[11px] font-bold text-white">Recent Verified Receipts</span>
+                  <span className="text-[10px] text-[#A5A5A5]">{payments.length} Transaction(s)</span>
                 </div>
                 <div className="space-y-2">
                   {payments.slice(0, 3).map((p: any) => (
                     <div
                       key={p.id}
-                      className="p-2.5 bg-[#F7F5F0] rounded-xl flex items-center justify-between text-xs border border-[#EAE2D6]"
+                      className="p-2.5 bg-[#222222] rounded-xl flex items-center justify-between text-xs border border-[#2D2D30]"
                     >
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-[#262421]">{p.paymentNumber}</span>
-                          <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.2 rounded">
+                          <span className="font-mono font-bold text-white">{p.paymentNumber}</span>
+                          <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.2 rounded">
                             {p.status}
                           </span>
                         </div>
-                        <span className="text-[10px] text-[#89847C] block mt-0.5">
+                        <span className="text-[10px] text-[#A5A5A5] block mt-0.5">
                           {p.paymentMethod} • {new Date(p.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <span className="font-bold text-[#262421] font-serif">
+                      <span className="font-bold text-white font-serif">
                         ₨{(p.amount || 0).toLocaleString()}
                       </span>
                     </div>
@@ -660,68 +664,68 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
           </div>
 
           {/* 4. COMPLETE PROFILE DASHBOARD SECTIONS */}
-          <div className="bg-white rounded-3xl border border-[#EAE2D6] divide-y divide-[#F7F5F0] shadow-sm overflow-hidden">
+          <div className="bg-[#171719] rounded-3xl border border-[#2D2D30] divide-y divide-[#2D2D30] shadow-xl overflow-hidden">
             {/* Section 1: Personal Information */}
             <button
               onClick={() => setShowEditProfile(true)}
-              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#222222] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-[#B99A68]" />
+                <User className="w-4 h-4 text-[#D6B36A]" />
                 <div>
-                  <span className="text-xs font-bold text-[#262421] block">Personal Information</span>
-                  <span className="text-[10px] text-[#89847C] block">
+                  <span className="text-xs font-bold text-white block">Personal Information</span>
+                  <span className="text-[10px] text-[#C5C5C5] block">
                     {currentUser.name} • {currentUser.phone || 'Add phone'}
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+              <ChevronRight className="w-4 h-4 text-[#A5A5A5]" />
             </button>
 
             {/* Section 2: My Orders */}
             <button
               onClick={onNavigateToOrders}
-              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#222222] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <Package className="w-4 h-4 text-[#B99A68]" />
+                <Package className="w-4 h-4 text-[#D6B36A]" />
                 <div>
-                  <span className="text-xs font-bold text-[#262421] block">My Orders & Live Tracking</span>
-                  <span className="text-[10px] text-[#89847C] block">
+                  <span className="text-xs font-bold text-white block">My Orders & Live Tracking</span>
+                  <span className="text-[10px] text-[#C5C5C5] block">
                     {overview.activeOrders} active commission(s) in workshop
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+              <ChevronRight className="w-4 h-4 text-[#A5A5A5]" />
             </button>
 
             {/* Section 3: Saved Delivery Addresses */}
             <div className="p-3.5 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-[#B99A68]" />
-                  <span className="text-xs font-bold text-[#262421]">Saved Delivery Addresses</span>
+                  <MapPin className="w-4 h-4 text-[#D6B36A]" />
+                  <span className="text-xs font-bold text-white">Saved Delivery Addresses</span>
                 </div>
                 <button
                   onClick={() => setShowAddAddress(true)}
-                  className="text-[11px] font-bold text-[#B99A68] flex items-center gap-1 hover:underline"
+                  className="text-[11px] font-bold text-[#D6B36A] flex items-center gap-1 hover:underline cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add New</span>
                 </button>
               </div>
               <div className="pl-7 space-y-1.5">
-                <div className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]">
+                <div className="p-2.5 bg-[#222222] rounded-xl text-xs flex items-center justify-between border border-[#2D2D30]">
                   <div className="min-w-0 pr-2">
-                    <span className="font-bold text-[#262421] block text-[11px]">Primary Address</span>
-                    <span className="text-[10px] text-[#89847C] block truncate">
+                    <span className="font-bold text-white block text-[11px]">Primary Address</span>
+                    <span className="text-[10px] text-[#C5C5C5] block truncate">
                       {currentUser.address || 'No primary address configured'}
                       {currentUser.city ? `, ${currentUser.city}` : ''}
                     </span>
                   </div>
                   <button
                     onClick={() => setShowEditProfile(true)}
-                    className="text-[10px] font-bold text-[#B99A68] shrink-0"
+                    className="text-[10px] font-bold text-[#D6B36A] shrink-0 cursor-pointer"
                   >
                     Edit
                   </button>
@@ -729,17 +733,17 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
                 {addresses.map((addr: any) => (
                   <div
                     key={addr.id}
-                    className="p-2.5 bg-[#F7F5F0] rounded-xl text-xs flex items-center justify-between border border-[#EAE2D6]"
+                    className="p-2.5 bg-[#222222] rounded-xl text-xs flex items-center justify-between border border-[#2D2D30]"
                   >
                     <div className="min-w-0 pr-2">
-                      <span className="font-bold text-[#262421] block text-[11px]">{addr.label || 'Address'}</span>
-                      <span className="text-[10px] text-[#89847C] block truncate">
+                      <span className="font-bold text-white block text-[11px]">{addr.label || 'Address'}</span>
+                      <span className="text-[10px] text-[#C5C5C5] block truncate">
                         {addr.addressLine}, {addr.city}
                       </span>
                     </div>
                     <button
                       onClick={() => handleDeleteAddress(addr.id)}
-                      className="text-slate-400 hover:text-red-500 p-1"
+                      className="text-[#A5A5A5] hover:text-red-400 p-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -751,66 +755,66 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
             {/* Section 4: Saved Wishlist */}
             <button
               onClick={onNavigateToWishlist}
-              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#222222] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <Heart className="w-4 h-4 text-[#B99A68]" />
+                <Heart className="w-4 h-4 text-[#D6B36A]" />
                 <div>
-                  <span className="text-xs font-bold text-[#262421] block">Saved Wishlist</span>
-                  <span className="text-[10px] text-[#89847C] block">
+                  <span className="text-xs font-bold text-white block">Saved Wishlist</span>
+                  <span className="text-[10px] text-[#C5C5C5] block">
                     {overview.wishlistCount || 0} saved masterpiece(s)
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+              <ChevronRight className="w-4 h-4 text-[#A5A5A5]" />
             </button>
 
             {/* Section 5: Showroom Catalogues & Documents */}
             {onNavigateToDocuments && (
               <button
                 onClick={onNavigateToDocuments}
-                className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+                className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#222222] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-[#B99A68]" />
+                  <FileText className="w-4 h-4 text-[#D6B36A]" />
                   <div>
-                    <span className="text-xs font-bold text-[#262421] block">
+                    <span className="text-xs font-bold text-white block">
                       Catalogues & Digital Library
                     </span>
-                    <span className="text-[10px] text-[#89847C] block">
+                    <span className="text-[10px] text-[#C5C5C5] block">
                       Official 2026 furniture collections & warranty cards
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#89847C]" />
+                <ChevronRight className="w-4 h-4 text-[#A5A5A5]" />
               </button>
             )}
 
-            {/* Section 6: Change Password / Settings */}
+            {/* Section 6: Security, PIN & App Lock */}
             <button
               onClick={() => setProfileView('settings')}
-              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#F7F5F0] transition-colors"
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[#222222] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <Lock className="w-4 h-4 text-[#B99A68]" />
+                <Lock className="w-4 h-4 text-[#D6B36A]" />
                 <div>
-                  <span className="text-xs font-bold text-[#262421] block">Security, PIN & App Lock</span>
-                  <span className="text-[10px] text-[#89847C] block">Configure Biometrics, PIN & Password</span>
+                  <span className="text-xs font-bold text-white block">Security, PIN & App Lock</span>
+                  <span className="text-[10px] text-[#C5C5C5] block">Configure Biometrics, PIN & Password</span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#89847C]" />
+              <ChevronRight className="w-4 h-4 text-[#A5A5A5]" />
             </button>
 
             {/* PWA App Installation Card */}
-            <div className="p-3.5 m-2 rounded-2xl bg-white dark:bg-[#1a1e27] border border-[#EAE2D6] dark:border-white/10 shadow-sm space-y-2">
+            <div className="p-3.5 m-2 rounded-2xl bg-[#222222] border border-[#2D2D30] shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#B99A68]/15 text-[#B99A68] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-[#D6B36A]/15 text-[#D6B36A] flex items-center justify-center">
                     <Smartphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-[#1C1A18] dark:text-white block">Install Saad Furniture App</span>
-                    <span className="text-[10px] text-[#89847C] dark:text-slate-400 block">Home screen icon, offline catalog & alerts</span>
+                    <span className="text-xs font-bold text-white block">Install Saad Furniture App</span>
+                    <span className="text-[10px] text-[#A5A5A5] block">Home screen icon, offline catalog & alerts</span>
                   </div>
                 </div>
                 <button
@@ -822,7 +826,7 @@ export const MobileProfileScreen: React.FC<MobileProfileScreenProps> = ({
                       alert('To install, tap your browser menu (⋮) and select "Add to Home Screen".');
                     }
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-[#B99A68] text-[#0B0D11] text-xs font-bold hover:brightness-105 active:scale-95 transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-[#D6B36A] text-[#0B0B0D] text-xs font-bold hover:brightness-105 active:scale-95 transition-all shadow-xs flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Install</span>

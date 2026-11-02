@@ -103,26 +103,26 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: 1 })));
       if (onUpdateUnreadCount) onUpdateUnreadCount(0);
     } catch (err) {
-      console.error('Failed to mark notifications read', err);
+      console.error('Failed to mark all notifications read', err);
     }
   };
 
   if (!currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#EAE2D6]/50 flex items-center justify-center mb-4 text-[#B99A68]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center select-none animate-fadeIn text-white">
+        <div className="w-16 h-16 rounded-2xl bg-[#171719] text-[#D6B36A] flex items-center justify-center mb-4 shadow-inner border border-[#D6B36A]/40">
           <Bell className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-serif font-bold text-[#262421]">Patron Notifications</h2>
-        <p className="text-xs text-[#89847C] mt-2 max-w-xs leading-relaxed">
-          Sign in to receive instant manufacturing stage alerts, uploaded workshop media, and delivery notifications.
+        <h2 className="text-xl font-serif font-bold text-white">Patron Notification Hub</h2>
+        <p className="text-xs text-[#A5A5A5] mt-2 max-w-xs leading-relaxed">
+          Sign in to receive instant verified updates on your bespoke manufacturing progress, workshop videos, and receipts.
         </p>
-        <Button
+        <button
           onClick={onOpenAuth}
-          className="mt-6 w-full max-w-xs bg-[#262421] text-[#B99A68] hover:bg-[#B99A68] hover:text-white font-serif font-bold rounded-xl h-11"
+          className="mt-6 w-full max-w-xs bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] font-serif font-black rounded-xl h-11 text-xs shadow-md active:scale-95 transition-all cursor-pointer"
         >
           Sign In
-        </Button>
+        </button>
       </div>
     );
   }
@@ -141,19 +141,22 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20 select-none animate-fadeIn text-white">
       {/* Top Header */}
       <div className="flex items-center justify-between px-1 pt-1">
         <div>
-          <h1 className="text-xl font-serif font-bold text-[#262421]">Notifications</h1>
-          <p className="text-xs text-[#89847C]">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 bg-[#D6B36A] rounded-full inline-block" />
+            <h1 className="text-xl font-serif font-bold text-white">Notifications</h1>
+          </div>
+          <p className="text-xs text-[#C5C5C5] pl-3 mt-0.5">
             {unreadCount > 0 ? `${unreadCount} unread updates` : 'All caught up'}
           </p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="text-xs font-bold text-[#B99A68] hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-[#D6B36A] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
             Mark all read
@@ -173,10 +176,10 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
           <button
             key={chip.id}
             onClick={() => setActiveCategory(chip.id as any)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
               activeCategory === chip.id
-                ? 'bg-[#262421] text-[#B99A68] border-[#262421]'
-                : 'bg-white text-[#89847C] border-[#EAE2D6]'
+                ? 'bg-[#D6B36A] text-[#0B0B0D] border-[#D6B36A] font-black'
+                : 'bg-[#171719] text-[#C5C5C5] border-[#2D2D30] hover:text-white'
             }`}
           >
             {chip.label}
@@ -188,14 +191,14 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-white rounded-2xl border border-[#EAE2D6] animate-pulse" />
+            <div key={i} className="h-20 bg-[#222222] rounded-2xl border border-[#2D2D30] animate-pulse" />
           ))}
         </div>
       ) : filteredNotifications.length === 0 ? (
-        <div className="p-8 text-center bg-white rounded-2xl border border-[#EAE2D6] shadow-sm">
-          <Bell className="w-10 h-10 mx-auto text-[#89847C] opacity-40 mb-2" />
-          <p className="text-sm font-serif font-bold text-[#262421]">No notifications</p>
-          <p className="text-xs text-[#89847C] mt-1">
+        <div className="p-8 text-center bg-[#222222] rounded-2xl border border-[#2D2D30] shadow-sm">
+          <Bell className="w-10 h-10 mx-auto text-[#D6B36A] opacity-40 mb-2" />
+          <p className="text-sm font-serif font-bold text-white">No notifications</p>
+          <p className="text-xs text-[#A5A5A5] mt-1">
             You don't have any notifications in this section.
           </p>
         </div>
@@ -214,39 +217,41 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
                 }}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex gap-3 items-start ${
                   n.isRead
-                    ? 'bg-white border-[#EAE2D6]'
-                    : 'bg-[#F7F5F0] border-[#B99A68]/50 shadow-sm'
+                    ? 'bg-[#222222] border-[#2D2D30] hover:border-[#D6B36A]/40'
+                    : 'bg-[#171719] border-[#D6B36A]/60 shadow-md ring-1 ring-[#D6B36A]/20'
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                     isMedia
-                      ? 'bg-purple-50 text-purple-600'
+                      ? 'bg-purple-950/60 border border-purple-500/30 text-purple-300'
                       : isDelivery
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-[#262421] text-[#B99A68]'
+                      ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-300'
+                      : 'bg-[#171719] border border-[#D6B36A]/40 text-[#D6B36A]'
                   }`}
                 >
                   {isMedia ? (
-                    <ImageIcon className="w-5 h-5" />
+                    <ImageIcon className="w-4 h-4" />
                   ) : isDelivery ? (
-                    <Truck className="w-5 h-5" />
+                    <Truck className="w-4 h-4" />
                   ) : (
-                    <Package className="w-5 h-5" />
+                    <Package className="w-4 h-4" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-[#262421] truncate">{n.title || 'Workshop Update'}</h4>
-                    <span className="text-[10px] text-[#89847C] shrink-0">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h4 className="text-xs font-bold text-white line-clamp-1">{n.title}</h4>
+                    <span className="text-[10px] text-[#A5A5A5] shrink-0 font-mono">
+                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'Recent'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#89847C] mt-0.5 line-clamp-2 leading-relaxed">
-                    {n.message || n.content || 'Your bespoke furniture production has an update.'}
+                  <p className="text-xs text-[#C5C5C5] mt-0.5 line-clamp-2 leading-relaxed">
+                    {n.message}
                   </p>
                 </div>
+
+                <ChevronRight className="w-4 h-4 text-[#A5A5A5] self-center shrink-0" />
               </div>
             );
           })}
@@ -255,4 +260,3 @@ export const MobileNotificationsScreen: React.FC<MobileNotificationsScreenProps>
     </div>
   );
 };
-

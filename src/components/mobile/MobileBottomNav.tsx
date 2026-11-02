@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Home, ShoppingBag, Film, Clock, User } from 'lucide-react';
 
 export type MobileTab = 'home' | 'shop' | 'workshop' | 'orders' | 'notifications' | 'profile' | 'documents';
@@ -20,14 +20,13 @@ const NAV_ITEMS = [
   { id: 'profile' as MobileTab, label: 'Profile', icon: User, isProfile: true },
 ];
 
-const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   activeTab,
   onChangeTab,
   unreadNotificationsCount = 0,
   cartCount = 0,
 }) => {
   const handleTabClick = (tabId: MobileTab) => {
-    // Subtle haptic feedback on supported Android devices
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(6);
@@ -46,7 +45,7 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
     <nav
       role="navigation"
       aria-label="Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#131722] border-t border-[#EAE2D6] dark:border-white/10 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.6)] md:hidden select-none box-border"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0B0D] border-t border-[#2D2D30] shadow-[0_-4px_24px_rgba(0,0,0,0.8)] md:hidden select-none box-border"
       style={{
         boxSizing: 'border-box',
         transform: 'translateZ(0)',
@@ -74,25 +73,25 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
                 <Icon
                   className={`w-5 h-5 stroke-[2] transition-colors duration-150 ${
                     isActive
-                      ? 'text-[#B99A68] dark:text-[#E5CAA2]'
-                      : 'text-[#89847C] dark:text-[#94A3B8] group-hover:text-stone-900 dark:group-hover:text-white'
+                      ? 'text-[#D6B36A]'
+                      : 'text-[#A5A5A5] group-hover:text-white'
                   }`}
                 />
 
-                {/* Fixed Stationary Badge */}
+                {/* Badge */}
                 {badgeCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[15px] h-3.5 px-1 rounded-full bg-[#B99A68] text-[#131722] text-[8px] font-black flex items-center justify-center border border-white dark:border-[#131722] shadow-xs pointer-events-none">
+                  <span className="absolute -top-1 -right-2 min-w-[15px] h-3.5 px-1 rounded-full bg-[#D6B36A] text-[#0B0B0D] text-[8px] font-black flex items-center justify-center border border-[#0B0B0D] shadow-xs pointer-events-none">
                     {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
               </div>
 
-              {/* Stationary Text Label */}
+              {/* Text Label */}
               <span
                 className={`text-[10.5px] tracking-tight mt-1 transition-colors duration-150 leading-tight block text-center truncate w-full px-0.5 ${
                   isActive
-                    ? 'text-[#B99A68] dark:text-[#E5CAA2] font-bold'
-                    : 'text-[#89847C] dark:text-[#94A3B8] font-medium group-hover:text-stone-900 dark:group-hover:text-white'
+                    ? 'text-[#D6B36A] font-bold'
+                    : 'text-[#A5A5A5] font-medium group-hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -104,5 +103,3 @@ const MobileBottomNavComponent: React.FC<MobileBottomNavProps> = ({
     </nav>
   );
 };
-
-export const MobileBottomNav = memo(MobileBottomNavComponent);

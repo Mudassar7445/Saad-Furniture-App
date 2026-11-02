@@ -95,21 +95,21 @@ export const MobileDocumentsScreen: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 pb-20 select-none animate-fadeIn">
+    <div className="space-y-4 pb-20 select-none animate-fadeIn text-white">
       {/* Luxury Header Banner */}
-      <div className="bg-[#262421] rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-48 h-48 bg-[#B99A68]/15 rounded-full blur-2xl pointer-events-none" />
+      <div className="bg-[#171719] border border-[#2D2D30] rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-48 h-48 bg-[#D6B36A]/10 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#B99A68] flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#D6B36A] flex items-center gap-1">
+              <Sparkles className="w-3 h-3 fill-current" />
               Saad Furniture Cloud Library
             </span>
           </div>
           <h2 className="text-lg font-serif font-bold text-white tracking-wide">
             Catalogues & Craft Media
           </h2>
-          <p className="text-xs text-[#89847C] mt-1 leading-relaxed">
+          <p className="text-xs text-[#C5C5C5] mt-1 leading-relaxed">
             Instant access to bespoke craftsmanship videos, 2026 furniture collections, and verified certificates.
           </p>
         </div>
@@ -117,13 +117,13 @@ export const MobileDocumentsScreen: React.FC = () => {
 
       {/* Search Input */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#89847C]" />
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A5A5A5]" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search videos, catalogues, or blueprints..."
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#EAE2D6] rounded-2xl text-xs text-[#292722] placeholder-[#89847C] focus:border-[#B99A68] outline-none shadow-sm"
+          className="w-full pl-10 pr-4 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-2xl text-xs text-white placeholder-[#A5A5A5] focus:border-[#D6B36A] outline-none shadow-sm"
         />
       </div>
 
@@ -135,10 +135,10 @@ export const MobileDocumentsScreen: React.FC = () => {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all border ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                 isActive
-                  ? 'bg-[#1C1A18] text-white border-[#1C1A18] font-bold shadow-sm'
-                  : 'bg-white text-[#89847C] border-[#EAE2D6] hover:text-[#262421]'
+                  ? 'bg-[#D6B36A] text-[#0B0B0D] border-[#D6B36A] shadow-sm font-black'
+                  : 'bg-[#171719] text-[#C5C5C5] border-[#2D2D30] hover:text-white'
               }`}
             >
               {cat.label}
@@ -149,17 +149,17 @@ export const MobileDocumentsScreen: React.FC = () => {
 
       {/* Content Gallery / List */}
       {loading ? (
-        <div className="py-12 text-center text-[#89847C] space-y-2">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#B99A68]" />
+        <div className="py-12 text-center text-[#A5A5A5] space-y-2">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#D6B36A]" />
           <p className="text-xs">Opening cloud library...</p>
         </div>
       ) : filteredDocs.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-[#EAE2D6] p-8 text-center space-y-3 shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#F7F5F0] text-[#B99A68] flex items-center justify-center mx-auto">
+        <div className="bg-[#222222] rounded-3xl border border-[#2D2D30] p-8 text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-[#171719] text-[#D6B36A] flex items-center justify-center mx-auto">
             <FolderOpen className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-serif font-bold text-[#262421]">No documents or media found</h3>
-          <p className="text-xs text-[#89847C] max-w-xs mx-auto">
+          <h3 className="text-sm font-serif font-bold text-white">No documents or media found</h3>
+          <p className="text-xs text-[#A5A5A5] max-w-xs mx-auto">
             Craftsmanship videos and luxury catalogues will appear here once published by the showroom manager.
           </p>
         </div>
@@ -177,9 +177,9 @@ export const MobileDocumentsScreen: React.FC = () => {
                 <div
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
-                  className="bg-white rounded-2xl border border-[#EAE2D6] overflow-hidden shadow-sm hover:border-[#B99A68]/60 transition-all cursor-pointer group"
+                  className="bg-[#222222] rounded-2xl border border-[#2D2D30] overflow-hidden shadow-md hover:border-[#D6B36A]/60 transition-all cursor-pointer group"
                 >
-                  <div className="relative aspect-video bg-[#1C1A18] overflow-hidden">
+                  <div className="relative aspect-video bg-[#171719] overflow-hidden">
                     <img
                       src={safeThumb}
                       alt={displayName}
@@ -193,19 +193,19 @@ export const MobileDocumentsScreen: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#B99A68] text-slate-950 shadow">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#D6B36A] text-[#0B0B0D] shadow">
                           Craft Video
                         </span>
                         {doc.videoDuration && (
                           <span className="text-[10px] text-white/90 bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-[#B99A68]" />
+                            <Clock className="w-3 h-3 text-[#D6B36A]" />
                             {Math.round(doc.videoDuration)}s
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-full bg-[#D6B36A] text-[#0B0B0D] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                           <Play className="w-5 h-5 fill-current ml-0.5" />
                         </div>
                       </div>
@@ -214,9 +214,9 @@ export const MobileDocumentsScreen: React.FC = () => {
                         <h4 className="text-xs font-bold text-white truncate drop-shadow">
                           {displayName}
                         </h4>
-                        <div className="flex items-center justify-between text-[10px] text-slate-300 mt-0.5">
+                        <div className="flex items-center justify-between text-[10px] text-[#C5C5C5] mt-0.5">
                           <span>{doc.description || 'Tap to stream 4K atelier craftsmanship video'}</span>
-                          <span className="font-mono text-[#B99A68] font-bold">
+                          <span className="font-mono text-[#D6B36A] font-bold">
                             {formatFileSize(doc.fileSize)}
                           </span>
                         </div>
@@ -231,13 +231,13 @@ export const MobileDocumentsScreen: React.FC = () => {
             return (
               <div
                 key={doc.id}
-                className="bg-white rounded-2xl border border-[#EAE2D6] p-3.5 shadow-sm hover:border-[#B99A68]/50 transition-all flex items-center justify-between gap-3 group"
+                className="bg-[#222222] rounded-2xl border border-[#2D2D30] p-3.5 shadow-sm hover:border-[#D6B36A]/50 transition-all flex items-center justify-between gap-3 group"
               >
                 <div
                   onClick={() => setSelectedDoc(doc)}
                   className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#262421] text-[#B99A68] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden relative">
+                  <div className="w-12 h-12 rounded-xl bg-[#171719] text-[#D6B36A] border border-[#2D2D30] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden relative">
                     {isPhoto ? (
                       <img
                         src={doc.thumbnailUrl || `/api/media/image/${doc.id}`}
@@ -252,18 +252,18 @@ export const MobileDocumentsScreen: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#B99A68] bg-[#F7F5F0] px-1.5 py-0.5 rounded">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#D6B36A] bg-[#171719] border border-[#2D2D30] px-1.5 py-0.5 rounded">
                         {doc.category || 'Catalogue'}
                       </span>
-                      <span className="text-[10px] text-[#89847C]">
+                      <span className="text-[10px] text-[#A5A5A5]">
                         {formatFileSize(doc.fileSize)}
                       </span>
                     </div>
-                    <h4 className="text-xs font-bold text-[#262421] truncate font-serif">
+                    <h4 className="text-xs font-bold text-white truncate font-serif">
                       {displayName}
                     </h4>
                     {doc.description && (
-                      <p className="text-[10px] text-[#89847C] truncate mt-0.5">
+                      <p className="text-[10px] text-[#C5C5C5] truncate mt-0.5">
                         {doc.description}
                       </p>
                     )}
@@ -271,19 +271,18 @@ export const MobileDocumentsScreen: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Button
-                    variant="dark"
+                  <button
                     onClick={() => setSelectedDoc(doc)}
-                    className="bg-[#1C1A18] text-white hover:bg-black rounded-xl text-xs font-bold px-3 py-1.5 h-8 flex items-center gap-1 shadow-sm"
+                    className="bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] rounded-xl text-xs font-black px-3 py-1.5 h-8 flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
                   >
-                    <Eye className="w-3.5 h-3.5 text-[#E5CAA2]" />
+                    <Eye className="w-3.5 h-3.5" />
                     <span>View</span>
-                  </Button>
+                  </button>
                   {doc.downloadAllowed !== false && (
                     <a
                       href={`/api/library/stream/${doc.id}`}
                       download={doc.fileName || doc.name}
-                      className="p-1.5 rounded-xl border border-[#EAE2D6] text-[#89847C] hover:text-[#262421] hover:bg-[#F7F5F0] transition-colors"
+                      className="p-1.5 rounded-xl border border-[#2D2D30] bg-[#171719] text-[#C5C5C5] hover:text-white hover:border-[#D6B36A] transition-colors"
                       title="Download Copy"
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -296,7 +295,7 @@ export const MobileDocumentsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* IN-APP DOCUMENT & VIDEO VIEWER (206 Stream on explicit user request) */}
+      {/* IN-APP DOCUMENT & VIDEO VIEWER */}
       <InAppDocumentViewer
         document={selectedDoc}
         isOpen={!!selectedDoc}

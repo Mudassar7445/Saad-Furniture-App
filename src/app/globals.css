@@ -2,53 +2,57 @@
 
 @layer base {
   :root {
-    --bg-app: #F7F5F0;
-    --card-surface: #FFFFFF;
-    --primary-espresso: #262421;
-    --accent-gold: #B99A68;
-    --secondary-linen: #EAE2D6;
-    --border-color: #EAE2D6;
-    --text-primary: #1C1A18;
-    --text-secondary: #5A554E;
-    --text-muted: #89847C;
-    --input-bg: #FFFFFF;
-    --input-text: #1C1A18;
-    --input-border: #D8D0C5;
-    --input-placeholder: #89847C;
+    --bg-app: #0B0B0D;
+    --bg-secondary: #171719;
+    --card-surface: #222222;
+    --primary-espresso: #171719;
+    --accent-gold: #D6B36A;
+    --secondary-linen: #222222;
+    --border-color: #2D2D30;
+    --border-gold: rgba(214, 179, 106, 0.35);
+    --text-primary: #FFFFFF;
+    --text-secondary: #C5C5C5;
+    --text-muted: #A5A5A5;
+    --input-bg: #171719;
+    --input-text: #FFFFFF;
+    --input-border: #2D2D30;
+    --input-placeholder: #A5A5A5;
   }
 
   .dark {
-    --bg-app: #0b0d11;
-    --card-surface: #141822;
-    --primary-espresso: #1a1e27;
-    --accent-gold: #e5caa2;
-    --secondary-linen: #222734;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --text-primary: #F1F5F9;
-    --text-secondary: #CBD5E1;
-    --text-muted: #94A3B8;
-    --input-bg: #131722;
-    --input-text: #F1F5F9;
-    --input-border: rgba(255, 255, 255, 0.16);
-    --input-placeholder: #94A3B8;
+    --bg-app: #0B0B0D;
+    --bg-secondary: #171719;
+    --card-surface: #222222;
+    --primary-espresso: #171719;
+    --accent-gold: #D6B36A;
+    --secondary-linen: #222222;
+    --border-color: #2D2D30;
+    --border-gold: rgba(214, 179, 106, 0.35);
+    --text-primary: #FFFFFF;
+    --text-secondary: #C5C5C5;
+    --text-muted: #A5A5A5;
+    --input-bg: #171719;
+    --input-text: #FFFFFF;
+    --input-border: #2D2D30;
+    --input-placeholder: #A5A5A5;
   }
 }
 
 html {
   height: 100%;
   -webkit-text-size-adjust: 100%;
+  background-color: #0B0B0D;
+  color: #FFFFFF;
 }
 
 body {
   min-height: 100%;
-  background-color: var(--bg-app);
-  color: var(--text-primary);
+  background-color: #0B0B0D;
+  color: #FFFFFF;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* overflow-x: clip avoids establishing a scroll container on body that breaks fixed positioning */
   overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* RTL Layout Enhancements for Urdu */
@@ -62,7 +66,7 @@ body {
   text-align: left;
 }
 
-/* Global Form Elements Readability in Both Themes */
+/* Global Form Elements Readability */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
@@ -74,62 +78,63 @@ select {
 input::placeholder,
 textarea::placeholder {
   color: var(--input-placeholder);
-  opacity: 0.85;
-}
-
-.dark input:not([type="checkbox"]):not([type="radio"]),
-.dark textarea,
-.dark select {
-  background-color: #131722 !important;
-  color: #F1F5F9 !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #94A3B8 !important;
   opacity: 0.9;
 }
 
-/* Dark Mode Global Seamless Adaptations */
-.dark body {
-  background-color: #0b0d11;
-  color: #F1F5F9;
-}
-
+/* Global Surface & Contrast Normalizers for Saad Luxury Design System */
+.bg-\[\#F7F5F0\],
 .dark .bg-\[\#F7F5F0\] {
-  background-color: #0b0d11 !important;
+  background-color: #0B0B0D !important;
 }
 
+.bg-\[\#F7F5F0\]\/90,
+.bg-\[\#F7F5F0\]\/95,
 .dark .bg-\[\#F7F5F0\]\/90,
 .dark .bg-\[\#F7F5F0\]\/95 {
-  background-color: rgba(11, 13, 17, 0.94) !important;
+  background-color: rgba(11, 11, 13, 0.95) !important;
 }
 
+.bg-\[\#FFFFFF\],
+.bg-white,
 .dark .bg-\[\#FFFFFF\],
 .dark .bg-white {
-  background-color: #141822 !important;
+  background-color: #171719 !important;
 }
 
+.border-\[\#EAE2D6\],
 .dark .border-\[\#EAE2D6\] {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: #2D2D30 !important;
+}
+
+/* Typography Visibility Guarantee across entire application */
+.text-\[\#262421\],
+.text-\[\#1C1A18\],
+.text-\[\#292722\],
+.dark .text-\[\#262421\],
+.dark .text-\[\#1C1A18\],
+.dark .text-\[\#292722\] {
+  color: #FFFFFF !important;
+}
+
+.text-\[\#89847C\],
+.text-\[\#5A554E\],
+.dark .text-\[\#89847C\],
+.dark .text-\[\#5A554E\] {
+  color: #C5C5C5 !important;
+}
+
+.text-\[\#B99A68\],
+.dark .text-\[\#B99A68\] {
+  color: #D6B36A !important;
 }
 
 /* Card & Surface Shadows */
 .mobile-card-shadow {
-  box-shadow: 0 4px 20px -2px rgba(38, 36, 33, 0.06), 0 2px 6px -1px rgba(38, 36, 33, 0.03);
-}
-
-.dark .mobile-card-shadow {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -1px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), 0 2px 6px -1px rgba(0, 0, 0, 0.5);
 }
 
 .bottom-sheet-shadow {
-  box-shadow: 0 -10px 40px rgba(38, 36, 33, 0.12);
-}
-
-.dark .bottom-sheet-shadow {
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.85) !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -142,7 +147,7 @@ textarea::placeholder {
   scrollbar-width: none;
 }
 
-/* Safe Area Inset Helpers (Android System Navigation & iOS Safe Area Aware) */
+/* Safe Area Inset Helpers */
 .safe-bottom {
   padding-bottom: calc(64px + max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px)));
 }
@@ -151,21 +156,15 @@ textarea::placeholder {
   height: calc(56px + max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px)));
 }
 
-/* Gold Gradient Text — Contrast & Visibility Guaranteed in Both Themes */
+/* Gold Gradient Text */
 .gold-gradient-text {
-  background: linear-gradient(135deg, #262421 0%, #B99A68 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #D6B36A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
 
-.dark .gold-gradient-text {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E5CAA2 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-}
-
-/* Premium Page Transitions (GPU-Accelerated) */
+/* Premium Page Transitions */
 @keyframes pageSlideForward {
   0% {
     transform: translate3d(24px, 0, 0);

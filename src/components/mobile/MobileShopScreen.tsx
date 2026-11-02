@@ -34,6 +34,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'newest'>('newest');
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(500000);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   const categories = [
@@ -64,7 +65,8 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
       p.material?.toLowerCase().includes(search.toLowerCase()) ||
       p.sku?.toLowerCase().includes(search.toLowerCase());
     const matchStock = !inStockOnly || p.status === 'available';
-    return matchCat && matchSearch && matchStock;
+    const matchPrice = ((p.discountPrice || p.price || 0) <= maxPrice);
+    return matchCat && matchSearch && matchStock && matchPrice;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -103,22 +105,22 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4 pb-8 bg-[#0B0B0D] text-white">
       {/* Search Bar & Filter trigger */}
       <div className="px-4 pt-2 flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#89847C]" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A5A5A5]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search master furniture..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-[#FFFFFF] border border-[#EAE2D6] rounded-2xl text-[#262421] placeholder-[#89847C] focus:outline-none focus:border-[#B99A68] shadow-sm"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-[#171719] border border-[#2D2D30] rounded-2xl text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A] shadow-sm"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-2.5 text-[#89847C] hover:text-[#262421]"
+              className="absolute right-3 top-2.5 text-[#A5A5A5] hover:text-white cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -128,9 +130,9 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
         <button
           type="button"
           onClick={() => setShowFilterSheet(true)}
-          className="p-2 rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] text-[#262421] shadow-sm flex items-center gap-1 text-xs font-bold px-3"
+          className="p-2 rounded-2xl bg-[#171719] border border-[#2D2D30] text-white hover:border-[#D6B36A] shadow-sm flex items-center gap-1.5 text-xs font-bold px-3 cursor-pointer"
         >
-          <SlidersHorizontal className="w-3.5 h-3.5 text-[#B99A68]" />
+          <SlidersHorizontal className="w-3.5 h-3.5 text-[#D6B36A]" />
           <span>Filter</span>
         </button>
       </div>
@@ -141,10 +143,11 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
           <button
             key={cat}
             onClick={() => onSelectCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat
-                ? 'bg-[#262421] text-[#F7F5F0] shadow-sm font-bold'
-                : 'bg-[#FFFFFF] text-[#89847C] border border-[#EAE2D6]'
-              }`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              selectedCategory === cat
+                ? 'bg-[#D6B36A] text-[#0B0B0D] shadow-md font-bold'
+                : 'bg-[#171719] text-[#C5C5C5] border border-[#2D2D30] hover:text-white'
+            }`}
           >
             {cat}
           </button>
@@ -152,22 +155,22 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
       </div>
 
       {/* Active Filter Indicators */}
-      <div className="px-4 flex items-center justify-between text-[11px] text-[#89847C]">
+      <div className="px-4 flex items-center justify-between text-[11px] text-[#A5A5A5]">
         <span>Showing {sorted.length} pieces</span>
         <button
           onClick={() => setShowFilterSheet(true)}
-          className="text-[#262421] font-bold flex items-center gap-1 hover:underline capitalize"
+          className="text-white font-bold flex items-center gap-1 hover:underline capitalize cursor-pointer"
         >
           <span>Sort: {sortBy.replace('_', ' ')}</span>
-          <ChevronDown className="w-3 h-3" />
+          <ChevronDown className="w-3 h-3 text-[#D6B36A]" />
         </button>
       </div>
 
       {/* Two-Column Product Grid */}
       {sorted.length === 0 ? (
-        <div className="py-16 text-center text-xs text-[#89847C] space-y-3 px-6">
-          <ShoppingBag className="w-10 h-10 opacity-40 mx-auto text-[#B99A68]" />
-          <p className="font-medium">No furniture suites found {selectedCategory !== 'All' ? `in "${selectedCategory}"` : ''} {search ? `matching "${search}"` : ''}.</p>
+        <div className="py-16 text-center text-xs text-[#A5A5A5] space-y-3 px-6">
+          <ShoppingBag className="w-10 h-10 opacity-40 mx-auto text-[#D6B36A]" />
+          <p className="font-medium text-white">No furniture suites found {selectedCategory !== 'All' ? `in "${selectedCategory}"` : ''} {search ? `matching "${search}"` : ''}.</p>
           {(selectedCategory !== 'All' || search) && (
             <button
               type="button"
@@ -175,7 +178,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                 onSelectCategory('All');
                 setSearch('');
               }}
-              className="px-4 py-2 rounded-xl bg-[#262421] text-[#F7F5F0] text-xs font-bold inline-block shadow-sm"
+              className="px-4 py-2 rounded-xl bg-[#D6B36A] text-[#0B0B0D] text-xs font-bold inline-block shadow-md hover:brightness-105 cursor-pointer"
             >
               View All Catalogue Pieces
             </button>
@@ -190,10 +193,10 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
               <div
                 key={prod.id}
                 onClick={() => onOpenProductDetail(prod)}
-                className="rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] overflow-hidden mobile-card-shadow flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
+                className="rounded-2xl bg-[#222222] border border-[#2D2D30] hover:border-[#D6B36A]/40 overflow-hidden mobile-card-shadow flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
               >
                 {/* Image with high performance lazy loading */}
-                <div className="relative aspect-square bg-[#F7F5F0] overflow-hidden">
+                <div className="relative aspect-square bg-[#171719] overflow-hidden">
                   <img
                     src={getPrimaryImage(prod)}
                     alt={prod.title}
@@ -218,14 +221,14 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                     className={`absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90 ${
                       isWish
                         ? 'bg-rose-500 text-white shadow-rose-500/30'
-                        : 'bg-white/95 text-[#262421] border border-[#EAE2D6] hover:bg-white'
+                        : 'bg-[#171719]/90 text-white border border-[#2D2D30] hover:border-[#D6B36A]'
                     }`}
                   >
                     <Heart className={`w-4 h-4 transition-transform ${isWish ? 'fill-current scale-110' : ''}`} />
                   </button>
 
                   {prod.discountPrice && (
-                    <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-[#B99A68] text-[#262421] text-[9px] font-black">
+                    <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-[#D6B36A] text-[#0B0B0D] text-[9px] font-black">
                       SALE
                     </span>
                   )}
@@ -233,18 +236,18 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
 
                 {/* Details */}
                 <div className="p-3 space-y-1">
-                  <span className="text-[9px] uppercase tracking-wider text-[#89847C] font-semibold block truncate">
+                  <span className="text-[9px] uppercase tracking-wider text-[#A5A5A5] font-semibold block truncate">
                     {prod.category}
                   </span>
-                  <h4 className="text-xs font-bold text-[#262421] line-clamp-1 leading-snug">
+                  <h4 className="text-xs font-bold text-white line-clamp-1 leading-snug">
                     {prod.title}
                   </h4>
                   <div className="flex items-baseline gap-1.5 pt-0.5">
-                    <span className="text-xs font-serif font-black text-[#262421]">
+                    <span className="text-xs font-serif font-black text-[#D6B36A]">
                       ₨ {price?.toLocaleString()}
                     </span>
                     {prod.discountPrice && (
-                      <span className="text-[10px] text-[#89847C] line-through">
+                      <span className="text-[10px] text-[#A5A5A5] line-through">
                         ₨ {prod.price?.toLocaleString()}
                       </span>
                     )}
@@ -258,20 +261,19 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
 
       {/* FILTER & SORT BOTTOM SHEET */}
       {showFilterSheet && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-end">
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end"
+          onClick={() => setShowFilterSheet(false)}
+        >
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowFilterSheet(false)}
-          />
-
-          <div className="relative bg-[#FFFFFF] rounded-t-3xl p-5 space-y-4 bottom-sheet-shadow z-10 text-[#292722] max-h-[80vh] overflow-y-auto">
-            <div className="w-10 h-1 bg-[#EAE2D6] rounded-full mx-auto" />
-
-            <div className="flex items-center justify-between pb-2 border-b border-[#EAE2D6]">
-              <h3 className="font-serif font-bold text-base text-[#262421]">Filter & Sort</h3>
+            className="w-full bg-[#171719] rounded-t-3xl p-5 space-y-4 border-t border-[#2D2D30] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[#2D2D30]">
+              <h3 className="font-serif font-bold text-base text-white">Filter & Sort</h3>
               <button
                 onClick={() => setShowFilterSheet(false)}
-                className="p-1 rounded-full text-[#89847C] hover:text-[#262421]"
+                className="p-1 rounded-full text-[#A5A5A5] hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -279,10 +281,12 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
 
             {/* Sort Options */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-[#262421] block">Sort by</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#A5A5A5] block">
+                Sort By
+              </span>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'featured', label: 'Featured Suites' },
+                  { id: 'featured', label: 'Featured Atelier' },
                   { id: 'price_asc', label: 'Price: Low to High' },
                   { id: 'price_desc', label: 'Price: High to Low' },
                   { id: 'newest', label: 'Newest Arrivals' },
@@ -290,10 +294,11 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
                   <button
                     key={s.id}
                     onClick={() => setSortBy(s.id as any)}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border text-left transition-all ${sortBy === s.id
-                        ? 'bg-[#262421] text-[#F7F5F0] border-[#262421]'
-                        : 'bg-[#F7F5F0] text-[#89847C] border-[#EAE2D6]'
-                      }`}
+                    className={`p-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      sortBy === s.id
+                        ? 'bg-[#D6B36A] text-[#0B0B0D] border-[#D6B36A] font-bold shadow-sm'
+                        : 'bg-[#222222] text-[#C5C5C5] border-[#2D2D30] hover:text-white'
+                    }`}
                   >
                     {s.label}
                   </button>
@@ -301,17 +306,19 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
               </div>
             </div>
 
-            {/* In Stock Toggle */}
-            <div className="pt-2 border-t border-[#EAE2D6] flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-[#262421] block">In Stock Only</span>
-                <span className="text-[10px] text-[#89847C]">Show pieces available for immediate dispatch</span>
-              </div>
+            {/* Quick Price Filter */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#A5A5A5] block">
+                Price Range (Max: ₨ {maxPrice.toLocaleString()})
+              </span>
               <input
-                type="checkbox"
-                checked={inStockOnly}
-                onChange={(e) => setInStockOnly(e.target.checked)}
-                className="w-5 h-5 accent-[#B99A68] rounded cursor-pointer"
+                type="range"
+                min={20000}
+                max={500000}
+                step={10000}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                className="w-full accent-[#D6B36A]"
               />
             </div>
 
@@ -319,7 +326,7 @@ export const MobileShopScreen: React.FC<MobileShopScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowFilterSheet(false)}
-                className="w-full py-3 rounded-2xl bg-[#262421] text-[#F7F5F0] text-xs font-bold shadow-md"
+                className="w-full py-3 rounded-2xl bg-[#D6B36A] text-[#0B0B0D] text-xs font-bold shadow-md hover:brightness-105 cursor-pointer"
               >
                 Apply Filters
               </button>

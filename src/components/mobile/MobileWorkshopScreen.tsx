@@ -189,7 +189,7 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
 
       {/* 3. Craftsmanship Category Selector Pills */}
       <div className="space-y-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#89847C] block">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#A5A5A5] block">
           Craftsmanship Stages
         </span>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -200,10 +200,10 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#262421] text-[#F7F5F0] shadow-sm'
-                    : 'bg-white border border-[#EAE2D6] text-[#89847C] hover:text-[#262421]'
+                    ? 'bg-[#D6B36A] text-[#0B0B0D] font-black shadow-sm'
+                    : 'bg-[#171719] border border-[#2D2D30] text-[#C5C5C5] hover:text-white'
                 }`}
               >
                 {cat.label}
@@ -215,14 +215,14 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
 
       {/* 4. Filtered Media Gallery */}
       {loading ? (
-        <div className="py-12 text-center text-xs text-[#89847C]">
+        <div className="py-12 text-center text-xs text-[#A5A5A5]">
           Loading workshop craftsmanship archives...
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-[#EAE2D6] space-y-2">
-          <Wrench className="w-8 h-8 mx-auto text-[#B99A68]/60" />
-          <h4 className="text-sm font-bold text-[#262421]">No Media in this Category Yet</h4>
-          <p className="text-xs text-[#89847C]">
+        <div className="p-8 text-center bg-[#222222] rounded-2xl border border-dashed border-[#2D2D30] space-y-2">
+          <Wrench className="w-8 h-8 mx-auto text-[#D6B36A]/60" />
+          <h4 className="text-sm font-bold text-white">No Media in this Category Yet</h4>
+          <p className="text-xs text-[#A5A5A5]">
             Our master artisans are actively working on new furniture pieces. Check back soon or view all craftsmanship stages.
           </p>
         </div>
@@ -239,9 +239,9 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                   setVideoDimensions(null);
                   setActiveMediaItem(item);
                 }}
-                className="bg-white rounded-2xl border border-[#EAE2D6] overflow-hidden shadow-sm flex flex-col justify-between cursor-pointer group active:scale-[0.98] transition-transform"
+                className="bg-[#222222] rounded-2xl border border-[#2D2D30] hover:border-[#D6B36A]/50 overflow-hidden shadow-md flex flex-col justify-between cursor-pointer group active:scale-[0.98] transition-transform"
               >
-                <div className="relative aspect-video bg-[#1A1816] overflow-hidden">
+                <div className="relative aspect-video bg-[#171719] overflow-hidden">
                   <img
                     src={item.thumbnailUrl || (item.mediaType === 'photo' ? item.url : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80')}
                     alt={item.title}
@@ -251,7 +251,7 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                   />
                   {isVideo ? (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <div className="w-9 h-9 rounded-full bg-[#B99A68] text-slate-950 flex items-center justify-center shadow">
+                      <div className="w-9 h-9 rounded-full bg-[#D6B36A] text-[#0B0B0D] flex items-center justify-center shadow">
                         <Play className="w-4 h-4 fill-current ml-0.5" />
                       </div>
                     </div>
@@ -262,18 +262,18 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
                   )}
 
                   <div className="absolute bottom-1.5 left-1.5">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-[#B99A68] uppercase tracking-wider backdrop-blur-sm">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-[#D6B36A] uppercase tracking-wider backdrop-blur-sm">
                       {WORKSHOP_CATEGORIES.find((c) => c.id === item.category)?.label || 'Craft'}
                     </span>
                   </div>
                 </div>
 
                 <div className="p-2.5 space-y-1">
-                  <h4 className="font-serif font-bold text-xs text-[#262421] line-clamp-1">
+                  <h4 className="font-serif font-bold text-xs text-white line-clamp-1">
                     {item.title}
                   </h4>
                   {item.description && (
-                    <p className="text-[10px] text-[#89847C] line-clamp-2 leading-relaxed">
+                    <p className="text-[10px] text-[#C5C5C5] line-clamp-2 leading-relaxed">
                       {item.description}
                     </p>
                   )}
@@ -285,11 +285,11 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
       )}
 
       {/* 5. Workshop Guarantee Note */}
-      <div className="p-4 rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-[#B99A68] shrink-0 mt-0.5" />
+      <div className="p-4 rounded-2xl bg-[#222222] border border-[#2D2D30] flex items-start gap-3">
+        <CheckCircle2 className="w-5 h-5 text-[#D6B36A] shrink-0 mt-0.5" />
         <div className="space-y-0.5 text-xs">
-          <strong className="text-[#262421] block font-bold">10-Year Structural Integrity Guarantee</strong>
-          <p className="text-[11px] text-[#89847C] leading-relaxed">
+          <strong className="text-white block font-bold">10-Year Structural Integrity Guarantee</strong>
+          <p className="text-[11px] text-[#C5C5C5] leading-relaxed">
             All pieces displayed in our workshop utilize seasoned, kilned hardwoods and premium mortise & tenon joints built to last generations.
           </p>
         </div>

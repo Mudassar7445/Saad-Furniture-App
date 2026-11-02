@@ -149,40 +149,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
       <div
-        className="w-full max-w-md bg-[#1C1A18] border border-[#B99A68]/30 rounded-3xl shadow-2xl overflow-hidden relative"
+        className="w-full max-w-md bg-[#0B0B0D] border border-[#D6B36A]/40 rounded-3xl shadow-2xl overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-[#171719] border border-[#2D2D30] text-[#C5C5C5] hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Brand Crest Header */}
-        <div className="p-6 pb-2 text-center relative border-b border-white/5">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[#B99A68]/40 shadow-xl bg-[#262421] p-1.5 mx-auto mb-2.5">
+        <div className="p-6 pb-2 text-center relative border-b border-[#2D2D30]">
+          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[#D6B36A]/40 shadow-xl bg-[#171719] p-1.5 mx-auto mb-2.5">
             <img src="/assets/branding/app-dp.svg" alt="Saad Furniture" className="w-full h-full object-contain" />
           </div>
           <span className="font-serif tracking-[0.2em] text-sm font-bold text-white uppercase block">
-            SAAD <span className="text-[#B99A68]">FURNITURE</span>
+            SAAD <span className="text-[#D6B36A]">FURNITURE</span>
           </span>
-          <span className="text-[10px] text-[#89847C] tracking-widest uppercase block mt-0.5">
+          <span className="text-[10px] text-[#A5A5A5] tracking-widest uppercase block mt-0.5">
             Artisanal Bespoke Workshop • Since 2008
           </span>
 
           {/* Mode Switcher Tabs */}
-          <div className="flex bg-[#262421] p-1 rounded-2xl border border-white/5 mt-4">
+          <div className="flex bg-[#171719] p-1 rounded-2xl border border-[#2D2D30] mt-4">
             <button
               type="button"
               onClick={() => handleTabSwitch('signin')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 mode === 'signin'
-                  ? 'bg-[#B99A68] text-[#262421] shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#D6B36A] text-[#0B0B0D] font-black shadow-md'
+                  : 'text-[#C5C5C5] hover:text-white'
               }`}
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -191,10 +191,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={() => handleTabSwitch('signup')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 mode === 'signup'
-                  ? 'bg-[#B99A68] text-[#262421] shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#D6B36A] text-[#0B0B0D] font-black shadow-md'
+                  : 'text-[#C5C5C5] hover:text-white'
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -229,49 +229,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <Lock className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                   />
                 </div>
               </div>
 
-              <Button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-11 mt-2 shadow-md"
+                className="w-full bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] font-black text-xs rounded-xl h-11 mt-2 shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 {loading ? 'Authenticating...' : 'Sign In to Account'}
-              </Button>
+              </button>
 
-              <div className="text-center pt-2 text-xs text-slate-400">
+              <div className="text-center pt-2 text-xs text-[#A5A5A5]">
                 New patron to Saad Furniture?{' '}
                 <button
                   type="button"
                   onClick={() => handleTabSwitch('signup')}
-                  className="text-[#B99A68] font-bold hover:underline"
+                  className="text-[#D6B36A] font-bold hover:underline cursor-pointer"
                 >
                   Create an account
                 </button>
@@ -283,99 +283,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                   Full Name <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <User className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Muhammad Saad"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                     Email Address <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                    <Mail className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                     <input
                       type="email"
                       required
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       placeholder="name@example.com"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                      className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                     Mobile Number <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                    <Phone className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                     <input
                       type="tel"
                       required
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+92 300 1234567"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                      className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                   Complete Delivery Address <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                   <input
                     type="text"
                     required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="House / Street / Sector / Area"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                   City <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                   <input
                     type="text"
                     required
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="e.g. Lahore, Karachi, Islamabad"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                     Password (min 6) <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                     <input
                       type="password"
                       required
@@ -383,17 +383,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                      className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#C5C5C5] mb-1">
                     Confirm Password <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-[#A5A5A5]" />
                     <input
                       type="password"
                       required
@@ -401,26 +401,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#262421] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#B99A68]"
+                      className="w-full pl-10 pr-3 py-2.5 bg-[#171719] border border-[#2D2D30] rounded-xl text-xs text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
                     />
                   </div>
                 </div>
               </div>
 
-              <Button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#B99A68] hover:bg-[#a68856] text-[#262421] font-bold text-xs rounded-xl h-11 mt-2 shadow-md"
+                className="w-full bg-[#D6B36A] hover:bg-[#c4a159] text-[#0B0B0D] font-black text-xs rounded-xl h-11 mt-2 shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 {loading ? 'Registering...' : 'Create Customer Account'}
-              </Button>
+              </button>
 
-              <div className="text-center pt-2 text-xs text-slate-400">
+              <div className="text-center pt-2 text-xs text-[#A5A5A5]">
                 Already registered with Saad Furniture?{' '}
                 <button
                   type="button"
                   onClick={() => handleTabSwitch('signin')}
-                  className="text-[#B99A68] font-bold hover:underline"
+                  className="text-[#D6B36A] font-bold hover:underline cursor-pointer"
                 >
                   Sign In here
                 </button>

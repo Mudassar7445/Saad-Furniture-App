@@ -262,17 +262,17 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#F7F5F0] overflow-y-auto flex flex-col md:hidden">
+    <div className="fixed inset-0 z-50 bg-[#0B0B0D] text-white overflow-y-auto flex flex-col md:hidden">
       {/* Top Floating App Bar */}
-      <div className="sticky top-0 z-30 bg-[#F7F5F0]/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-[#EAE2D6]">
+      <div className="sticky top-0 z-30 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-[#2D2D30]">
         <button
           onClick={onClose}
-          className="p-2 rounded-full bg-[#FFFFFF] border border-[#EAE2D6] text-[#262421] shadow-sm"
+          className="p-2 rounded-full bg-[#171719] border border-[#2D2D30] text-white shadow-sm cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <span className="font-serif text-xs font-bold text-[#262421] truncate max-w-[200px]">
+        <span className="font-serif text-xs font-bold text-white truncate max-w-[200px]">
           {product.title}
         </span>
 
@@ -284,10 +284,10 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
             e.stopPropagation();
             onToggleWishlist(product.id);
           }}
-          className={`p-2 rounded-full border shadow-sm transition-all active:scale-90 ${
+          className={`p-2 rounded-full border shadow-sm transition-all active:scale-90 cursor-pointer ${
             isWishlisted
               ? 'bg-rose-500 text-white border-rose-500 shadow-rose-500/30'
-              : 'bg-[#FFFFFF] border-[#EAE2D6] text-[#262421]'
+              : 'bg-[#171719] border-[#2D2D30] text-white'
           }`}
         >
           <Heart className={`w-5 h-5 transition-transform ${isWishlisted ? 'fill-current scale-110' : ''}`} />
@@ -416,40 +416,40 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
               </span>
             </div>
 
-            <h1 className="font-serif font-black text-xl text-[#262421] mt-1 leading-snug">
+            <h1 className="font-serif font-black text-xl text-white mt-1 leading-snug">
               {product.title}
             </h1>
 
             <div className="flex items-baseline gap-2 pt-1.5">
-              <span className="text-2xl font-serif font-black text-[#262421]">
+              <span className="text-2xl font-serif font-black text-[#D6B36A]">
                 PKR {effectivePrice?.toLocaleString()}
               </span>
               {product.discountPrice && (
-                <span className="text-sm text-[#89847C] line-through">
+                <span className="text-sm text-[#A5A5A5] line-through">
                   PKR {product.price?.toLocaleString()}
                 </span>
               )}
             </div>
           </div>
 
-          <p className="text-xs text-[#292722]/80 leading-relaxed">{product.description}</p>
+          <p className="text-xs text-[#C5C5C5] leading-relaxed">{product.description}</p>
 
           {/* Specs Box */}
-          <div className="grid grid-cols-2 gap-2 p-3.5 rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] text-xs mobile-card-shadow">
+          <div className="grid grid-cols-2 gap-2 p-3.5 rounded-2xl bg-[#222222] border border-[#2D2D30] text-xs mobile-card-shadow">
             <div>
-              <span className="text-[10px] text-[#89847C] block font-semibold">Material</span>
-              <span className="font-bold text-[#262421]">{product.material || 'Solid Mahogany'}</span>
+              <span className="text-[10px] text-[#A5A5A5] block font-semibold">Material</span>
+              <span className="font-bold text-white">{product.material || 'Solid Hardwood'}</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#89847C] block font-semibold">Dimensions</span>
-              <span className="font-bold text-[#262421]">{product.dimensions || 'Bespoke Fit'}</span>
+              <span className="text-[10px] text-[#A5A5A5] block font-semibold">Dimensions</span>
+              <span className="font-bold text-white">{product.dimensions || 'Bespoke Fit'}</span>
             </div>
           </div>
 
           {/* Colour Selector */}
           <div className="space-y-2">
-            <span className="text-xs font-bold text-[#262421] block">
-              Finish / Colour: <strong className="text-[#B99A68]">{selectedColour}</strong>
+            <span className="text-xs font-bold text-white block">
+              Finish / Colour: <strong className="text-[#D6B36A]">{selectedColour}</strong>
             </span>
             <div className="flex flex-wrap gap-2">
               {colours.map((c) => (
@@ -457,10 +457,10 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
                   key={c}
                   type="button"
                   onClick={() => setSelectedColour(c)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     selectedColour === c
-                      ? 'bg-[#262421] text-[#F7F5F0] border-[#262421] shadow-sm'
-                      : 'bg-[#FFFFFF] text-[#292722] border-[#EAE2D6]'
+                      ? 'bg-[#D6B36A] text-[#0B0B0D] border-[#D6B36A] shadow-md'
+                      : 'bg-[#171719] text-[#C5C5C5] border-[#2D2D30] hover:text-white'
                   }`}
                 >
                   {c}
@@ -471,8 +471,8 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
 
           {/* Design Style Selector */}
           <div className="space-y-2">
-            <span className="text-xs font-bold text-[#262421] block">
-              Carving Style: <strong className="text-[#B99A68]">{selectedDesign}</strong>
+            <span className="text-xs font-bold text-white block">
+              Carving Style: <strong className="text-[#D6B36A]">{selectedDesign}</strong>
             </span>
             <div className="flex flex-wrap gap-2">
               {designs.map((d) => (
@@ -480,10 +480,10 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
                   key={d}
                   type="button"
                   onClick={() => setSelectedDesign(d)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     selectedDesign === d
-                      ? 'bg-[#262421] text-[#F7F5F0] border-[#262421] shadow-sm'
-                      : 'bg-[#FFFFFF] text-[#292722] border-[#EAE2D6]'
+                      ? 'bg-[#D6B36A] text-[#0B0B0D] border-[#D6B36A] shadow-md'
+                      : 'bg-[#171719] text-[#C5C5C5] border-[#2D2D30] hover:text-white'
                   }`}
                 >
                   {d}
@@ -494,7 +494,7 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
 
           {/* Custom Notes Field */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#262421] block">
+            <label className="text-xs font-bold text-white block">
               Special Artisan Notes (Optional)
             </label>
             <input
@@ -502,40 +502,40 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
               value={customNotes}
               onChange={(e) => setCustomNotes(e.target.value)}
               placeholder="e.g. Extra brass studding, velvet bolster pillows..."
-              className="w-full px-3 py-2 text-xs bg-[#FFFFFF] border border-[#EAE2D6] rounded-xl text-[#262421] focus:outline-none focus:border-[#B99A68]"
+              className="w-full px-3 py-2 text-xs bg-[#171719] border border-[#2D2D30] rounded-xl text-white placeholder-[#A5A5A5] focus:outline-none focus:border-[#D6B36A]"
             />
           </div>
 
           {/* Guarantees */}
           <div className="grid grid-cols-2 gap-2 pt-2">
-            <div className="p-3 rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] flex items-center gap-2 text-xs">
-              <Truck className="w-4 h-4 text-[#B99A68] shrink-0" />
-              <span className="text-[11px] font-semibold text-[#262421]">White-Glove Delivery</span>
+            <div className="p-3 rounded-2xl bg-[#222222] border border-[#2D2D30] flex items-center gap-2 text-xs">
+              <Truck className="w-4 h-4 text-[#D6B36A] shrink-0" />
+              <span className="text-[11px] font-semibold text-white">White-Glove Delivery</span>
             </div>
-            <div className="p-3 rounded-2xl bg-[#FFFFFF] border border-[#EAE2D6] flex items-center gap-2 text-xs">
-              <ShieldCheck className="w-4 h-4 text-[#B99A68] shrink-0" />
-              <span className="text-[11px] font-semibold text-[#262421]">10-Year Warranty</span>
+            <div className="p-3 rounded-2xl bg-[#222222] border border-[#2D2D30] flex items-center gap-2 text-xs">
+              <ShieldCheck className="w-4 h-4 text-[#D6B36A] shrink-0" />
+              <span className="text-[11px] font-semibold text-white">10-Year Warranty</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Sticky Bottom Purchase Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-[#EAE2D6] p-4 flex items-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B0B0D] border-t border-[#2D2D30] p-4 flex items-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.8)]">
         {/* Quantity Stepper */}
-        <div className="flex items-center border border-[#EAE2D6] rounded-2xl bg-[#F7F5F0] overflow-hidden">
+        <div className="flex items-center border border-[#2D2D30] rounded-2xl bg-[#171719] overflow-hidden">
           <button
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="p-2.5 text-[#262421] hover:bg-[#EAE2D6]/40"
+            className="p-2.5 text-white hover:bg-white/10 cursor-pointer"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
-          <span className="px-2 text-xs font-bold text-[#262421]">{quantity}</span>
+          <span className="px-2 text-xs font-bold text-white min-w-[20px] text-center font-mono">{quantity}</span>
           <button
             type="button"
             onClick={() => setQuantity(quantity + 1)}
-            className="p-2.5 text-[#262421] hover:bg-[#EAE2D6]/40"
+            className="p-2.5 text-white hover:bg-white/10 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -545,16 +545,16 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
         <button
           type="button"
           onClick={handleAdd}
-          className="flex-1 py-3 px-3 rounded-2xl border border-[#262421] text-[#262421] text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+          className="flex-1 py-3 px-3 rounded-2xl border border-[#D6B36A] bg-[#171719] text-[#D6B36A] text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-[#D6B36A]/10 cursor-pointer"
         >
           {addedNotice ? (
             <>
-              <Check className="w-4 h-4 text-emerald-600" />
+              <Check className="w-4 h-4 text-emerald-400" />
               <span>Added!</span>
             </>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 text-[#D6B36A]" />
               <span>Add to Cart</span>
             </>
           )}
@@ -564,7 +564,7 @@ export const MobileProductDetailSheet: React.FC<MobileProductDetailSheetProps> =
         <button
           type="button"
           onClick={handleBuy}
-          className="flex-1 py-3 px-3 rounded-2xl bg-[#262421] text-[#F7F5F0] text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform"
+          className="flex-1 py-3 px-3 rounded-2xl bg-[#D6B36A] text-[#0B0B0D] text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all hover:brightness-105 cursor-pointer"
         >
           <span>Buy Now</span>
         </button>
