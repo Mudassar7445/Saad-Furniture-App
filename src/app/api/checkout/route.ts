@@ -531,7 +531,7 @@ export async function POST(request: Request) {
         category: 'orders',
         title: `Order Confirmed: #${orderNumber}`,
         message: `Your order for ${productSummary} has been received. Tap to track manufacturing in real-time.`,
-        url: `/orders/${orderId}`,
+        url: `/orders/${orderId}?tab=overview`,
         targetUserId: customerId,
         relatedId: orderId,
       });

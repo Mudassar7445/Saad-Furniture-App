@@ -1,15 +1,15 @@
 // Service Worker for Saad Furniture PWA & Mobile Web Push Notifications
-const CACHE_NAME = 'saad-furniture-pwa-v6';
+const CACHE_NAME = 'saad-furniture-pwa-v7';
 
 // Core asset cache for instant 0ms offline experience
 const STATIC_ASSETS = [
   '/',
-  '/manifest.json',
-  '/assets/branding/app-dp.png',
-  '/assets/branding/app-dp.svg',
-  '/assets/branding/icon-192x192.png',
-  '/assets/branding/icon-512x512.png',
-  '/assets/branding/apple-touch-icon.png',
+  '/manifest.json?v=5',
+  '/assets/branding/app-dp.png?v=5',
+  '/assets/branding/app-dp.svg?v=5',
+  '/assets/branding/icon-192x192.png?v=5',
+  '/assets/branding/icon-512x512.png?v=5',
+  '/assets/branding/apple-touch-icon.png?v=5',
   '/assets/branding/notification-icon.svg',
 ];
 
@@ -81,9 +81,13 @@ self.addEventListener('push', (event) => {
     message: 'Your craftsmanship progress has been updated.',
     body: 'Your craftsmanship progress has been updated.',
     url: '/',
-    icon: '/assets/branding/app-dp.png',
+    icon: '/assets/branding/app-dp.png?v=5',
     badge: '/assets/branding/notification-icon.svg',
     tag: 'order-update',
+    orderId: undefined,
+    tab: undefined,
+    filter: undefined,
+    type: 'order_update',
   };
 
   if (event.data) {
@@ -99,9 +103,12 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Ensure target URL is present
+  const targetUrl = data.url || (data.orderId ? `/orders/${data.orderId}${data.tab ? `?tab=${data.tab}` : ''}` : '/');
+
   const options = {
     body: data.body || data.message,
-    icon: data.icon || '/assets/branding/app-dp.png',
+    icon: data.icon || '/assets/branding/app-dp.png?v=5',
     badge: data.badge || '/assets/branding/notification-icon.svg',
     image: data.image || undefined,
     vibrate: [200, 100, 200, 100, 250],
@@ -109,7 +116,12 @@ self.addEventListener('push', (event) => {
     renotify: true,
     requireInteraction: false,
     data: {
-      url: data.url || '/',
+      url: targetUrl,
+      orderId: data.orderId || data.relatedId,
+      tab: data.tab || data.targetTab,
+      filter: data.filter || data.targetFilter,
+      type: data.type || data.targetType,
+      title: data.title,
       timestamp: Date.now(),
     },
     actions: [
@@ -127,22 +139,41 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/';
+  const notifData = event.notification.data || {};
+  let targetUrl = notifData.url || '/';
+
+  // Construct absolute URL
+  const destination = new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, focus it and navigate
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
+      // Check if an existing open window is on the same origin
       for (const client of clientList) {
         if ('focus' in client && client.url.includes(self.location.origin)) {
-          if ('navigate' in client) {
-            client.navigate(targetUrl);
+          // Focus the existing window
+          await client.focus();
+
+          // Post structured deep link message for instant in-app tab/filter navigation
+          client.postMessage({
+            type: 'DEEP_LINK_NAVIGATE',
+            url: targetUrl,
+            orderId: notifData.orderId,
+            tab: notifData.tab,
+            filter: notifData.filter,
+            notificationType: notifData.type,
+          });
+
+          // Navigate window to exact deep link URL if needed
+          if ('navigate' in client && client.url !== destination) {
+            await client.navigate(destination);
           }
-          return client.focus();
+          return;
         }
       }
-      // Otherwise open a new window
+
+      // If no window is currently open, open target URL in standalone PWA window
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(destination);
       }
     })
   );

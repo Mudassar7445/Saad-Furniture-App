@@ -212,12 +212,27 @@ export async function processPendingNotificationEvents(): Promise<{ processed: n
           continue;
         }
 
+        let tab: string | undefined = undefined;
+        let filter: string | undefined = undefined;
+        try {
+          if (evt.url) {
+            const parsedUrl = new URL(evt.url, 'https://saadfurniture-iota.vercel.app');
+            tab = parsedUrl.searchParams.get('tab') || undefined;
+            filter = parsedUrl.searchParams.get('filter') || undefined;
+          }
+        } catch {}
+
         const pushPayload = JSON.stringify({
           title: evt.title,
           body: evt.message,
           message: evt.message,
           url: evt.url || '/',
-          icon: evt.icon || '/assets/branding/app-dp.png',
+          orderId: evt.relatedId || undefined,
+          tab,
+          filter,
+          category: evt.category,
+          type: evt.type,
+          icon: evt.icon || '/assets/branding/app-dp.png?v=5',
           badge: evt.badge || '/assets/branding/notification-icon.svg',
           tag: `saad-${evt.type}-${evt.relatedId || 'update'}`,
           timestamp: Date.now(),
@@ -319,16 +334,25 @@ export async function sendWebPushNotification(payload: {
   title: string;
   message: string;
   url?: string;
+  tab?: string;
+  filter?: string;
   category?: NotificationCategory;
   relatedOrderId?: string;
   type?: any;
 }) {
+  let finalUrl = payload.url;
+  if (!finalUrl && payload.relatedOrderId) {
+    const queryParts: string[] = [];
+    if (payload.tab) queryParts.push(`tab=${encodeURIComponent(payload.tab)}`);
+    if (payload.filter) queryParts.push(`filter=${encodeURIComponent(payload.filter)}`);
+    finalUrl = `/orders/${payload.relatedOrderId}${queryParts.length > 0 ? `?${queryParts.join('&')}` : ''}`;
+  }
   return queueNotificationEvent({
     type: payload.type || 'announcement',
     category: payload.category || (payload.relatedOrderId ? 'orders' : 'announcements'),
     title: payload.title,
     message: payload.message,
-    url: payload.url || (payload.relatedOrderId ? `/orders/${payload.relatedOrderId}` : '/'),
+    url: finalUrl || '/',
     targetUserId: payload.userId || 'all',
     relatedId: payload.relatedOrderId,
   });

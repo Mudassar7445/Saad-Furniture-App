@@ -8,15 +8,15 @@ export const metadata: Metadata = {
   title: 'Saad Furniture – Premium Customer Order Tracking & Showroom Management',
   description:
     'Handcrafted Luxury Furniture, Live Workshop Milestones, Private Client Showroom, and White-Glove Dispatch.',
-  manifest: '/manifest.json',
+  manifest: '/manifest.json?v=5',
   icons: {
     icon: [
-      { url: '/assets/branding/app-dp.svg', type: 'image/svg+xml' },
-      { url: '/assets/branding/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/assets/branding/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/assets/branding/app-dp.svg?v=5', type: 'image/svg+xml' },
+      { url: '/assets/branding/icon-192x192.png?v=5', sizes: '192x192', type: 'image/png' },
+      { url: '/assets/branding/icon-512x512.png?v=5', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/assets/branding/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/assets/branding/apple-touch-icon.png?v=5', sizes: '180x180', type: 'image/png' },
     ],
   },
   appleWebApp: {
@@ -42,12 +42,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/svg+xml" href="/assets/branding/app-dp.svg" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/assets/branding/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/assets/branding/icon-512x512.png" />
-        <link rel="apple-touch-icon" href="/assets/branding/apple-touch-icon.png" />
-        <link rel="shortcut icon" href="/assets/branding/icon-192x192.png" />
+        <link rel="manifest" href="/manifest.json?v=5" />
+        <link rel="icon" type="image/svg+xml" href="/assets/branding/app-dp.svg?v=5" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/assets/branding/icon-192x192.png?v=5" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/assets/branding/icon-512x512.png?v=5" />
+        <link rel="apple-touch-icon" href="/assets/branding/apple-touch-icon.png?v=5" />
+        <link rel="shortcut icon" href="/assets/branding/icon-192x192.png?v=5" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

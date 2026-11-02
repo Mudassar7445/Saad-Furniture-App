@@ -63,6 +63,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [quickTrackOrder, setQuickTrackOrder] = useState<any | null>(null);
+  const [quickTrackTab, setQuickTrackTab] = useState<string | undefined>(undefined);
+  const [quickTrackFilter, setQuickTrackFilter] = useState<string | undefined>(undefined);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   // Android Navigation, Back Stack, Transition & Exit State
@@ -198,6 +200,91 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
+
+  const openOrderWithDeepLink = useCallback(async (orderId: string, tab?: string, filter?: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.order) {
+          setNavDirection('forward');
+          setQuickTrackTab(tab);
+          setQuickTrackFilter(filter);
+          setQuickTrackOrder(data.order);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to open deep-linked order', e);
+    }
+  }, []);
+
+  // Listen to Service Worker messages and URL query parameters for targeted deep links
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // 1. Process URL search params upon initial mount
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetOrder = urlParams.get('order') || urlParams.get('orderId');
+    const targetTab = urlParams.get('tab');
+    const targetFilter = urlParams.get('filter');
+    const targetProduct = urlParams.get('product');
+
+    if (targetOrder) {
+      openOrderWithDeepLink(targetOrder, targetTab || undefined, targetFilter || undefined);
+    } else if (targetTab) {
+      const validTabs: MobileTab[] = ['home', 'shop', 'workshop', 'orders', 'notifications', 'profile', 'documents'];
+      if (validTabs.includes(targetTab as MobileTab)) {
+        setActiveTab(targetTab as MobileTab);
+      }
+    }
+
+    if (targetProduct && products && products.length > 0) {
+      const matched = products.find((p) => p.id === targetProduct);
+      if (matched) {
+        setSelectedProduct(matched);
+      }
+    }
+
+    // 2. Process real-time Web Push click events delivered via postMessage
+    if ('serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'DEEP_LINK_NAVIGATE') {
+          const { url, orderId, tab, filter } = event.data;
+          if (orderId) {
+            openOrderWithDeepLink(orderId, tab, filter);
+          } else if (url) {
+            try {
+              const u = new URL(url, window.location.origin);
+              const oId = u.searchParams.get('order') || u.searchParams.get('orderId');
+              const t = u.searchParams.get('tab') || tab;
+              const f = u.searchParams.get('filter') || filter;
+              if (oId) {
+                openOrderWithDeepLink(oId, t || undefined, f || undefined);
+              } else if (u.pathname.includes('/orders/')) {
+                const parts = u.pathname.split('/');
+                const id = parts[parts.indexOf('orders') + 1];
+                if (id) openOrderWithDeepLink(id, t || undefined, f || undefined);
+              } else if (u.pathname.includes('/shop')) {
+                setActiveTab('shop');
+                const pId = u.searchParams.get('product');
+                if (pId && products) {
+                  const m = products.find((p) => p.id === pId);
+                  if (m) setSelectedProduct(m);
+                }
+              } else if (u.pathname.includes('/workshop')) {
+                setActiveTab('workshop');
+              }
+            } catch {}
+          }
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      };
+    }
+  }, [openOrderWithDeepLink, products]);
 
   const pushNavEntry = (screenKey: string) => {
     if (!isHandlingPopState.current && typeof window !== 'undefined') {
@@ -588,7 +675,11 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         <MobileOrderTrackingSheet
           order={quickTrackOrder}
           isOpen={!!quickTrackOrder}
+          initialTab={quickTrackTab}
+          initialFilter={quickTrackFilter}
           onClose={() => {
+            setQuickTrackTab(undefined);
+            setQuickTrackFilter(undefined);
             if (typeof window !== 'undefined' && window.history.length > 1) {
               window.history.back();
             } else {

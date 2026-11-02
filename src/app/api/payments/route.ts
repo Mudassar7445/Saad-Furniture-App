@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { payments, orders, orderTimelineEvents, auditLogs, customerLedger } from '@/lib/db/schema';
 import { fcmService } from '@/lib/services/fcm';
 import { communicationService } from '@/lib/services/communication';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET() {
@@ -129,8 +130,23 @@ export async function POST(request: Request) {
       message: `We have received your payment of ₨${numericAmount.toLocaleString()} for order #${order.orderNumber}. Remaining balance: ₨${newRemainingBalance.toLocaleString()}.`,
       type: 'payment_received',
       relatedOrderId: orderId,
-      url: `/orders/${orderId}`,
+      url: `/orders/${orderId}?tab=finance`,
     });
+
+    try {
+      await sendWebPushNotification({
+        userId: order.customerId,
+        title: `💳 Payment Acknowledged: Receipt #${paymentNumber}`,
+        message: `We have received your payment of ₨${numericAmount.toLocaleString()} for order #${order.orderNumber}. Remaining balance: ₨${newRemainingBalance.toLocaleString()}.`,
+        url: `/orders/${orderId}?tab=finance`,
+        tab: 'finance',
+        category: 'orders',
+        type: 'order_status',
+        relatedOrderId: orderId,
+      });
+    } catch (pushErr) {
+      console.warn('Payment web push notification note:', pushErr);
+    }
 
     // 4b. Dispatch electronic receipt via Email / SMS
     await communicationService.sendCommunication({

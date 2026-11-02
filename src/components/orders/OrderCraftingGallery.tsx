@@ -42,6 +42,7 @@ export interface OrderCraftingGalleryProps {
   onMediaChange?: (updatedMedia: any[]) => void;
   selectedStageFilter?: string | null;
   onClearStageFilter?: () => void;
+  initialMediaFilter?: 'all' | 'photos' | 'videos' | 'notes';
   theme?: 'dark' | 'light';
 }
 
@@ -74,10 +75,17 @@ export const OrderCraftingGallery: React.FC<OrderCraftingGalleryProps> = ({
   onMediaChange,
   selectedStageFilter = null,
   onClearStageFilter,
+  initialMediaFilter = 'all',
   theme = 'dark',
 }) => {
   const [mediaList, setMediaList] = useState<any[]>(initialMedia);
-  const [activeTab, setActiveTab] = useState<'all' | 'photos' | 'videos' | 'notes'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'photos' | 'videos' | 'notes'>(initialMediaFilter || 'all');
+
+  useEffect(() => {
+    if (initialMediaFilter) {
+      setActiveTab(initialMediaFilter);
+    }
+  }, [initialMediaFilter]);
   const [stageFilter, setStageFilter] = useState<string>(selectedStageFilter || 'all');
   const [productFilter, setProductFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');

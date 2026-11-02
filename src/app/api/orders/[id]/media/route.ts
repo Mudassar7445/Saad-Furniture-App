@@ -370,11 +370,18 @@ export async function POST(
             relatedOrderId: id,
           });
 
+          const hasVideos = uploadedMediaList.some((r: any) => r.mediaType === 'video');
+          const targetFilter = hasVideos ? 'videos' : 'photos';
+
           await sendWebPushNotification({
             userId: order.customerId,
-            title: `📸 Craftsmanship Milestone — Order #${order.orderNumber}`,
+            title: hasVideos
+              ? `🎬 New Workshop Video — Order #${order.orderNumber}`
+              : `📸 Craftsmanship Milestone — Order #${order.orderNumber}`,
             message: `New visual proof for [${stageNameHuman}] uploaded to your order portal.`,
-            url: `/orders/${id}`,
+            url: `/orders/${id}?tab=media&filter=${targetFilter}`,
+            tab: 'media',
+            filter: targetFilter,
             type: 'media_uploaded',
             relatedOrderId: id,
           });
@@ -459,11 +466,16 @@ export async function POST(
     // Notify customer
     if (visibility !== 'private') {
       try {
+        const targetFilter = mediaType === 'video' ? 'videos' : 'photos';
         await sendWebPushNotification({
           userId: order.customerId,
-          title: `📸 New Crafting Update — Order #${order.orderNumber}`,
+          title: mediaType === 'video'
+            ? `🎬 New Crafting Video — Order #${order.orderNumber}`
+            : `📸 New Crafting Photo — Order #${order.orderNumber}`,
           message: `Artisan uploaded new ${mediaType} for stage [${stage}]. Tap to view.`,
-          url: `/orders/${id}`,
+          url: `/orders/${id}?tab=media&filter=${targetFilter}`,
+          tab: 'media',
+          filter: targetFilter,
           type: 'media_uploaded',
           relatedOrderId: id,
           category: 'orders',

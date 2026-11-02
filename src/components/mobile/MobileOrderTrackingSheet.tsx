@@ -36,6 +36,8 @@ interface MobileOrderTrackingSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenMedia?: (mediaList: any[], initialIndex?: number) => void;
+  initialTab?: string;
+  initialFilter?: string;
 }
 
 // Complete 16-Stage Furniture Manufacturing Workflow
@@ -62,9 +64,29 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
   order,
   isOpen,
   onClose,
+  initialTab,
+  initialFilter,
 }) => {
+  const normalizeTab = (t?: string): 'timeline' | 'media' | 'details' | 'payments' => {
+    if (!t) return 'timeline';
+    const lower = t.toLowerCase();
+    if (lower === 'stages' || lower === 'timeline' || lower === 'overview') return 'timeline';
+    if (lower === 'media' || lower === 'crafting' || lower === 'photos' || lower === 'videos') return 'media';
+    if (lower === 'specifications' || lower === 'details' || lower === 'specs' || lower === 'items') return 'details';
+    if (lower === 'finance' || lower === 'payments' || lower === 'ledger') return 'payments';
+    return 'timeline';
+  };
+
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'media' | 'details' | 'payments'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'media' | 'details' | 'payments'>(
+    normalizeTab(initialTab)
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(normalizeTab(initialTab));
+    }
+  }, [initialTab]);
   const [selectedStageFilter, setSelectedStageFilter] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<any>(null);
@@ -344,6 +366,7 @@ export const MobileOrderTrackingSheet: React.FC<MobileOrderTrackingSheetProps> =
                 initialMedia={currentMedia}
                 isAdmin={false}
                 theme="light"
+                initialMediaFilter={initialFilter === 'videos' ? 'videos' : initialFilter === 'photos' ? 'photos' : 'all'}
                 selectedStageFilter={selectedStageFilter}
                 onClearStageFilter={() => setSelectedStageFilter(null)}
               />

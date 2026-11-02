@@ -11,6 +11,7 @@ import {
 } from '@/lib/db/schema';
 import { getSessionUser } from '@/lib/auth/jwt';
 import { eq } from 'drizzle-orm';
+import { sendWebPushNotification } from '@/lib/services/webpush';
 
 export async function POST(
   request: Request,
@@ -151,6 +152,21 @@ export async function POST(
         isRead: 0,
         createdAt: now,
       });
+
+      try {
+        await sendWebPushNotification({
+          userId: order.customerId,
+          title: `💳 Payment Confirmed: Order #${order.orderNumber}`,
+          message: `Your bank transfer payment of ₨${creditAmount.toLocaleString()} has been verified. Remaining balance: ₨${newRemainingBalance.toLocaleString()}.`,
+          url: `/orders/${order.id}?tab=finance`,
+          tab: 'finance',
+          category: 'orders',
+          type: 'order_status',
+          relatedOrderId: order.id,
+        });
+      } catch (pushErr) {
+        console.warn('Bank transfer push notification note:', pushErr);
+      }
 
       // 7. Audit log
       await db.insert(auditLogs).values({

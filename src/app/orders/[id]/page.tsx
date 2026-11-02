@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Package,
@@ -41,7 +41,10 @@ import { OrderCraftingGallery } from '@/components/orders/OrderCraftingGallery';
 export default function OrderDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const orderId = params?.id as string;
+  const queryTab = searchParams?.get('tab');
+  const queryFilter = searchParams?.get('filter');
 
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -51,7 +54,11 @@ export default function OrderDetailsPage() {
   const [timeline, setTimeline] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [galleryStageFilter, setGalleryStageFilter] = useState<string | null>(null);
+
   const galleryRef = useRef<HTMLDivElement>(null);
+  const stagesRef = useRef<HTMLDivElement>(null);
+  const specsRef = useRef<HTMLDivElement>(null);
+  const financeRef = useRef<HTMLDivElement>(null);
 
   // Delivery & Reversal State
   const [deliveryRecord, setDeliveryRecord] = useState<any>(null);
@@ -111,6 +118,23 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     loadOrderDetails();
   }, [orderId]);
+
+  useEffect(() => {
+    if (!loading && order && queryTab) {
+      const timer = setTimeout(() => {
+        if (queryTab === 'media' && galleryRef.current) {
+          galleryRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if ((queryTab === 'stages' || queryTab === 'timeline') && stagesRef.current) {
+          stagesRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if ((queryTab === 'specifications' || queryTab === 'details') && specsRef.current) {
+          specsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if ((queryTab === 'finance' || queryTab === 'payments') && financeRef.current) {
+          financeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, order, queryTab]);
 
   const loadOrderDetails = async () => {
     try {
@@ -653,7 +677,7 @@ export default function OrderDetailsPage() {
         </section>
 
         {/* VISUAL ORDER TRACKING TIMELINE */}
-        <section className="bg-[#141822] border border-white/10 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+        <section ref={stagesRef} className="bg-[#141822] border border-white/10 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -940,7 +964,7 @@ export default function OrderDetailsPage() {
         </section>
 
         {/* MULTI-ITEM COMMISSION SPECIFICATION DOSSIER */}
-        <section className="bg-[#141822] border border-[#c5a880]/20 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+        <section ref={specsRef} className="bg-[#141822] border border-[#c5a880]/20 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -1155,7 +1179,7 @@ export default function OrderDetailsPage() {
           </div>
 
           {/* COLUMN 3: FINANCIAL LEDGER & SETTLEMENTS */}
-          <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
+          <div ref={financeRef} className="bg-[#141822] border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider font-serif flex items-center gap-2">
@@ -1280,6 +1304,7 @@ export default function OrderDetailsPage() {
             initialMedia={media}
             isAdmin={canUploadMedia}
             onMediaChange={(updated) => setMedia(updated)}
+            initialMediaFilter={queryFilter === 'videos' ? 'videos' : queryFilter === 'photos' ? 'photos' : 'all'}
             selectedStageFilter={galleryStageFilter}
             onClearStageFilter={() => setGalleryStageFilter(null)}
           />

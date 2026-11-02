@@ -88,6 +88,19 @@ export const MobileWorkshopScreen: React.FC<MobileWorkshopScreenProps> = ({
     fetchMedia();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mediaList.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const targetVideoId = params.get('video');
+      if (targetVideoId) {
+        const found = mediaList.find((m) => m.id === targetVideoId);
+        if (found) {
+          setActiveMediaItem(found);
+        }
+      }
+    }
+  }, [mediaList]);
+
   const featuredVideo = mediaList.find((m) => m.isFeatured && m.mediaType === 'video') ||
     mediaList.find((m) => m.mediaType === 'video') ||
     mediaList[0];

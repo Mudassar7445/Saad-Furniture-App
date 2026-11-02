@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         userId: 'all',
         title: '🎬 New Workshop Craftsmanship Media',
         message: `${title.trim()}: New master craftsmanship footage has been published in the atelier.`,
-        url: '/workshop',
+        url: `/workshop?video=${newRecord.id}`,
         type: 'workshop_update',
         category: 'workshop',
       });

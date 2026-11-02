@@ -320,7 +320,7 @@ export async function POST(request: Request) {
         category: 'orders',
         title: 'New Order Created',
         message: `Your furniture order #${orderNumber} has been successfully created. Tap to view your order details.`,
-        url: `/orders/${orderId}`,
+        url: `/orders/${orderId}?tab=overview`,
         targetUserId: customerId,
         relatedId: orderId,
       });

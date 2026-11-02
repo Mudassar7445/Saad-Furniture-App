@@ -200,7 +200,7 @@ export async function POST(request: Request) {
       message: `Saad Furniture has unveiled a new ${category} creation. Tap to explore details.`,
       category: 'products',
       targetUserId: 'all',
-      url: `/?product=${productId}`,
+      url: `/shop?product=${productId}`,
     }).catch((err) => console.error('Failed to queue new product push notification:', err));
 
     productsCache.clear();

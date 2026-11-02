@@ -380,7 +380,7 @@ export async function PATCH(
       userId: order.customerId,
       title: `🛋️ Saad Furniture: Order #${order.orderNumber}`,
       message: `Progressed to [${finalStageTitle}] (${updates.productionProgress ?? order.productionProgress}%). Tap to view live craftsman status.`,
-      url: `/orders/${id}`,
+      url: `/orders/${id}?tab=stages`,
       type: 'stage_completed',
       relatedOrderId: id,
     });
@@ -410,7 +410,7 @@ export async function PATCH(
       userId: order.customerId,
       title: `⏱️ Saad Furniture: Timeline Notice #${order.orderNumber}`,
       message: `${delayReason || 'Workshop schedule notice regarding your piece.'}`,
-      url: `/orders/${id}`,
+      url: `/orders/${id}?tab=stages`,
       type: 'order_update',
       relatedOrderId: id,
     });
@@ -435,6 +435,15 @@ export async function PATCH(
       type: 'order_update',
       relatedOrderId: id,
     });
+
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `Saad Furniture: Order #${order.orderNumber}`,
+      message: `Your commission has been marked as cancelled. Tap to review order record.`,
+      url: `/orders/${id}?tab=overview`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
   }
 
   if (deliveryChanged) {
@@ -455,6 +464,15 @@ export async function PATCH(
       userId: order.customerId,
       title: `Delivery Update: ${order.orderNumber}`,
       message: `Delivery status for ${order.orderNumber} is now marked as [${deliveryStatus}].`,
+      type: 'order_update',
+      relatedOrderId: id,
+    });
+
+    await sendWebPushNotification({
+      userId: order.customerId,
+      title: `🚚 Delivery Update: Order #${order.orderNumber}`,
+      message: `Delivery status is now [${deliveryStatus?.toUpperCase()}]. Tap to view delivery details.`,
+      url: `/orders/${id}?tab=overview`,
       type: 'order_update',
       relatedOrderId: id,
     });
@@ -484,7 +502,7 @@ export async function PATCH(
       userId: order.customerId,
       title: `🛋️ Saad Furniture: Order #${order.orderNumber}`,
       message: `Your bespoke commission specifications have been updated. Tap to inspect.`,
-      url: `/orders/${id}`,
+      url: `/orders/${id}?tab=specifications`,
       type: 'order_update',
       relatedOrderId: id,
     });

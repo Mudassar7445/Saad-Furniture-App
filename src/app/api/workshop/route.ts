@@ -194,7 +194,7 @@ export async function POST(request: Request) {
           userId: 'all',
           title: '🎬 New Workshop Craftsmanship Media',
           message: `${record.title}: New master craftsmanship footage has been published in the atelier.`,
-          url: '/workshop',
+          url: `/workshop?video=${record.id}`,
           type: 'workshop_update',
           category: 'workshop',
         });

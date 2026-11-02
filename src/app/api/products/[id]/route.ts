@@ -98,7 +98,7 @@ export async function PUT(
         : `Details or media have been updated for ${body.title || 'this handcrafted piece'}.`,
       category: 'products',
       targetUserId: 'all',
-      url: `/?product=${id}`,
+      url: `/shop?product=${id}`,
       relatedId: id,
     }).catch((err) => console.error('Failed to queue product update notification:', err));
   }
